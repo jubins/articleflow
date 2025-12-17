@@ -11,7 +11,7 @@ This directory contains the database schema, migrations, and configuration for C
 
 ### 1. Create a Supabase Project
 1. Go to https://supabase.com and create a new project
-2. Note down your project URL and anon key
+2. Note down your project URL and publishable key (formerly called anon key)
 3. Wait for the project to be fully initialized
 
 ### 2. Run the Migration
@@ -43,7 +43,7 @@ Update your `.env.local` file with your Supabase credentials:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
