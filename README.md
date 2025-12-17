@@ -61,8 +61,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 - Node.js 18+
 - Supabase account
-- Claude API key OR Gemini API key
-- Google Cloud project with service account (for Sheets/Docs integration)
+- Google Cloud project with OAuth 2.0 credentials (for Sheets/Docs integration)
 
 ### Environment Variables
 
@@ -74,18 +73,15 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# AI Providers (at least one required)
-ANTHROPIC_API_KEY=sk-ant-your-key
-GOOGLE_AI_API_KEY=AIza-your-key
+# Google OAuth (for user Google account connection)
+GOOGLE_OAUTH_CLIENT_ID=your-oauth-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-oauth-client-secret
 
-# Google Cloud (for Sheets/Docs)
-GOOGLE_CLIENT_EMAIL=service-account@project.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-GOOGLE_PROJECT_ID=your-project-id
-
-# Google Sheets ID (optional, can be set per user)
-GOOGLE_SHEETS_ID=your-sheet-id
+# Application URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+**Note**: API keys (Claude, Gemini) are now managed per-user through the **Integrations** page, not in environment variables!
 
 ### Google Sheets Format
 
@@ -98,11 +94,20 @@ Your Google Sheet should have these columns in the "generator" tab:
 ## Usage
 
 1. **Sign Up**: Create an account at `/signup`
-2. **Configure Settings**: Add your API keys in Settings
+2. **Connect Integrations**: Go to `/integrations` and:
+   - Connect your Google account (for Sheets/Docs access)
+   - Add your Claude or Gemini API key
 3. **Generate Article**:
    - Manual: Use the Generate page
    - Batch: Sync from Google Sheets via API
 4. **View Dashboard**: Track all generated articles
+
+### How Google Integration Works
+
+- Users connect their **own** Google accounts via OAuth
+- No service account or JSON key files needed
+- Each user's Google Sheets and Docs are accessed with their credentials
+- Tokens are automatically refreshed
 
 ## API Endpoints
 
@@ -131,11 +136,22 @@ Key tables:
 3. Add environment variables
 4. Deploy
 
+## Google OAuth Setup
+
+For detailed instructions on setting up Google OAuth, see [OAUTH_SETUP_GUIDE.md](./OAUTH_SETUP_GUIDE.md).
+
+Quick steps:
+1. Create OAuth credentials in Google Cloud Console
+2. Enable Google Sheets, Docs, and Drive APIs
+3. Add redirect URI: `http://localhost:3000/api/integrations/google/callback`
+4. Add credentials to `.env.local`
+
 ## Troubleshooting
 
-- **"User settings not found"**: Configure API keys in Settings
-- **"Failed to access Google Sheets"**: Share sheet with service account email
+- **"User settings not found"**: Go to Integrations and add your API keys
+- **"Google account not connected"**: Connect Google in Integrations page
 - **"Failed to generate article"**: Verify API key is valid
+- **"OAuth not configured"**: Check `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env.local`
 
 See full documentation in individual `README.md` files in subdirectories.
 

@@ -19,7 +19,7 @@ export function Navigation() {
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/generate', label: 'Generate' },
-    { href: '/history', label: 'History' },
+    { href: '/integrations', label: 'Integrations' },
     { href: '/settings', label: 'Settings' },
   ]
 

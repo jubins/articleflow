@@ -44,6 +44,11 @@ export interface Database {
           default_ai_provider: 'claude' | 'gemini'
           default_word_count: number
           article_template: string | null
+          google_access_token: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
+          google_connected: boolean
+          google_connected_at: string | null
           created_at: string
           updated_at: string
         }
@@ -56,6 +61,11 @@ export interface Database {
           default_ai_provider?: 'claude' | 'gemini'
           default_word_count?: number
           article_template?: string | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          google_connected?: boolean
+          google_connected_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -68,6 +78,11 @@ export interface Database {
           default_ai_provider?: 'claude' | 'gemini'
           default_word_count?: number
           article_template?: string | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          google_connected?: boolean
+          google_connected_at?: string | null
           created_at?: string
           updated_at?: string
         }

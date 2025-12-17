@@ -1,12 +1,6 @@
-// Google Sheets integration service
+// Google Sheets integration service with OAuth support
 import { google } from 'googleapis'
-import { Prompt } from '@/lib/types/database'
-
-export interface GoogleSheetsConfig {
-  clientEmail: string
-  privateKey: string
-  projectId: string
-}
+import { getGoogleOAuthClient } from './google-oauth'
 
 export interface SheetRow {
   topic: string
@@ -18,17 +12,19 @@ export interface SheetRow {
 
 export class GoogleSheetsService {
   private sheets
-  private auth
+  private userId: string
 
-  constructor(config: GoogleSheetsConfig) {
-    // Create JWT auth client
-    this.auth = new google.auth.JWT({
-      email: config.clientEmail,
-      key: config.privateKey.replace(/\\n/g, '\n'), // Handle escaped newlines
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    })
+  constructor(userId: string, oauthClient: any) {
+    this.userId = userId
+    this.sheets = google.sheets({ version: 'v4', auth: oauthClient })
+  }
 
-    this.sheets = google.sheets({ version: 'v4', auth: this.auth })
+  /**
+   * Create a new instance with user's OAuth credentials
+   */
+  static async createForUser(userId: string): Promise<GoogleSheetsService> {
+    const oauthClient = await getGoogleOAuthClient(userId)
+    return new GoogleSheetsService(userId, oauthClient)
   }
 
   /**
@@ -134,17 +130,4 @@ export class GoogleSheetsService {
       )
     }
   }
-}
-
-/**
- * Create a Google Sheets service instance from environment variables
- */
-export function createGoogleSheetsService(): GoogleSheetsService {
-  const config: GoogleSheetsConfig = {
-    clientEmail: process.env.GOOGLE_CLIENT_EMAIL!,
-    privateKey: process.env.GOOGLE_PRIVATE_KEY!,
-    projectId: process.env.GOOGLE_PROJECT_ID!,
-  }
-
-  return new GoogleSheetsService(config)
 }

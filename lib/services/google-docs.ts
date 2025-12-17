@@ -1,6 +1,6 @@
-// Google Docs integration service
+// Google Docs integration service with OAuth support
 import { google } from 'googleapis'
-import { GoogleSheetsConfig } from './google-sheets'
+import { getGoogleOAuthClient } from './google-oauth'
 
 export interface CreateDocOptions {
   title: string
@@ -17,21 +17,20 @@ export interface CreatedDoc {
 export class GoogleDocsService {
   private docs
   private drive
-  private auth
+  private userId: string
 
-  constructor(config: GoogleSheetsConfig) {
-    // Create JWT auth client
-    this.auth = new google.auth.JWT({
-      email: config.clientEmail,
-      key: config.privateKey.replace(/\\n/g, '\n'),
-      scopes: [
-        'https://www.googleapis.com/auth/documents',
-        'https://www.googleapis.com/auth/drive.file',
-      ],
-    })
+  constructor(userId: string, oauthClient: any) {
+    this.userId = userId
+    this.docs = google.docs({ version: 'v1', auth: oauthClient })
+    this.drive = google.drive({ version: 'v3', auth: oauthClient })
+  }
 
-    this.docs = google.docs({ version: 'v1', auth: this.auth })
-    this.drive = google.drive({ version: 'v3', auth: this.auth })
+  /**
+   * Create a new instance with user's OAuth credentials
+   */
+  static async createForUser(userId: string): Promise<GoogleDocsService> {
+    const oauthClient = await getGoogleOAuthClient(userId)
+    return new GoogleDocsService(userId, oauthClient)
   }
 
   /**
@@ -281,17 +280,4 @@ export class GoogleDocsService {
       )
     }
   }
-}
-
-/**
- * Create a Google Docs service instance from environment variables
- */
-export function createGoogleDocsService(): GoogleDocsService {
-  const config: GoogleSheetsConfig = {
-    clientEmail: process.env.GOOGLE_CLIENT_EMAIL!,
-    privateKey: process.env.GOOGLE_PRIVATE_KEY!,
-    projectId: process.env.GOOGLE_PROJECT_ID!,
-  }
-
-  return new GoogleDocsService(config)
 }
