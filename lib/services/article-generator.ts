@@ -1,6 +1,8 @@
 // Article generation service with Claude and Gemini support
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { buildAuthorSignature } from '@/lib/templates/technical-article'
+import { Profile } from '@/lib/types/database'
 
 export interface ArticleGenerationOptions {
   topic: string
@@ -10,6 +12,7 @@ export interface ArticleGenerationOptions {
   provider: 'claude' | 'gemini'
   apiKey: string
   template?: string
+  profile?: Partial<Profile> | null
 }
 
 export interface GeneratedArticle {
@@ -115,8 +118,14 @@ export class ArticleGeneratorService {
     // Parse the JSON response
     const article = this.parseArticleResponse(textContent)
 
+    // Append author signature if profile is provided
+    const authorSignature = options.profile ? buildAuthorSignature(options.profile) : ''
+    const contentWithSignature = article.content + authorSignature
+
     return {
       ...article,
+      content: contentWithSignature,
+      wordCount: contentWithSignature.split(/\s+/).filter(Boolean).length,
       metadata: {
         provider: 'claude',
         model: response.model,
@@ -148,8 +157,14 @@ export class ArticleGeneratorService {
     // Parse the JSON response
     const article = this.parseArticleResponse(text)
 
+    // Append author signature if profile is provided
+    const authorSignature = options.profile ? buildAuthorSignature(options.profile) : ''
+    const contentWithSignature = article.content + authorSignature
+
     return {
       ...article,
+      content: contentWithSignature,
+      wordCount: contentWithSignature.split(/\s+/).filter(Boolean).length,
       metadata: {
         provider: 'gemini',
         model: 'gemini-1.5-pro',

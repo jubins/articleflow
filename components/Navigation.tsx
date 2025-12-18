@@ -20,6 +20,7 @@ export function Navigation() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/generate', label: 'Generate' },
     { href: '/integrations', label: 'Integrations' },
+    { href: '/profile', label: 'Profile' },
     { href: '/settings', label: 'Settings' },
   ]
 

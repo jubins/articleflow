@@ -63,6 +63,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get user profile for author signature
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
+      .eq('id', user.id)
+      .single()
+
     // Create a draft article record
     const { data: article, error: articleError } = await supabase
       .from('articles')
@@ -110,6 +117,7 @@ export async function POST(request: NextRequest) {
         provider: validatedData.aiProvider,
         apiKey,
         template: settings.article_template || undefined,
+        profile: profile || null,
       })
 
       const generationTime = Date.now() - startTime

@@ -16,6 +16,11 @@ export interface Database {
           id: string
           email: string
           full_name: string | null
+          linkedin_handle: string | null
+          twitter_handle: string | null
+          github_handle: string | null
+          bio: string | null
+          website: string | null
           created_at: string
           updated_at: string
         }
@@ -23,6 +28,11 @@ export interface Database {
           id: string
           email: string
           full_name?: string | null
+          linkedin_handle?: string | null
+          twitter_handle?: string | null
+          github_handle?: string | null
+          bio?: string | null
+          website?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -30,6 +40,11 @@ export interface Database {
           id?: string
           email?: string
           full_name?: string | null
+          linkedin_handle?: string | null
+          twitter_handle?: string | null
+          github_handle?: string | null
+          bio?: string | null
+          website?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -214,6 +229,7 @@ export interface Database {
           article_template: string | null
           create_google_doc: boolean
           save_markdown: boolean
+          auto_approve: boolean
           is_active: boolean
           last_run_at: string | null
           total_articles_generated: number
@@ -237,6 +253,7 @@ export interface Database {
           article_template?: string | null
           create_google_doc?: boolean
           save_markdown?: boolean
+          auto_approve?: boolean
           is_active?: boolean
           last_run_at?: string | null
           total_articles_generated?: number
@@ -260,6 +277,7 @@ export interface Database {
           article_template?: string | null
           create_google_doc?: boolean
           save_markdown?: boolean
+          auto_approve?: boolean
           is_active?: boolean
           last_run_at?: string | null
           total_articles_generated?: number
