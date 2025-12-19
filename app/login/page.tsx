@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
 export default function LoginPage() {
@@ -73,12 +74,12 @@ export default function LoginPage() {
                 autoComplete="email"
               />
 
-              <Input
+              <PasswordInput
+                id="password"
                 label="Password"
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                onChange={setPassword}
+                placeholder="Enter your password"
                 required
                 autoComplete="current-password"
               />

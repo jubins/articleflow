@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
 export default function SignupPage() {
@@ -125,12 +126,12 @@ export default function SignupPage() {
                 autoComplete="email"
               />
 
-              <Input
+              <PasswordInput
+                id="password"
                 label="Password"
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                onChange={setPassword}
+                placeholder="Create a strong password"
                 required
                 autoComplete="new-password"
                 helperText="Must be at least 6 characters"

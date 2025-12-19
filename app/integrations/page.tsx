@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -258,20 +258,20 @@ export default function IntegrationsPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSaveAPIKeys} className="space-y-4">
-              <Input
+              <PasswordInput
+                id="anthropic_api_key"
                 label="Claude API Key (Anthropic)"
-                type="password"
                 value={settings.anthropic_api_key}
-                onChange={(e) => setSettings({ ...settings, anthropic_api_key: e.target.value })}
+                onChange={(value) => setSettings({ ...settings, anthropic_api_key: value })}
                 placeholder="sk-ant-..."
                 helperText="Get your API key from https://console.anthropic.com"
               />
 
-              <Input
+              <PasswordInput
+                id="google_ai_api_key"
                 label="Gemini API Key (Google AI)"
-                type="password"
                 value={settings.google_ai_api_key}
-                onChange={(e) => setSettings({ ...settings, google_ai_api_key: e.target.value })}
+                onChange={(value) => setSettings({ ...settings, google_ai_api_key: value })}
                 placeholder="AIza..."
                 helperText="Get your API key from https://makersuite.google.com/app/apikey"
               />
