@@ -89,11 +89,11 @@ export default function IntegrationsPage() {
         .from('user_settings')
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore - Supabase type inference issue
-        .upsert({
-          user_id: user.id,
+        .update({
           anthropic_api_key: settings.anthropic_api_key,
           google_ai_api_key: settings.google_ai_api_key,
         })
+        .eq('user_id', user.id)
 
       if (error) throw error
 
