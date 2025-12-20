@@ -8,11 +8,23 @@ import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
+interface GenerateSuccess {
+  article: {
+    title: string
+    word_count: number
+    google_doc_url?: string
+    markdown_url?: string
+  }
+  metadata: {
+    generation_time_ms: number
+  }
+}
+
 export default function GeneratePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState<any>(null)
+  const [success, setSuccess] = useState<GenerateSuccess | null>(null)
 
   const [formData, setFormData] = useState({
     topic: '',
@@ -80,7 +92,7 @@ export default function GeneratePage() {
                 Article Generated Successfully!
               </h2>
               <p className="text-gray-600 mb-4">
-                Your article "{success.article.title}" has been generated.
+                Your article &quot;{success.article.title}&quot; has been generated.
               </p>
               <div className="space-y-2 mb-6">
                 <p className="text-sm text-gray-600">
@@ -159,7 +171,7 @@ export default function GeneratePage() {
                   </label>
                   <select
                     value={formData.platform}
-                    onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'medium' | 'devto' | 'dzone' | 'all' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">All Platforms</option>
@@ -186,7 +198,7 @@ export default function GeneratePage() {
                 </label>
                 <select
                   value={formData.aiProvider}
-                  onChange={(e) => setFormData({ ...formData, aiProvider: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, aiProvider: e.target.value as 'claude' | 'gemini' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="claude">Claude (Anthropic)</option>

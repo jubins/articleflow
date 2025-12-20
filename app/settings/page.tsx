@@ -46,13 +46,15 @@ export default function SettingsPage() {
       }
 
       if (data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const typedData = data as any
         setSettings({
-          anthropic_api_key: data.anthropic_api_key || '',
-          google_ai_api_key: data.google_ai_api_key || '',
-          google_sheets_id: data.google_sheets_id || '',
-          default_ai_provider: data.default_ai_provider,
-          default_word_count: data.default_word_count,
-          article_template: data.article_template || '',
+          anthropic_api_key: typedData.anthropic_api_key || '',
+          google_ai_api_key: typedData.google_ai_api_key || '',
+          google_sheets_id: typedData.google_sheets_id || '',
+          default_ai_provider: typedData.default_ai_provider,
+          default_word_count: typedData.default_word_count,
+          article_template: typedData.article_template || '',
         })
       }
     } catch (err) {
@@ -77,6 +79,8 @@ export default function SettingsPage() {
 
       const { error } = await supabase
         .from('user_settings')
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Supabase type inference issue
         .upsert({
           user_id: user.id,
           ...settings,
@@ -174,7 +178,7 @@ export default function SettingsPage() {
                 </label>
                 <select
                   value={settings.default_ai_provider}
-                  onChange={(e) => setSettings({ ...settings, default_ai_provider: e.target.value as any })}
+                  onChange={(e) => setSettings({ ...settings, default_ai_provider: e.target.value as 'claude' | 'gemini' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="claude">Claude (Anthropic)</option>

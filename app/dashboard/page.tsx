@@ -42,13 +42,14 @@ export default function DashboardPage() {
 
       if (error) throw error
 
-      setArticles(articlesData || [])
+      const typedArticles = (articlesData || []) as Article[]
+      setArticles(typedArticles)
 
       // Calculate stats
-      const total = articlesData?.length || 0
-      const generated = articlesData?.filter(a => a.status === 'generated').length || 0
-      const failed = articlesData?.filter(a => a.status === 'failed').length || 0
-      const draft = articlesData?.filter(a => a.status === 'draft').length || 0
+      const total = typedArticles.length
+      const generated = typedArticles.filter(a => a.status === 'generated').length
+      const failed = typedArticles.filter(a => a.status === 'failed').length
+      const draft = typedArticles.filter(a => a.status === 'draft').length
 
       setStats({ total, generated, failed, draft })
     } catch (error) {
@@ -180,7 +181,7 @@ export default function DashboardPage() {
                           {article.platform}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={article.status as any} />
+                          <StatusBadge status={article.status as 'draft' | 'generated' | 'published' | 'failed'} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {format(new Date(article.created_at), 'MMM dd, yyyy')}

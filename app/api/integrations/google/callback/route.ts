@@ -57,6 +57,8 @@ export async function GET(request: NextRequest) {
     // Store tokens in user_settings
     const { error: updateError } = await supabase
       .from('user_settings')
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - Supabase type inference issue
       .upsert({
         user_id: user.id,
         google_access_token: tokens.access_token,

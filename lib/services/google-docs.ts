@@ -1,5 +1,5 @@
 // Google Docs integration service with OAuth support
-import { google } from 'googleapis'
+import { google, Auth } from 'googleapis'
 import { getGoogleOAuthClient } from './google-oauth'
 
 export interface CreateDocOptions {
@@ -19,7 +19,7 @@ export class GoogleDocsService {
   private drive
   private userId: string
 
-  constructor(userId: string, oauthClient: any) {
+  constructor(userId: string, oauthClient: Auth.OAuth2Client) {
     this.userId = userId
     this.docs = google.docs({ version: 'v1', auth: oauthClient })
     this.drive = google.drive({ version: 'v3', auth: oauthClient })
@@ -74,7 +74,8 @@ export class GoogleDocsService {
     description?: string,
     tags?: string[]
   ): Promise<void> {
-    const requests = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requests: any[] = []
 
     // Parse markdown and create requests
     let index = 1
@@ -174,7 +175,7 @@ export class GoogleDocsService {
   /**
    * Create heading style requests based on markdown headers
    */
-  private createHeadingStyles(content: string, startIndex: number): any[] {
+  private createHeadingStyles(content: string, startIndex: number): unknown[] {
     const requests = []
     const lines = content.split('\n')
     let currentIndex = startIndex

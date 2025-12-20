@@ -36,7 +36,7 @@ export class StorageService {
       const blob = new Blob([options.content], { type: 'text/markdown' })
 
       // Upload to Supabase Storage
-      const { data, error } = await this.supabase.storage
+      const { error } = await this.supabase.storage
         .from('articles-markdown')
         .upload(filePath, blob, {
           contentType: 'text/markdown',

@@ -1,5 +1,5 @@
 // Google Sheets integration service with OAuth support
-import { google } from 'googleapis'
+import { google, Auth } from 'googleapis'
 import { getGoogleOAuthClient } from './google-oauth'
 
 export interface SheetRow {
@@ -14,7 +14,7 @@ export class GoogleSheetsService {
   private sheets
   private userId: string
 
-  constructor(userId: string, oauthClient: any) {
+  constructor(userId: string, oauthClient: Auth.OAuth2Client) {
     this.userId = userId
     this.sheets = google.sheets({ version: 'v4', auth: oauthClient })
   }

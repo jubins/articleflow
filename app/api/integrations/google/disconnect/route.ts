@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 /**
  * Disconnect Google integration
  * POST /api/integrations/google/disconnect
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
     // Clear Google OAuth tokens
     const { error: updateError } = await supabase
       .from('user_settings')
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - Supabase type inference issue
       .update({
         google_access_token: null,
         google_refresh_token: null,
