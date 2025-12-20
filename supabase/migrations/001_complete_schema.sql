@@ -68,6 +68,20 @@ COMMENT ON COLUMN user_settings.google_ai_api_key IS 'User-provided Gemini API k
 COMMENT ON COLUMN user_settings.google_access_token IS 'OAuth access token for Google APIs';
 COMMENT ON COLUMN user_settings.google_refresh_token IS 'OAuth refresh token for Google APIs';
 
+-- Prompts table (individual article prompts)
+CREATE TABLE IF NOT EXISTS prompts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    topic TEXT NOT NULL,
+    prompt_text TEXT NOT NULL,
+    file_id TEXT,
+    source TEXT NOT NULL CHECK (source IN ('manual', 'sheets')),
+    processed BOOLEAN DEFAULT FALSE NOT NULL,
+    sheet_row_number INTEGER,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- Workflows table (batch article generation workflows)
 CREATE TABLE IF NOT EXISTS workflows (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -107,36 +121,6 @@ CREATE TABLE IF NOT EXISTS workflows (
 
 COMMENT ON COLUMN workflows.auto_approve IS 'Auto-approve articles without manual review';
 
--- Workflow items table (for manual prompt lists)
-CREATE TABLE IF NOT EXISTS workflow_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    prompt TEXT NOT NULL,
-    file_id TEXT,
-    position INTEGER NOT NULL DEFAULT 0, -- Order in the list
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
-    article_id UUID REFERENCES articles(id) ON DELETE SET NULL,
-    error_message TEXT,
-    processed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-
--- Prompts table (individual article prompts)
-CREATE TABLE IF NOT EXISTS prompts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    topic TEXT NOT NULL,
-    prompt_text TEXT NOT NULL,
-    file_id TEXT,
-    source TEXT NOT NULL CHECK (source IN ('manual', 'sheets')),
-    processed BOOLEAN DEFAULT FALSE NOT NULL,
-    sheet_row_number INTEGER,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-
 -- Articles table (generated articles)
 CREATE TABLE IF NOT EXISTS articles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -158,6 +142,22 @@ CREATE TABLE IF NOT EXISTS articles (
     generation_metadata JSONB DEFAULT '{}',
     error_message TEXT,
     generated_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Workflow items table (for manual prompt lists)
+CREATE TABLE IF NOT EXISTS workflow_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    file_id TEXT,
+    position INTEGER NOT NULL DEFAULT 0, -- Order in the list
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    article_id UUID REFERENCES articles(id) ON DELETE SET NULL,
+    error_message TEXT,
+    processed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
