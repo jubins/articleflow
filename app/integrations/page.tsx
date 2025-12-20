@@ -36,7 +36,7 @@ export default function IntegrationsPage() {
     } else if (searchParams.get('error')) {
       setError(`Failed to connect Google: ${searchParams.get('error')}`)
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   const loadSettings = async () => {
     try {
