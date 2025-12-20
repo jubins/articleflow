@@ -16,8 +16,6 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('')
 
   const [settings, setSettings] = useState({
-    anthropic_api_key: '',
-    google_ai_api_key: '',
     google_sheets_id: '',
     default_ai_provider: 'claude' as 'claude' | 'gemini',
     default_word_count: 2000,
@@ -49,11 +47,9 @@ export default function SettingsPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const typedData = data as any
         setSettings({
-          anthropic_api_key: typedData.anthropic_api_key || '',
-          google_ai_api_key: typedData.google_ai_api_key || '',
           google_sheets_id: typedData.google_sheets_id || '',
-          default_ai_provider: typedData.default_ai_provider,
-          default_word_count: typedData.default_word_count,
+          default_ai_provider: typedData.default_ai_provider || 'claude',
+          default_word_count: typedData.default_word_count || 2000,
           article_template: typedData.article_template || '',
         })
       }
@@ -111,39 +107,10 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">Manage your API keys and preferences</p>
+          <p className="text-gray-600 mt-1">Manage your preferences and defaults</p>
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
-          {/* API Keys */}
-          <Card>
-            <CardHeader>
-              <CardTitle>API Keys</CardTitle>
-              <CardDescription>
-                Configure your API keys for AI providers and Google services
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                label="Claude API Key (Anthropic)"
-                type="password"
-                value={settings.anthropic_api_key}
-                onChange={(e) => setSettings({ ...settings, anthropic_api_key: e.target.value })}
-                placeholder="sk-ant-..."
-                helperText="Get your API key from https://console.anthropic.com"
-              />
-
-              <Input
-                label="Gemini API Key (Google AI)"
-                type="password"
-                value={settings.google_ai_api_key}
-                onChange={(e) => setSettings({ ...settings, google_ai_api_key: e.target.value })}
-                placeholder="AIza..."
-                helperText="Get your API key from https://makersuite.google.com/app/apikey"
-              />
-            </CardContent>
-          </Card>
-
           {/* Google Sheets */}
           <Card>
             <CardHeader>
@@ -179,7 +146,7 @@ export default function SettingsPage() {
                 <select
                   value={settings.default_ai_provider}
                   onChange={(e) => setSettings({ ...settings, default_ai_provider: e.target.value as 'claude' | 'gemini' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="claude">Claude (Anthropic)</option>
                   <option value="gemini">Gemini (Google)</option>

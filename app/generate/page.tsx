@@ -172,7 +172,7 @@ export default function GeneratePage() {
                   <select
                     value={formData.platform}
                     onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'medium' | 'devto' | 'dzone' | 'all' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">All Platforms</option>
                     <option value="medium">Medium</option>
@@ -199,7 +199,7 @@ export default function GeneratePage() {
                 <select
                   value={formData.aiProvider}
                   onChange={(e) => setFormData({ ...formData, aiProvider: e.target.value as 'claude' | 'gemini' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="claude">Claude (Anthropic)</option>
                   <option value="gemini">Gemini (Google)</option>

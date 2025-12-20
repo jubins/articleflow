@@ -223,12 +223,22 @@ CREATE INDEX IF NOT EXISTS idx_generation_logs_created_at ON generation_logs(cre
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Create profile
     INSERT INTO profiles (id, email, full_name)
     VALUES (
         NEW.id,
         NEW.email,
         NEW.raw_user_meta_data->>'full_name'
     );
+
+    -- Create default user settings
+    INSERT INTO user_settings (user_id, default_ai_provider, default_word_count)
+    VALUES (
+        NEW.id,
+        'claude',
+        2000
+    );
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
