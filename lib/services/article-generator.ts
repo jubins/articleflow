@@ -143,7 +143,7 @@ export class ArticleGeneratorService {
     startTime: number
   ): Promise<GeneratedArticle> {
     const genAI = new GoogleGenerativeAI(options.apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
 
     const template = options.template || DEFAULT_TEMPLATE
     const prompt = this.fillTemplate(template, options)
@@ -167,7 +167,7 @@ export class ArticleGeneratorService {
       wordCount: contentWithSignature.split(/\s+/).filter(Boolean).length,
       metadata: {
         provider: 'gemini',
-        model: 'gemini-1.5-pro',
+        model: 'gemini-3-flash-preview',
         tokensUsed: response.usageMetadata?.totalTokenCount,
         generationTime,
       },
@@ -257,7 +257,7 @@ export class ArticleGeneratorService {
         return true
       } else {
         const genAI = new GoogleGenerativeAI(apiKey)
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+        const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
         // Try a minimal generation to validate
         await model.generateContent('Hi')
         return true
