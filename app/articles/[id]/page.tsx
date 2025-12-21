@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { Mermaid } from '@/components/Mermaid'
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -24,6 +25,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     loadArticle()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
   const loadArticle = async () => {
@@ -200,16 +202,31 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  code({ node, inline, className, children, ...props }) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  code({ inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '')
+                    const language = match ? match[1] : ''
+                    const code = String(children).replace(/\n$/, '')
+
+                    // Render Mermaid diagrams
+                    if (!inline && language === 'mermaid') {
+                      return (
+                        <Mermaid
+                          chart={code}
+                          id={Math.random().toString(36).substring(7)}
+                        />
+                      )
+                    }
+
+                    // Render code blocks with syntax highlighting
                     return !inline && match ? (
                       <SyntaxHighlighter
                         style={vscDarkPlus}
-                        language={match[1]}
+                        language={language}
                         PreTag="div"
                         {...props}
                       >
-                        {String(children).replace(/\n$/, '')}
+                        {code}
                       </SyntaxHighlighter>
                     ) : (
                       <code className={className} {...props}>

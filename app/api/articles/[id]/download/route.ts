@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { Article } from '@/lib/types/database'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
 
 export async function GET(
@@ -21,26 +22,27 @@ export async function GET(
     const format = searchParams.get('format') || 'md'
 
     // Get the article
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: article, error: articleError } = await supabase
       .from('articles')
       .select('*')
       .eq('id', params.id)
       .eq('user_id', user.id)
-      .single() as any
+      .single()
 
-    if (articleError || !article) {
+    const typedArticle = article as Article | null
+
+    if (articleError || !typedArticle) {
       return NextResponse.json(
         { error: 'Article not found' },
         { status: 404 }
       )
     }
 
-    const fileName = article.file_id || article.id
+    const fileName = typedArticle.file_id || typedArticle.id
 
     if (format === 'md') {
       // Return markdown file
-      return new NextResponse(article.content, {
+      return new NextResponse(typedArticle.content, {
         headers: {
           'Content-Type': 'text/markdown',
           'Content-Disposition': `attachment; filename="${fileName}.md"`,
@@ -48,9 +50,9 @@ export async function GET(
       })
     } else if (format === 'docx') {
       // Convert markdown to DOCX
-      const docx = await convertMarkdownToDocx(article.title, article.content)
+      const docx = await convertMarkdownToDocx(typedArticle.title, typedArticle.content)
 
-      return new NextResponse(docx, {
+      return new NextResponse(new Uint8Array(docx), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'Content-Disposition': `attachment; filename="${fileName}.docx"`,
@@ -166,7 +168,7 @@ async function convertMarkdownToDocx(title: string, markdown: string): Promise<B
       }
     } else {
       // Regular text - clean markdown syntax
-      let cleanedLine = line
+      const cleanedLine = line
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
         .replace(/\*(.*?)\*/g, '$1') // Remove italic
         .replace(/`(.*?)`/g, '$1') // Remove inline code

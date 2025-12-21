@@ -39,25 +39,49 @@ Requirements:
 - Target word count: {{wordCount}} words
 - Write in a clear, engaging, and professional tone
 - Include practical examples and code snippets where relevant
+- Include at least 1-2 comparison tables using Markdown table syntax
+- Include at least 1-2 architecture diagrams using Mermaid syntax
 - Structure the article with clear headings and subheadings
 - Ensure technical accuracy
 - Make it valuable for developers and technical readers
+
+IMPORTANT - Tables:
+- Use proper Markdown table syntax with | separators
+- Include headers with alignment markers (---, :---, ---:)
+- Make tables informative and well-structured
+
+IMPORTANT - Diagrams:
+- Use Mermaid syntax for diagrams (flowchart, sequence, class, etc.)
+- Wrap diagrams in \`\`\`mermaid code blocks
+- Create clear, professional architecture diagrams that add value
+- Examples: system architecture, data flow, component relationships, sequences
+
+Example Mermaid diagram:
+\`\`\`mermaid
+graph TD
+    A[Client] -->|Request| B[API Gateway]
+    B --> C{Auth Check}
+    C -->|Valid| D[Process]
+    C -->|Invalid| E[Reject]
+    D --> F[Database]
+    F -->|Response| A
+\`\`\`
 
 Generate a complete article in Markdown format with:
 1. A compelling title
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full article content in Markdown
+4. The full article content in Markdown (including tables and Mermaid diagrams)
 
 Format your response as JSON:
 {
   "title": "Article Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full article content in Markdown format..."
+  "content": "Full article content in Markdown format with tables and Mermaid diagrams..."
 }
 
-Make sure the content is well-structured, engaging, and ready to publish.`
+Make sure the content is well-structured, engaging, includes tables and diagrams, and is ready to publish.`
 
 export class ArticleGeneratorService {
   /**
