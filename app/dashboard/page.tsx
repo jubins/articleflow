@@ -186,24 +186,21 @@ export default function DashboardPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {format(new Date(article.created_at), 'MMM dd, yyyy')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                          <Link
+                            href={`/articles/${article.id}`}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View
+                          </Link>
                           {article.google_doc_url && (
                             <a
                               href={article.google_doc_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-green-600 hover:text-green-900"
                             >
-                              Doc
-                            </a>
-                          )}
-                          {article.markdown_url && (
-                            <a
-                              href={`/api/storage/upload?articleId=${article.id}`}
-                              download
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Download
+                              Google Doc
                             </a>
                           )}
                         </td>

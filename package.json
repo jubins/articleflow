@@ -13,11 +13,16 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.88.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "date-fns": "^4.1.0",
+    "docx": "^9.5.1",
     "googleapis": "^169.0.0",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "remark-gfm": "^4.0.1",
     "zod": "^4.2.1"
   },
   "devDependencies": {
