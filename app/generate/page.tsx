@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { TextArea } from '@/components/ui/TextArea'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
 interface GenerateSuccess {
@@ -20,6 +19,34 @@ interface GenerateSuccess {
   }
 }
 
+const ARTICLE_TYPES = [
+  {
+    value: 'technical',
+    label: 'Technical Article',
+    description: 'In-depth technical content with code examples, architecture diagrams, and detailed explanations',
+  },
+  {
+    value: 'tutorial',
+    label: 'Tutorial / How-To',
+    description: 'Step-by-step guide to accomplish a specific task or learn a technology',
+  },
+  {
+    value: 'comparison',
+    label: 'Comparison / Review',
+    description: 'Compare tools, frameworks, or approaches with detailed analysis tables',
+  },
+  {
+    value: 'best-practices',
+    label: 'Best Practices',
+    description: 'Industry best practices and recommendations for developers',
+  },
+  {
+    value: 'case-study',
+    label: 'Case Study',
+    description: 'Real-world implementation story with architecture and results',
+  },
+]
+
 export default function GeneratePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -28,11 +55,8 @@ export default function GeneratePage() {
 
   const [formData, setFormData] = useState({
     topic: '',
-    prompt: '',
-    wordCount: 2000,
-    platform: 'all' as 'medium' | 'devto' | 'dzone' | 'all',
+    articleType: 'technical' as string,
     aiProvider: 'claude' as 'claude' | 'gemini',
-    fileId: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,11 +95,11 @@ export default function GeneratePage() {
     return (
       <AuthLayout>
         <div className="max-w-2xl mx-auto px-4">
-          <Card>
-            <CardContent className="text-center py-8">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+          <Card className="shadow-lg">
+            <CardContent className="text-center py-12">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
                 <svg
-                  className="h-6 w-6 text-green-600"
+                  className="h-8 w-8 text-green-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -88,18 +112,18 @@ export default function GeneratePage() {
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">
                 Article Generated Successfully!
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-6 text-lg">
                 Your article &quot;{success.article.title}&quot; has been generated.
               </p>
-              <div className="space-y-2 mb-6">
-                <p className="text-sm text-gray-600">
-                  Word Count: <span className="font-semibold">{success.article.word_count}</span>
+              <div className="space-y-3 mb-8 bg-gray-50 rounded-lg p-6">
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Word Count:</span> {success.article.word_count}
                 </p>
-                <p className="text-sm text-gray-600">
-                  Generation Time: <span className="font-semibold">{(success.metadata.generation_time_ms / 1000).toFixed(2)}s</span>
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Generation Time:</span> {(success.metadata.generation_time_ms / 1000).toFixed(2)}s
                 </p>
               </div>
               <div className="flex justify-center space-x-4">
@@ -111,7 +135,7 @@ export default function GeneratePage() {
                     Open Google Doc
                   </Button>
                 )}
-                <Button onClick={() => router.push('/dashboard')}>
+                <Button onClick={() => router.push('/dashboard')} className="px-8">
                   View Dashboard
                 </Button>
               </div>
@@ -122,19 +146,21 @@ export default function GeneratePage() {
     )
   }
 
+  const selectedType = ARTICLE_TYPES.find(t => t.value === formData.articleType)
+
   return (
     <AuthLayout>
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Generate Article</h1>
-          <p className="text-gray-600 mt-1">Create a new technical article with AI</p>
+      <div className="max-w-3xl mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">Generate Article</h1>
+          <p className="text-gray-600 mt-2 text-lg">Create high-quality technical content with AI in seconds</p>
         </div>
 
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Article Details</CardTitle>
-            <CardDescription>
-              Fill in the details below to generate your article
+            <CardTitle className="text-2xl">Article Details</CardTitle>
+            <CardDescription className="text-base">
+              Choose your topic and article type - we&apos;ll handle the rest
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -146,75 +172,115 @@ export default function GeneratePage() {
               )}
 
               <Input
-                label="Topic / Title"
+                label="Article Topic"
                 value={formData.topic}
                 onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                placeholder="e.g., Getting Started with React Hooks"
+                placeholder="e.g., Getting Started with React Hooks, Docker Best Practices, GraphQL vs REST"
                 required
-                helperText="The main topic or title for your article"
+                helperText="Enter the main topic or title for your article"
               />
 
-              <TextArea
-                label="Prompt / Instructions"
-                value={formData.prompt}
-                onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                placeholder="Provide detailed instructions for the article..."
-                required
-                rows={6}
-                helperText="Detailed instructions on what the article should cover"
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Platform
-                  </label>
-                  <select
-                    value={formData.platform}
-                    onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'medium' | 'devto' | 'dzone' | 'all' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Platforms</option>
-                    <option value="medium">Medium</option>
-                    <option value="devto">Dev.to</option>
-                    <option value="dzone">DZone</option>
-                  </select>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Article Type
+                </label>
+                <div className="space-y-3">
+                  {ARTICLE_TYPES.map((type) => (
+                    <label
+                      key={type.value}
+                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        formData.articleType === type.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="articleType"
+                        value={type.value}
+                        checked={formData.articleType === type.value}
+                        onChange={(e) => setFormData({ ...formData, articleType: e.target.value })}
+                        className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="font-semibold text-gray-900">{type.label}</div>
+                        <div className="text-sm text-gray-600 mt-1">{type.description}</div>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-
-                <Input
-                  label="Word Count"
-                  type="number"
-                  value={formData.wordCount}
-                  onChange={(e) => setFormData({ ...formData, wordCount: parseInt(e.target.value) })}
-                  min={500}
-                  max={5000}
-                  required
-                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   AI Provider
                 </label>
                 <select
                   value={formData.aiProvider}
                   onChange={(e) => setFormData({ ...formData, aiProvider: e.target.value as 'claude' | 'gemini' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="claude">Claude (Anthropic)</option>
-                  <option value="gemini">Gemini (Google)</option>
+                  <option value="claude">Claude 3.5 Sonnet (Anthropic)</option>
+                  <option value="gemini">Gemini 3 Flash Preview (Google)</option>
                 </select>
               </div>
 
-              <Input
-                label="File ID (Optional)"
-                value={formData.fileId}
-                onChange={(e) => setFormData({ ...formData, fileId: e.target.value })}
-                placeholder="Custom file ID for naming output files"
-                helperText="Leave empty to use auto-generated ID"
-              />
+              {selectedType && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-5">
+                  <div className="flex items-start space-x-3">
+                    <svg className="h-6 w-6 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-base font-semibold text-green-900 mb-2">What you&apos;ll get:</h4>
+                      <ul className="space-y-1.5 text-sm text-green-800">
+                        {formData.articleType === 'technical' && (
+                          <>
+                            <li>• Architecture diagrams with Mermaid</li>
+                            <li>• Code examples with syntax highlighting</li>
+                            <li>• Comparison tables</li>
+                            <li>• Technical deep-dive content (~2000 words)</li>
+                          </>
+                        )}
+                        {formData.articleType === 'tutorial' && (
+                          <>
+                            <li>• Step-by-step instructions</li>
+                            <li>• Code snippets for each step</li>
+                            <li>• Diagrams showing the workflow</li>
+                            <li>• Prerequisites and setup guide</li>
+                          </>
+                        )}
+                        {formData.articleType === 'comparison' && (
+                          <>
+                            <li>• Detailed comparison tables</li>
+                            <li>• Pros and cons analysis</li>
+                            <li>• Use case recommendations</li>
+                            <li>• Performance and feature comparisons</li>
+                          </>
+                        )}
+                        {formData.articleType === 'best-practices' && (
+                          <>
+                            <li>• Industry-standard recommendations</li>
+                            <li>• Code examples of good vs bad practices</li>
+                            <li>• Common pitfalls to avoid</li>
+                            <li>• Real-world implementation tips</li>
+                          </>
+                        )}
+                        {formData.articleType === 'case-study' && (
+                          <>
+                            <li>• System architecture diagrams</li>
+                            <li>• Implementation details with code</li>
+                            <li>• Performance metrics and results</li>
+                            <li>• Lessons learned and takeaways</li>
+                          </>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-end space-x-4 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -227,6 +293,7 @@ export default function GeneratePage() {
                   type="submit"
                   loading={loading}
                   disabled={loading}
+                  className="px-8"
                 >
                   Generate Article
                 </Button>

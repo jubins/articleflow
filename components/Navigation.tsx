@@ -21,7 +21,6 @@ export function Navigation() {
     { href: '/generate', label: 'Generate' },
     { href: '/integrations', label: 'Integrations' },
     { href: '/profile', label: 'Profile' },
-    { href: '/settings', label: 'Settings' },
   ]
 
   return (

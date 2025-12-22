@@ -1,42 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export default function IntegrationsPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [connectingGoogle, setConnectingGoogle] = useState(false)
 
   const [settings, setSettings] = useState({
     anthropic_api_key: '',
     google_ai_api_key: '',
-    google_connected: false,
-    google_connected_at: null as string | null,
   })
 
   useEffect(() => {
     loadSettings()
-
-    // Check for OAuth callback messages
-    if (searchParams.get('google_connected') === 'true') {
-      setSuccess('Google account connected successfully!')
-      // Remove query params
-      router.replace('/integrations')
-    } else if (searchParams.get('error')) {
-      setError(`Failed to connect Google: ${searchParams.get('error')}`)
-    }
-  }, [searchParams, router])
+  }, [])
 
   const loadSettings = async () => {
     try {
@@ -61,8 +46,6 @@ export default function IntegrationsPage() {
         setSettings({
           anthropic_api_key: typedData.anthropic_api_key || '',
           google_ai_api_key: typedData.google_ai_api_key || '',
-          google_connected: typedData.google_connected || false,
-          google_connected_at: typedData.google_connected_at,
         })
       }
     } catch (err) {
@@ -107,50 +90,6 @@ export default function IntegrationsPage() {
     }
   }
 
-  const handleConnectGoogle = async () => {
-    setConnectingGoogle(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/integrations/google/auth')
-      const data = await response.json()
-
-      if (!response.ok || !data.authUrl) {
-        throw new Error(data.error || 'Failed to get OAuth URL')
-      }
-
-      // Redirect to Google OAuth
-      window.location.href = data.authUrl
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect Google')
-      setConnectingGoogle(false)
-    }
-  }
-
-  const handleDisconnectGoogle = async () => {
-    if (!confirm('Are you sure you want to disconnect your Google account?')) {
-      return
-    }
-
-    try {
-      const response = await fetch('/api/integrations/google/disconnect', {
-        method: 'POST',
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to disconnect')
-      }
-
-      setSettings({ ...settings, google_connected: false, google_connected_at: null })
-      setSuccess('Google account disconnected successfully!')
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disconnect Google')
-    }
-  }
-
   if (loading) {
     return (
       <AuthLayout>
@@ -162,9 +101,9 @@ export default function IntegrationsPage() {
   return (
     <AuthLayout>
       <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Integrations</h1>
-          <p className="text-gray-600 mt-1">Connect your accounts and configure API keys</p>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">API Keys</h1>
+          <p className="text-gray-600 mt-2 text-lg">Configure your AI provider API keys to start generating articles</p>
         </div>
 
         {error && (
@@ -179,89 +118,16 @@ export default function IntegrationsPage() {
           </div>
         )}
 
-        {/* Google Integration */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Google Account</CardTitle>
-            <CardDescription>
-              Connect your Google account to read Google Sheets and create Google Docs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {settings.google_connected ? (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg
-                      className="h-6 w-6 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Connected</p>
-                    {settings.google_connected_at && (
-                      <p className="text-sm text-gray-500">
-                        Connected on {new Date(settings.google_connected_at).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Your Google account is connected. You can now read Google Sheets and create Google Docs.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Connect your Google account to enable:
-                </p>
-                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                  <li>Reading prompts from Google Sheets</li>
-                  <li>Creating formatted Google Docs for your articles</li>
-                  <li>Automatic file management in your Google Drive</li>
-                </ul>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            {settings.google_connected ? (
-              <Button
-                variant="outline"
-                onClick={handleDisconnectGoogle}
-              >
-                Disconnect Google
-              </Button>
-            ) : (
-              <Button
-                onClick={handleConnectGoogle}
-                loading={connectingGoogle}
-                disabled={connectingGoogle}
-              >
-                Connect Google Account
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
-
         {/* AI API Keys */}
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>AI Provider API Keys</CardTitle>
-            <CardDescription>
-              Add your AI provider API keys to generate articles
+            <CardTitle className="text-2xl">AI Provider API Keys</CardTitle>
+            <CardDescription className="text-base">
+              Add your AI provider API keys to generate articles with Claude or Gemini
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSaveAPIKeys} className="space-y-4">
+            <form onSubmit={handleSaveAPIKeys} className="space-y-6">
               <PasswordInput
                 id="anthropic_api_key"
                 label="Claude API Key (Anthropic)"
@@ -280,20 +146,42 @@ export default function IntegrationsPage() {
                 helperText="Get your API key from https://makersuite.google.com/app/apikey"
               />
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Why are API keys needed?</h4>
-                <p className="text-sm text-blue-700">
-                  ContentForge uses your own API keys to generate articles. This ensures:
-                </p>
-                <ul className="list-disc list-inside text-sm text-blue-700 mt-2 space-y-1">
-                  <li>You only pay for what you use</li>
-                  <li>Your usage stays within your own API limits</li>
-                  <li>Full control over your AI provider</li>
-                </ul>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-start space-x-3">
+                  <svg className="h-6 w-6 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-base font-semibold text-blue-900 mb-2">Why are API keys needed?</h4>
+                    <p className="text-sm text-blue-800 mb-3">
+                      ContentForge uses your own API keys to generate articles. This ensures:
+                    </p>
+                    <ul className="space-y-2">
+                      <li className="flex items-start text-sm text-blue-800">
+                        <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        You only pay for what you use
+                      </li>
+                      <li className="flex items-start text-sm text-blue-800">
+                        <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Your usage stays within your own API limits
+                      </li>
+                      <li className="flex items-start text-sm text-blue-800">
+                        <svg className="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Full control over your AI provider choice
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button type="submit" loading={saving} disabled={saving}>
+              <div className="flex justify-end pt-2">
+                <Button type="submit" loading={saving} disabled={saving} className="px-8 py-2.5">
                   Save API Keys
                 </Button>
               </div>

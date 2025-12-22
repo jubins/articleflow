@@ -8,13 +8,13 @@ import { z } from 'zod'
 // Request validation schema
 const generateRequestSchema = z.object({
   topic: z.string().min(1, 'Topic is required'),
-  prompt: z.string().min(1, 'Prompt is required'),
+  articleType: z.string().optional().default('technical'),
   wordCount: z.number().int().min(500).max(5000).optional().default(2000),
-  platform: z.enum(['medium', 'devto', 'dzone', 'all']),
+  platform: z.enum(['medium', 'devto', 'dzone', 'all']).optional().default('all'),
   aiProvider: z.enum(['claude', 'gemini']).optional().default('claude'),
   fileId: z.string().optional(),
   promptId: z.string().uuid().optional(),
-  createGoogleDoc: z.boolean().optional().default(true),
+  createGoogleDoc: z.boolean().optional().default(false),
   uploadMarkdown: z.boolean().optional().default(true),
 })
 
@@ -121,14 +121,11 @@ export async function POST(request: NextRequest) {
       // Generate article using AI
       const generatedArticle = await ArticleGeneratorService.generateArticle({
         topic: validatedData.topic,
-        prompt: validatedData.prompt,
+        articleType: validatedData.articleType,
         wordCount: validatedData.wordCount,
         platform: validatedData.platform,
         provider: validatedData.aiProvider,
         apiKey,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Supabase type inference issue with settings
-        template: settings.article_template || undefined,
         profile: profile || null,
       })
 

@@ -183,21 +183,22 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
           <CardContent className="pt-6">
             <div className="prose prose-lg max-w-none
               prose-headings:text-gray-900 prose-headings:font-bold
-              prose-h1:text-3xl prose-h1:mb-4
-              prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-6
-              prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4
-              prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
-              prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-              prose-code:text-pink-600 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded
-              prose-pre:bg-gray-900 prose-pre:text-gray-100
-              prose-ul:list-disc prose-ul:ml-6 prose-ul:mb-4
-              prose-ol:list-decimal prose-ol:ml-6 prose-ol:mb-4
-              prose-li:mb-2
-              prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic
-              prose-table:border-collapse prose-table:w-full
-              prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2
-              prose-td:border prose-td:border-gray-300 prose-td:p-2
-              prose-img:rounded-lg prose-img:shadow-md"
+              prose-h1:text-4xl prose-h1:mb-6 prose-h1:leading-tight
+              prose-h2:text-3xl prose-h2:mb-4 prose-h2:mt-8 prose-h2:leading-snug
+              prose-h3:text-2xl prose-h3:mb-3 prose-h3:mt-6 prose-h3:leading-snug
+              prose-p:text-gray-900 prose-p:leading-relaxed prose-p:mb-4 prose-p:text-base
+              prose-a:text-blue-600 prose-a:font-medium hover:prose-a:underline
+              prose-strong:text-gray-900 prose-strong:font-semibold
+              prose-code:text-pink-600 prose-code:bg-pink-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
+              prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg prose-pre:shadow-lg
+              prose-ul:list-disc prose-ul:ml-6 prose-ul:mb-4 prose-ul:text-gray-900
+              prose-ol:list-decimal prose-ol:ml-6 prose-ol:mb-4 prose-ol:text-gray-900
+              prose-li:mb-2 prose-li:text-gray-900 prose-li:leading-relaxed
+              prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-gray-700 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:my-4
+              prose-table:border-collapse prose-table:w-full prose-table:my-6 prose-table:shadow-md prose-table:rounded-lg
+              prose-th:border prose-th:border-gray-300 prose-th:bg-blue-50 prose-th:p-3 prose-th:text-left prose-th:font-semibold prose-th:text-gray-900
+              prose-td:border prose-td:border-gray-300 prose-td:p-3 prose-td:text-gray-900
+              prose-img:rounded-lg prose-img:shadow-lg prose-img:my-6"
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
