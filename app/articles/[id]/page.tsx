@@ -13,7 +13,7 @@ import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
@@ -310,15 +310,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     // Render code blocks with syntax highlighting
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={tomorrow}
+                        style={oneLight}
                         language={language}
                         PreTag="div"
                         customStyle={{
                           margin: '1.5rem 0',
                           borderRadius: '0.5rem',
                           border: '1px solid #e5e7eb',
+                          backgroundColor: '#fafafa',
                           fontSize: '0.875rem',
                           lineHeight: '1.6',
+                          padding: '1rem',
                         }}
                         codeTagProps={{
                           style: {

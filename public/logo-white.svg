@@ -1,0 +1,31 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- A letterform with flow -->
+  <path d="M 40 150 L 70 50 L 100 150 M 55 100 L 85 100"
+        stroke="#FFFFFF"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- F letterform with flow lines -->
+  <path d="M 110 150 L 110 50 L 160 50 M 110 100 L 150 100"
+        stroke="#FFFFFF"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- Flow accent lines (subtle) -->
+  <path d="M 165 60 Q 175 65 180 75"
+        stroke="#FFFFFF"
+        stroke-width="3"
+        stroke-linecap="round"
+        fill="none"
+        opacity="0.6"/>
+  <path d="M 155 110 Q 165 115 170 125"
+        stroke="#FFFFFF"
+        stroke-width="3"
+        stroke-linecap="round"
+        fill="none"
+        opacity="0.6"/>
+</svg>
