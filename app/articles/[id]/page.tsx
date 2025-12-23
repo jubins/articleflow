@@ -24,6 +24,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
+  const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
+  const [isEditingRichText, setIsEditingRichText] = useState(false)
+  const [editedContent, setEditedContent] = useState('')
 
   useEffect(() => {
     loadArticle()
@@ -97,6 +100,46 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       console.error('Copy error:', err)
       setError('Failed to copy content')
     }
+  }
+
+  const handleEditMarkdown = () => {
+    if (!article) return
+    setEditedContent(article.content)
+    setIsEditingMarkdown(true)
+  }
+
+  const handleEditRichText = () => {
+    if (!article) return
+    setEditedContent(article.content)
+    setIsEditingRichText(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!article || !editedContent) return
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('articles')
+        .update({ content: editedContent })
+        .eq('id', article.id)
+
+      if (error) throw error
+
+      setArticle({ ...article, content: editedContent })
+      setIsEditingMarkdown(false)
+      setIsEditingRichText(false)
+      setError('')
+    } catch (err) {
+      console.error('Save error:', err)
+      setError('Failed to save changes')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingMarkdown(false)
+    setIsEditingRichText(false)
+    setEditedContent('')
   }
 
   if (loading) {
@@ -301,44 +344,87 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               {activeTab === 'markdown' && (
                 <div className="relative">
                   {/* Action Icons */}
-                  <div className="absolute top-0 right-0 flex gap-2">
-                    <button
-                      onClick={handleCopy}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                      title="Copy markdown"
-                    >
-                      {copySuccess ? (
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleDownload('md')}
-                      disabled={downloading === 'md'}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-                      title="Download markdown"
-                    >
-                      {downloading === 'md' ? (
-                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      )}
-                    </button>
+                  <div className="absolute top-0 right-0 flex gap-2 z-10">
+                    {!isEditingMarkdown ? (
+                      <>
+                        <button
+                          onClick={handleCopy}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Copy markdown"
+                        >
+                          {copySuccess ? (
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleEditMarkdown}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Edit markdown"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDownload('md')}
+                          disabled={downloading === 'md'}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
+                          title="Download markdown"
+                        >
+                          {downloading === 'md' ? (
+                            <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleSaveEdit}
+                          className="p-2 hover:bg-green-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Save changes"
+                        >
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="p-2 hover:bg-red-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Cancel editing"
+                        >
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Markdown Content */}
-                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-800 leading-relaxed border border-gray-200 max-h-[600px]">
-                    {article.content}
-                  </pre>
+                  {isEditingMarkdown ? (
+                    <textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="w-full bg-gray-50 p-6 rounded-lg text-sm font-mono text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
+                      rows={20}
+                    />
+                  ) : (
+                    <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
+                      {article.content}
+                    </pre>
+                  )}
                 </div>
               )}
 
@@ -347,43 +433,99 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 <div className="relative">
                   {/* Action Icons */}
                   <div className="absolute top-0 right-0 flex gap-2 z-10">
-                    <button
-                      onClick={handleCopy}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                      title="Copy content"
-                    >
-                      {copySuccess ? (
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleDownload('docx')}
-                      disabled={downloading === 'docx'}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
-                      title="Download Word document"
-                    >
-                      {downloading === 'docx' ? (
-                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      )}
-                    </button>
+                    {!isEditingRichText ? (
+                      <>
+                        <button
+                          onClick={handleCopy}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Copy content"
+                        >
+                          {copySuccess ? (
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleEditRichText}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Edit content"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDownload('docx')}
+                          disabled={downloading === 'docx'}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
+                          title="Download Word document"
+                        >
+                          {downloading === 'docx' ? (
+                            <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleSaveEdit}
+                          className="p-2 hover:bg-green-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Save changes"
+                        >
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="p-2 hover:bg-red-100 rounded-md transition-colors bg-white border border-gray-200"
+                          title="Cancel editing"
+                        >
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Rich Text Content */}
-                  <div className="prose prose-lg max-w-none bg-white p-6 rounded-lg border border-gray-200 max-h-[600px] overflow-auto">
-                    <div dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br/>') }} />
-                  </div>
+                  {isEditingRichText ? (
+                    <textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="w-full bg-white p-6 rounded-lg text-base text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
+                      rows={20}
+                    />
+                  ) : (
+                    <div className="bg-white p-6 rounded-lg border border-gray-200 max-h-[600px] overflow-auto">
+                      <article className="prose prose-lg max-w-none
+                        [&>*]:text-gray-900
+                        [&_h1]:text-gray-900 [&_h1]:font-bold [&_h1]:text-3xl
+                        [&_h2]:text-gray-900 [&_h2]:font-bold [&_h2]:text-2xl
+                        [&_h3]:text-gray-900 [&_h3]:font-bold [&_h3]:text-xl
+                        [&_p]:text-gray-900 [&_p]:leading-relaxed
+                        [&_strong]:text-gray-900 [&_strong]:font-bold
+                        [&_em]:text-gray-900 [&_em]:italic
+                        [&_a]:text-blue-600 [&_a]:font-medium [&_a]:hover:underline
+                        [&_ul]:text-gray-900 [&_ol]:text-gray-900 [&_li]:text-gray-900">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {article.content}
+                        </ReactMarkdown>
+                      </article>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
