@@ -160,13 +160,18 @@ export function buildAuthorSignature(profile: {
   github_handle?: string | null
   website?: string | null
 }): string {
+  // If no profile info, return empty string
+  if (!profile.bio && !profile.full_name && !profile.linkedin_handle && !profile.twitter_handle && !profile.github_handle && !profile.website) {
+    return ''
+  }
+
   const parts: string[] = []
 
   // Add bio if available
   if (profile.bio) {
     parts.push(profile.bio)
   } else if (profile.full_name) {
-    parts.push(`Written by ${profile.full_name}`)
+    parts.push(`Written by **${profile.full_name}**`)
   }
 
   // Build social links
@@ -193,9 +198,8 @@ export function buildAuthorSignature(profile: {
   }
 
   if (socialLinks.length > 0) {
-    parts.push('\n**Connect with me:**')
-    parts.push(socialLinks.join(' | '))
+    parts.push('\n**Connect with me:**\n\n' + socialLinks.join(' | '))
   }
 
-  return parts.length > 0 ? `\n\n---\n\n## About the Author\n\n${parts.join('\n\n')}\n` : ''
+  return parts.length > 0 ? `\n\n---\n\n### About the Author\n\n${parts.join('\n\n')}\n` : ''
 }

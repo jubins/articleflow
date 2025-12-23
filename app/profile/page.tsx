@@ -82,15 +82,16 @@ export default function ProfilePage() {
         .from('profiles')
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore - Supabase type inference issue
-        .update({
+        .upsert({
+          id: user.id,
           full_name: profile.full_name || null,
           bio: profile.bio || null,
           linkedin_handle: profile.linkedin_handle || null,
           twitter_handle: profile.twitter_handle || null,
           github_handle: profile.github_handle || null,
           website: profile.website || null,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id)
 
       if (error) throw error
 
@@ -236,27 +237,34 @@ export default function ProfilePage() {
                   {(profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
                     <>
                       <p className="font-semibold mb-2 text-gray-900">Connect with me:</p>
-                      <p className="space-x-2 text-gray-900">
-                        {profile.linkedin_handle && (
-                          <span>
-                            🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">LinkedIn</a>
+                      <p className="text-gray-900">
+                        {[
+                          profile.linkedin_handle && (
+                            <span key="linkedin">
+                              🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">LinkedIn</a>
+                            </span>
+                          ),
+                          profile.twitter_handle && (
+                            <span key="twitter">
+                              🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">Twitter/X</a>
+                            </span>
+                          ),
+                          profile.github_handle && (
+                            <span key="github">
+                              💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">GitHub</a>
+                            </span>
+                          ),
+                          profile.website && (
+                            <span key="website">
+                              🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline">Website</a>
+                            </span>
+                          ),
+                        ].filter(Boolean).map((item, index, array) => (
+                          <span key={index}>
+                            {item}
+                            {index < array.length - 1 && <span className="mx-2">|</span>}
                           </span>
-                        )}
-                        {profile.twitter_handle && (
-                          <span>
-                            | 🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">Twitter/X</a>
-                          </span>
-                        )}
-                        {profile.github_handle && (
-                          <span>
-                            | 💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">GitHub</a>
-                          </span>
-                        )}
-                        {profile.website && (
-                          <span>
-                            | 🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline">Website</a>
-                          </span>
-                        )}
+                        ))}
                       </p>
                     </>
                   )}

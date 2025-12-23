@@ -13,7 +13,7 @@ import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
@@ -191,7 +191,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               [&_strong]:text-gray-900 [&_strong]:font-bold
               [&_em]:text-gray-900 [&_em]:italic
               [&_a]:text-blue-600 [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline
-              [&_code]:text-pink-600 [&_code]:bg-pink-50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono [&_code]:font-normal
+              [&_p>code]:text-pink-600 [&_p>code]:bg-pink-50 [&_p>code]:px-1.5 [&_p>code]:py-0.5 [&_p>code]:rounded [&_p>code]:text-sm [&_p>code]:font-mono [&_p>code]:font-normal
+              [&_li>code]:text-pink-600 [&_li>code]:bg-pink-50 [&_li>code]:px-1.5 [&_li>code]:py-0.5 [&_li>code]:rounded [&_li>code]:text-sm [&_li>code]:font-mono [&_li>code]:font-normal
               [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4 [&_ul]:text-gray-900
               [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4 [&_ol]:text-gray-900
               [&_li]:mb-2 [&_li]:text-gray-900 [&_li]:leading-relaxed
@@ -222,23 +223,26 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
                     // Render code blocks with syntax highlighting
                     return !inline && match ? (
-                      <div className="my-4">
-                        <SyntaxHighlighter
-                          style={vscDarkPlus}
-                          language={language}
-                          PreTag="div"
-                          customStyle={{
-                            backgroundColor: '#1e1e1e',
-                            padding: '1rem',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            lineHeight: '1.5',
-                          }}
-                          {...props}
-                        >
-                          {code}
-                        </SyntaxHighlighter>
-                      </div>
+                      <SyntaxHighlighter
+                        style={tomorrow}
+                        language={language}
+                        PreTag="div"
+                        customStyle={{
+                          margin: '1.5rem 0',
+                          borderRadius: '0.5rem',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '0.875rem',
+                          lineHeight: '1.6',
+                        }}
+                        codeTagProps={{
+                          style: {
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          }
+                        }}
+                        {...props}
+                      >
+                        {code}
+                      </SyntaxHighlighter>
                     ) : (
                       <code className={className} {...props}>
                         {children}
