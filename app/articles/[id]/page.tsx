@@ -286,7 +286,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               [&_table]:border-collapse [&_table]:w-full [&_table]:my-6 [&_table]:shadow-md [&_table]:rounded-lg [&_table]:overflow-hidden
               [&_th]:border [&_th]:border-gray-300 [&_th]:bg-blue-50 [&_th]:p-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900
               [&_td]:border [&_td]:border-gray-300 [&_td]:p-3 [&_td]:text-gray-900
-              [&_img]:rounded-lg [&_img]:shadow-lg [&_img]:my-6"
+              [&_img]:rounded-lg [&_img]:my-6"
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -316,7 +316,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                         customStyle={{
                           margin: '1.5rem 0',
                           borderRadius: '0.5rem',
-                          border: '1px solid #e5e7eb',
                           backgroundColor: '#fafafa',
                           fontSize: '0.875rem',
                           lineHeight: '1.6',
