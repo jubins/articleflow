@@ -62,41 +62,43 @@ export function Mermaid({ chart, id }: MermaidProps) {
     renderDiagram()
   }, [chart, id])
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!ref.current) return
 
     const svg = ref.current.querySelector('svg')
     if (!svg) return
 
-    // Convert SVG to PNG
-    const svgData = new XMLSerializer().serializeToString(svg)
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
+    try {
+      // Get SVG data
+      const svgData = new XMLSerializer().serializeToString(svg)
 
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(svgBlob)
-
-    img.onload = () => {
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx?.drawImage(img, 0, 0)
-      URL.revokeObjectURL(url)
-
-      canvas.toBlob((blob) => {
-        if (!blob) return
-        const pngUrl = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = pngUrl
-        a.download = `diagram-${id}.png`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(pngUrl)
+      // Send to server for conversion to WebP
+      const response = await fetch('/api/mermaid/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ svg: svgData }),
       })
-    }
 
-    img.src = url
+      if (!response.ok) throw new Error('Failed to convert diagram')
+
+      const { imageUrl } = await response.json()
+
+      // Download the WebP image
+      const imageResponse = await fetch(imageUrl)
+      const blob = await imageResponse.blob()
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `diagram-${id}.webp`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download failed:', error)
+      alert('Failed to download diagram. Please try again.')
+    }
   }
 
   if (error) {
@@ -122,7 +124,7 @@ export function Mermaid({ chart, id }: MermaidProps) {
           onClick={handleDownload}
           className="text-sm text-blue-600 hover:text-blue-800 font-medium"
         >
-          Download Diagram (PNG)
+          Download Diagram (WebP)
         </button>
       </div>
     </div>
