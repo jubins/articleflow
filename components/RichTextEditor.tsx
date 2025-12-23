@@ -34,9 +34,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
         },
       }),
       Image,
-      Table.configure({
-        resizable: true,
-      }),
+      Table,
       TableRow,
       TableHeader,
       TableCell,
