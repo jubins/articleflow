@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Article } from '@/lib/types/database'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } from 'docx'
+import { R2StorageService } from '@/lib/services/r2-storage'
+
+interface MermaidDiagram {
+  code: string
+  index: number
+}
 
 export async function GET(
   request: NextRequest,
@@ -40,17 +46,26 @@ export async function GET(
 
     const fileName = typedArticle.file_id || typedArticle.id
 
+    // Convert Mermaid diagrams to images
+    const { content: processedContent } = await convertMermaidDiagramsToImages(
+      typedArticle.content,
+      typedArticle.id
+    )
+
     if (format === 'md') {
-      // Return markdown file
-      return new NextResponse(typedArticle.content, {
+      // Return markdown file with image URLs
+      return new NextResponse(processedContent, {
         headers: {
           'Content-Type': 'text/markdown',
           'Content-Disposition': `attachment; filename="${fileName}.md"`,
         },
       })
     } else if (format === 'docx') {
-      // Convert markdown to DOCX
-      const docx = await convertMarkdownToDocx(typedArticle.title, typedArticle.content)
+      // Convert markdown to DOCX with embedded images
+      const docx = await convertMarkdownToDocx(
+        typedArticle.title,
+        processedContent
+      )
 
       return new NextResponse(new Uint8Array(docx), {
         headers: {
@@ -73,7 +88,81 @@ export async function GET(
   }
 }
 
-async function convertMarkdownToDocx(title: string, markdown: string): Promise<Buffer> {
+async function convertMermaidDiagramsToImages(
+  markdown: string,
+  articleId: string
+): Promise<{ content: string; images: Map<string, string> }> {
+  const images = new Map<string, string>()
+
+  // Extract all Mermaid diagrams
+  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
+  const diagrams: MermaidDiagram[] = []
+  let match
+  let index = 0
+
+  while ((match = mermaidRegex.exec(markdown)) !== null) {
+    diagrams.push({
+      code: match[1].trim(),
+      index: index++,
+    })
+  }
+
+  if (diagrams.length === 0) {
+    return { content: markdown, images }
+  }
+
+  try {
+    // Initialize R2 storage
+    const r2 = new R2StorageService()
+
+    // Convert each diagram to an image and upload to R2
+    for (const diagram of diagrams) {
+      try {
+        // Encode the Mermaid code as base64 for mermaid.ink API
+        const base64Code = Buffer.from(diagram.code).toString('base64')
+        const mermaidInkUrl = `https://mermaid.ink/img/${base64Code}`
+
+        // Upload the image to R2
+        const result = await r2.uploadFromUrl(mermaidInkUrl, {
+          folder: `articles/${articleId}/diagrams`,
+          fileName: `diagram-${diagram.index}.png`,
+        })
+
+        images.set(`diagram-${diagram.index}`, result.url)
+      } catch (err) {
+        console.error(`Failed to process diagram ${diagram.index}:`, err)
+        // If conversion fails, keep the original Mermaid code
+      }
+    }
+
+    // Replace Mermaid code blocks with image references
+    let processedContent = markdown
+    index = 0
+    processedContent = processedContent.replace(
+      /```mermaid\n([\s\S]*?)```/g,
+      (match) => {
+        const imageUrl = images.get(`diagram-${index}`)
+        index++
+
+        if (imageUrl) {
+          return `![Architecture Diagram](${imageUrl})`
+        }
+        return match // Keep original if conversion failed
+      }
+    )
+
+    return { content: processedContent, images }
+  } catch (error) {
+    console.error('Error converting Mermaid diagrams:', error)
+    // Return original content if processing fails
+    return { content: markdown, images }
+  }
+}
+
+async function convertMarkdownToDocx(
+  title: string,
+  markdown: string
+): Promise<Buffer> {
   const lines = markdown.split('\n')
   const children: Paragraph[] = []
 
@@ -91,6 +180,44 @@ async function convertMarkdownToDocx(title: string, markdown: string): Promise<B
   let codeBlockContent: string[] = []
 
   for (const line of lines) {
+    // Handle images
+    const imageMatch = line.match(/!\[.*?\]\((.*?)\)/)
+    if (imageMatch) {
+      if (currentParagraph.length > 0) {
+        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
+        currentParagraph = []
+      }
+
+      const imageUrl = imageMatch[1]
+      try {
+        // Fetch the image
+        const response = await fetch(imageUrl)
+        const arrayBuffer = await response.arrayBuffer()
+        const imageBuffer = Buffer.from(arrayBuffer)
+
+        // Add image to document
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                type: 'png',
+                data: imageBuffer,
+                transformation: {
+                  width: 600,
+                  height: 400,
+                },
+              }),
+            ],
+            spacing: { before: 200, after: 200 },
+          })
+        )
+      } catch (err) {
+        console.error('Failed to embed image:', err)
+        // Skip image if fetch fails
+      }
+      continue
+    }
+
     // Handle code blocks
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
