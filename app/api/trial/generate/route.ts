@@ -70,7 +70,7 @@ Do not include any text before or after the JSON.`
         throw new Error('No JSON found in response')
       }
       articleData = JSON.parse(jsonMatch[0])
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse AI response:', content.text)
       throw new Error('Failed to parse article data from AI response')
     }

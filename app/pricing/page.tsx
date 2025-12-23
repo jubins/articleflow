@@ -293,10 +293,10 @@ export default function PricingPage() {
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  What if I don't have an API key?
+                  What if I don&apos;t have an API key?
                 </h3>
                 <p className="text-gray-600">
-                  You can purchase article credits from us at the rates listed above. We'll handle the API calls for you.
+                  You can purchase article credits from us at the rates listed above. We&apos;ll handle the API calls for you.
                   This is perfect if you want to try the service without setting up your own API keys.
                 </p>
               </CardContent>

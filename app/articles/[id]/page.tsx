@@ -120,12 +120,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setIsEditingMarkdown(true)
   }
 
-  const handleEditRichText = () => {
-    if (!article) return
-    setEditedContent(article.content)
-    setIsEditingRichText(true)
-  }
-
   const handleSaveEdit = async () => {
     if (!article || !editedContent) return
 
