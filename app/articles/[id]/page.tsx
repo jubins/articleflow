@@ -437,99 +437,108 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 <div className="relative">
                   {/* Action Icons */}
                   <div className="absolute top-0 right-0 flex gap-2 z-10">
-                    {!isEditingRichText ? (
-                      <>
-                        <button
-                          onClick={handleCopy}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Copy content"
-                        >
-                          {copySuccess ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                        </button>
-                        <button
-                          onClick={handleEditRichText}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Edit content"
-                        >
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDownload('docx')}
-                          disabled={downloading === 'docx'}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
-                          title="Download Word document"
-                        >
-                          {downloading === 'docx' ? (
-                            <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleSaveEdit}
-                          className="p-2 hover:bg-green-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Save changes"
-                        >
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-2 hover:bg-red-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Cancel editing"
-                        >
-                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                      title="Copy content"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDownload('docx')}
+                      disabled={downloading === 'docx'}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
+                      title="Download Word document"
+                    >
+                      {downloading === 'docx' ? (
+                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
 
                   {/* Rich Text Content */}
-                  {isEditingRichText ? (
-                    <textarea
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      className="w-full bg-white p-6 rounded-lg text-base text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
-                      rows={20}
-                    />
-                  ) : (
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 max-h-[600px] overflow-auto">
-                      <article className="prose prose-lg max-w-none
+                  <div className="bg-white p-6 rounded-lg max-h-[600px] overflow-auto">
+                    <article className="prose prose-lg max-w-none
                         [&>*]:text-gray-900
-                        [&_h1]:text-gray-900 [&_h1]:font-bold [&_h1]:text-3xl
-                        [&_h2]:text-gray-900 [&_h2]:font-bold [&_h2]:text-2xl
-                        [&_h3]:text-gray-900 [&_h3]:font-bold [&_h3]:text-xl
-                        [&_p]:text-gray-900 [&_p]:leading-relaxed
+                        [&_h1]:text-gray-900 [&_h1]:font-bold [&_h1]:text-3xl [&_h1]:mb-6 [&_h1]:mt-8
+                        [&_h2]:text-gray-900 [&_h2]:font-bold [&_h2]:text-2xl [&_h2]:mb-4 [&_h2]:mt-6
+                        [&_h3]:text-gray-900 [&_h3]:font-bold [&_h3]:text-xl [&_h3]:mb-3 [&_h3]:mt-4
+                        [&_p]:text-gray-900 [&_p]:leading-relaxed [&_p]:mb-4
                         [&_strong]:text-gray-900 [&_strong]:font-bold
                         [&_em]:text-gray-900 [&_em]:italic
                         [&_a]:text-blue-600 [&_a]:font-medium [&_a]:hover:underline
-                        [&_ul]:text-gray-900 [&_ol]:text-gray-900 [&_li]:text-gray-900">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        [&_p>code]:text-pink-600 [&_p>code]:bg-pink-50 [&_p>code]:px-1.5 [&_p>code]:py-0.5 [&_p>code]:rounded [&_p>code]:text-sm [&_p>code]:font-mono
+                        [&_li>code]:text-pink-600 [&_li>code]:bg-pink-50 [&_li>code]:px-1.5 [&_li>code]:py-0.5 [&_li>code]:rounded [&_li>code]:text-sm [&_li>code]:font-mono
+                        [&_ul]:text-gray-900 [&_ol]:text-gray-900 [&_li]:text-gray-900 [&_li]:mb-2">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            code({ inline, className, children, ...props }: any) {
+                              const match = /language-(\w+)/.exec(className || '')
+                              const language = match ? match[1] : ''
+                              const code = String(children).replace(/\n$/, '')
+
+                              // Render Mermaid diagrams
+                              if (!inline && language === 'mermaid') {
+                                return (
+                                  <Mermaid
+                                    chart={code}
+                                    id={Math.random().toString(36).substring(7)}
+                                  />
+                                )
+                              }
+
+                              // Render code blocks with syntax highlighting
+                              return !inline && match ? (
+                                <SyntaxHighlighter
+                                  style={vscDarkPlus}
+                                  language={language}
+                                  PreTag="div"
+                                  customStyle={{
+                                    margin: '1.5rem 0',
+                                    borderRadius: '0.5rem',
+                                    backgroundColor: '#1E1E1E',
+                                    fontSize: '0.875rem',
+                                    lineHeight: '1.6',
+                                    padding: '1rem',
+                                    border: 'none',
+                                  }}
+                                  codeTagProps={{
+                                    style: {
+                                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                    }
+                                  }}
+                                  {...props}
+                                >
+                                  {code}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              )
+                            },
+                          }}
+                        >
                           {article.content}
                         </ReactMarkdown>
                       </article>
                     </div>
-                  )}
                 </div>
               )}
             </div>
