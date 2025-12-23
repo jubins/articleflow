@@ -119,7 +119,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
     try {
       const supabase = createClient()
-      const { error } = await supabase
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('articles')
         .update({ content: editedContent })
         .eq('id', article.id)
