@@ -15,7 +15,8 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import FontFamily from '@tiptap/extension-font-family'
-import { useEffect, useState } from 'react'
+import { FontSize } from '@tiptap/extension-text-style/dist/font-size'
+import { useEffect, useState, useRef } from 'react'
 
 interface RichTextEditorProps {
   content: string
@@ -34,9 +35,25 @@ const FONT_FAMILIES = [
 ]
 
 export function RichTextEditor({ content, onChange, editable = true }: RichTextEditorProps) {
-  const [fontSize, setFontSize] = useState('11')
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showHighlightPicker, setShowHighlightPicker] = useState(false)
+  const colorPickerRef = useRef<HTMLDivElement>(null)
+  const highlightPickerRef = useRef<HTMLDivElement>(null)
+
+  // Close color pickers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setShowColorPicker(false)
+      }
+      if (highlightPickerRef.current && !highlightPickerRef.current.contains(event.target as Node)) {
+        setShowHighlightPicker(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const editor = useEditor({
     extensions: [
@@ -50,6 +67,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
       FontFamily.configure({
         types: ['textStyle'],
       }),
+      FontSize,
       Highlight.configure({
         multicolor: true,
       }),
@@ -76,7 +94,6 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
     editorProps: {
       attributes: {
         class: 'prose prose-lg max-w-none focus:outline-none min-h-[400px] px-8 py-6',
-        style: `font-size: ${fontSize}pt; font-family: 'Times New Roman', serif;`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -114,9 +131,18 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
   }
 
   const colors = [
+    // Row 1 - Blacks and Grays
     '#000000', '#434343', '#666666', '#999999', '#B7B7B7', '#CCCCCC', '#D9D9D9', '#EFEFEF', '#F3F3F3', '#FFFFFF',
+    // Row 2 - Vibrant colors
     '#980000', '#FF0000', '#FF9900', '#FFFF00', '#00FF00', '#00FFFF', '#4A86E8', '#0000FF', '#9900FF', '#FF00FF',
+    // Row 3 - Pastels
     '#E6B8AF', '#F4CCCC', '#FCE5CD', '#FFF2CC', '#D9EAD3', '#D0E0E3', '#C9DAF8', '#CFE2F3', '#D9D2E9', '#EAD1DC',
+    // Row 4 - Light tones
+    '#DD7E6B', '#EA9999', '#F9CB9C', '#FFE599', '#B6D7A8', '#A2C4C9', '#A4C2F4', '#9FC5E8', '#B4A7D6', '#D5A6BD',
+    // Row 5 - Medium tones
+    '#CC4125', '#E06666', '#F6B26B', '#FFD966', '#93C47D', '#76A5AF', '#6D9EEB', '#6FA8DC', '#8E7CC3', '#C27BA0',
+    // Row 6 - Dark tones
+    '#A61C00', '#CC0000', '#E69138', '#F1C232', '#6AA84F', '#45818E', '#3C78D8', '#3D85C6', '#674EA7', '#A64D79',
   ]
 
   return (
@@ -138,9 +164,9 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
             {/* Font Size */}
             <select
-              value={fontSize}
-              onChange={(e) => setFontSize(e.target.value)}
+              onChange={(e) => editor.chain().focus().setFontSize(`${e.target.value}pt`).run()}
               className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              defaultValue="11"
             >
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -187,25 +213,27 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
             <div className="w-px h-6 bg-gray-300" />
 
             {/* Text Color */}
-            <div className="relative">
+            <div className="relative" ref={colorPickerRef}>
               <button
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                className="p-2 rounded hover:bg-gray-200 transition-colors flex items-center gap-1"
+                onClick={() => {
+                  setShowColorPicker(!showColorPicker)
+                  setShowHighlightPicker(false)
+                }}
+                className={`p-2 rounded hover:bg-gray-200 transition-colors ${showColorPicker ? 'bg-gray-200' : ''}`}
                 title="Text color"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
-                <div className="w-4 h-1 bg-current" style={{ color: editor.getAttributes('textStyle').color || '#000' }} />
               </button>
               {showColorPicker && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded shadow-lg z-10">
-                  <div className="grid grid-cols-10 gap-1">
+                <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[280px]">
+                  <div className="grid grid-cols-10 gap-1.5">
                     {colors.map((color) => (
                       <button
                         key={color}
                         onClick={() => setTextColor(color)}
-                        className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                        className="w-6 h-6 rounded-sm border border-gray-200 hover:border-gray-400 hover:scale-110 transition-all"
                         style={{ backgroundColor: color }}
                         title={color}
                       />
@@ -216,10 +244,13 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
             </div>
 
             {/* Highlight Color */}
-            <div className="relative">
+            <div className="relative" ref={highlightPickerRef}>
               <button
-                onClick={() => setShowHighlightPicker(!showHighlightPicker)}
-                className="p-2 rounded hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setShowHighlightPicker(!showHighlightPicker)
+                  setShowColorPicker(false)
+                }}
+                className={`p-2 rounded hover:bg-gray-200 transition-colors ${showHighlightPicker ? 'bg-gray-200' : ''}`}
                 title="Highlight color"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,13 +258,13 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
                 </svg>
               </button>
               {showHighlightPicker && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded shadow-lg z-10">
-                  <div className="grid grid-cols-10 gap-1">
+                <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[280px]">
+                  <div className="grid grid-cols-10 gap-1.5">
                     {colors.map((color) => (
                       <button
                         key={color}
                         onClick={() => setHighlightColor(color)}
-                        className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                        className="w-6 h-6 rounded-sm border border-gray-200 hover:border-gray-400 hover:scale-110 transition-all"
                         style={{ backgroundColor: color }}
                         title={color}
                       />

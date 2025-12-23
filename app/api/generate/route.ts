@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
 import { StorageService } from '@/lib/services/storage'
+import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
 import { z } from 'zod'
 
 // Request validation schema
@@ -129,6 +130,9 @@ export async function POST(request: NextRequest) {
         profile: profile || null,
       })
 
+      // Convert Mermaid diagrams to WebP images
+      const contentWithImages = await convertMermaidToImages(generatedArticle.content)
+
       const generationTime = Date.now() - startTime
 
       // Update article with generated content
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
         // @ts-ignore - Supabase type inference issue
         .update({
           title: generatedArticle.title,
-          content: generatedArticle.content,
+          content: contentWithImages,
           description: generatedArticle.description,
           tags: generatedArticle.tags,
           word_count: generatedArticle.wordCount,
@@ -162,7 +166,7 @@ export async function POST(request: NextRequest) {
 
           const doc = await docsService.createDocument({
             title: generatedArticle.title,
-            content: generatedArticle.content,
+            content: contentWithImages,
             description: generatedArticle.description,
             tags: generatedArticle.tags,
           })
@@ -217,7 +221,7 @@ export async function POST(request: NextRequest) {
           const upload = await storageService.uploadMarkdown({
             userId: user.id,
             fileId,
-            content: generatedArticle.content,
+            content: contentWithImages,
             fileName: `${fileId}.md`,
           })
 
