@@ -7,12 +7,8 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Disabled dark mode to keep app light mode only */
+/* If you want dark mode, add proper styling to all components first */
 
 body {
   color: var(--foreground);
