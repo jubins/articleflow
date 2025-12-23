@@ -13,7 +13,7 @@ import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
@@ -213,7 +213,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         </Card>
 
         {/* Article Content with Tabs */}
-        <Card>
+        <Card className="!shadow-sm !border-gray-100">
           <CardContent className="p-0">
             {/* Tabs */}
             <div className="border-b border-gray-200">
@@ -310,16 +310,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     // Render code blocks with syntax highlighting
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={oneLight}
+                        style={vscDarkPlus}
                         language={language}
                         PreTag="div"
                         customStyle={{
                           margin: '1.5rem 0',
                           borderRadius: '0.5rem',
-                          backgroundColor: '#fafafa',
+                          backgroundColor: '#1E1E1E',
                           fontSize: '0.875rem',
                           lineHeight: '1.6',
                           padding: '1rem',
+                          border: 'none',
                         }}
                         codeTagProps={{
                           style: {

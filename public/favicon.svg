@@ -1,30 +1,36 @@
 <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="faviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2563EB;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
     </linearGradient>
   </defs>
 
-  <!-- Simplified modern AF for favicon -->
-  <circle cx="16" cy="16" r="14" fill="url(#faviconGrad)"/>
-
-  <!-- White AF letters -->
+  <!-- Simple gradient AF matching header style -->
   <g>
     <!-- A -->
-    <path d="M 7 22 L 9.5 12 L 12 22 M 8 17 L 11 17"
-          stroke="#FFFFFF"
-          stroke-width="2.2"
+    <path d="M 7 24 L 10 11 L 13 24 M 8 18 L 12 18"
+          stroke="url(#favGrad)"
+          stroke-width="2.5"
           stroke-linecap="round"
           stroke-linejoin="round"
           fill="none"/>
 
     <!-- F -->
-    <path d="M 18 22 L 18 11 M 18 11 L 24 11 M 18 16.5 L 22 16.5"
-          stroke="#FFFFFF"
-          stroke-width="2.2"
+    <path d="M 19 24 L 19 11 M 19 11 L 25 11 M 19 17.5 L 23 17.5"
+          stroke="url(#favGrad)"
+          stroke-width="2.5"
           stroke-linecap="round"
           stroke-linejoin="round"
           fill="none"/>
   </g>
+
+  <!-- Small flow accent -->
+  <path d="M 26 13 Q 28 14 29 16"
+        stroke="#3B82F6"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        fill="none"
+        opacity="0.4"/>
 </svg>

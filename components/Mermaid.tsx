@@ -87,7 +87,7 @@ export function Mermaid({ chart, id }: MermaidProps) {
   }
 
   return (
-    <div className="my-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="my-6 p-4 bg-white rounded-lg">
       <div ref={ref} className="flex justify-center" />
       <div className="mt-3 flex justify-end">
         <button
