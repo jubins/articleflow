@@ -50,12 +50,12 @@ export function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<p>(.*?)<\/p>/g, '$1\n\n')
 
   // Convert code blocks
-  markdown = markdown.replace(/<pre><code class="language-(.*?)">(.*?)<\/code><\/pre>/gs, '```$1\n$2\n```\n')
-  markdown = markdown.replace(/<pre><code>(.*?)<\/code><\/pre>/gs, '```\n$1\n```\n')
+  markdown = markdown.replace(/<pre><code class="language-(.*?)">([\s\S]*?)<\/code><\/pre>/g, '```$1\n$2\n```\n')
+  markdown = markdown.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, '```\n$1\n```\n')
   markdown = markdown.replace(/<code>(.*?)<\/code>/g, '`$1`')
 
   // Convert blockquotes
-  markdown = markdown.replace(/<blockquote>(.*?)<\/blockquote>/gs, (match, content) => {
+  markdown = markdown.replace(/<blockquote>([\s\S]*?)<\/blockquote>/g, (match, content) => {
     const lines = content.trim().split('\n')
     return lines.map((line: string) => `> ${line}`).join('\n') + '\n'
   })
