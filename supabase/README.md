@@ -1,7 +1,7 @@
-# Supabase Setup for ContentForge
+# Supabase Setup for ArticleFlow
 
 ## Overview
-This directory contains the database schema, migrations, and configuration for ContentForge's Supabase backend.
+This directory contains the database schema, migrations, and configuration for ArticleFlow's Supabase backend.
 
 ## Prerequisites
 - A Supabase account (https://supabase.com)

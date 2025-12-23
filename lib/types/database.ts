@@ -1,4 +1,4 @@
-// Database type definitions for ContentForge
+// Database type definitions for ArticleFlow
 
 export type Json =
   | string

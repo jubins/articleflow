@@ -45,7 +45,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">ContentForge</h1>
+          <h1 className="text-4xl font-bold text-gray-900">ArticleFlow</h1>
           <p className="mt-2 text-gray-600">AI-powered article generation platform</p>
         </div>
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle>Sign in to your account</CardTitle>
             <CardDescription>
-              Enter your email and password to access ContentForge
+              Enter your email and password to access ArticleFlow
             </CardDescription>
           </CardHeader>
           <CardContent>

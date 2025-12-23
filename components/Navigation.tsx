@@ -29,7 +29,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <Link href="/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">ContentForge</span>
+              <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </Link>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
               {navItems.map((item) => (

@@ -1,6 +1,6 @@
-# ContentForge
+# ArticleFlow
 
-ContentForge is an AI-powered content automation pipeline that generates technical articles for Medium, Dev.to, and DZone using Claude (Anthropic) or Gemini (Google AI) APIs.
+ArticleFlow is an AI-powered content automation pipeline that generates technical articles for Medium, Dev.to, and DZone using Claude (Anthropic) or Gemini (Google AI) APIs.
 
 ## Features
 

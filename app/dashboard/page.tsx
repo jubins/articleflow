@@ -73,7 +73,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Welcome to ContentForge</p>
+            <p className="text-gray-600 mt-1">Welcome to ArticleFlow</p>
           </div>
           <Link href="/generate">
             <Button>Generate Article</Button>
