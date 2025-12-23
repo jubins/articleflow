@@ -15,7 +15,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import FontFamily from '@tiptap/extension-font-family'
-import { FontSize } from '@tiptap/extension-text-style/dist/font-size'
+import { FontSize } from '@tiptap/extension-text-style/font-size'
 import { useEffect, useState, useRef } from 'react'
 
 interface RichTextEditorProps {
