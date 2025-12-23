@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 
@@ -12,7 +13,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo.svg" alt="ArticleFlow" className="h-8 w-8" />
+              <Image src="/logo.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
               <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </Link>
             <div className="flex gap-4">

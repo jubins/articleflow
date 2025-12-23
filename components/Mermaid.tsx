@@ -52,10 +52,10 @@ export function Mermaid({ chart, id }: MermaidProps) {
         if (ref.current) {
           ref.current.innerHTML = svg
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Mermaid render error:', err)
         setError('Failed to render diagram')
-        setErrorDetails(err?.message || String(err))
+        setErrorDetails(err instanceof Error ? err.message : String(err))
       }
     }
 

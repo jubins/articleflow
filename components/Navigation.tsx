@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -29,7 +30,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <img src="/logo.svg" alt="ArticleFlow" className="h-8 w-8" />
+              <Image src="/logo.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
               <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </Link>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import ReactMarkdown from 'react-markdown'
@@ -56,7 +57,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-2">
-              <img src="/logo.svg" alt="ArticleFlow" className="h-8 w-8" />
+              <Image src="/logo.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
               <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </div>
             <div className="flex gap-4">
@@ -328,7 +329,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <img src="/logo-white.svg" alt="ArticleFlow" className="h-8 w-8" />
+                <Image src="/logo-white.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
                 <span className="text-xl font-bold text-white">ArticleFlow</span>
               </div>
               <p className="text-sm text-gray-400">

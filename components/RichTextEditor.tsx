@@ -65,12 +65,19 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
     }
   }, [content, editor])
 
+  // Update editable state when prop changes
+  useEffect(() => {
+    if (editor && editor.isEditable !== editable) {
+      editor.setEditable(editable)
+    }
+  }, [editable, editor])
+
   if (!editor) {
     return null
   }
 
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+    <div className={`rounded-lg overflow-hidden bg-white ${editable ? 'border border-gray-300' : ''}`}>
       {editable && (
         <div className="border-b border-gray-300 bg-gray-50 p-2 flex flex-wrap gap-1">
           {/* Text Formatting */}
