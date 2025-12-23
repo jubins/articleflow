@@ -192,7 +192,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       // Find all mermaid code blocks
       const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
       let updatedContent = article.content
-      const matches = [...article.content.matchAll(mermaidRegex)]
+      const matches = Array.from(article.content.matchAll(mermaidRegex))
 
       if (matches.length === 0) {
         setError('No Mermaid diagrams found')
