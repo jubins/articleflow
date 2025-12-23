@@ -222,14 +222,23 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
                     // Render code blocks with syntax highlighting
                     return !inline && match ? (
-                      <SyntaxHighlighter
-                        style={vscDarkPlus}
-                        language={language}
-                        PreTag="div"
-                        {...props}
-                      >
-                        {code}
-                      </SyntaxHighlighter>
+                      <div className="my-4">
+                        <SyntaxHighlighter
+                          style={vscDarkPlus}
+                          language={language}
+                          PreTag="div"
+                          customStyle={{
+                            backgroundColor: '#1e1e1e',
+                            padding: '1rem',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.5',
+                          }}
+                          {...props}
+                        >
+                          {code}
+                        </SyntaxHighlighter>
+                      </div>
                     ) : (
                       <code className={className} {...props}>
                         {children}

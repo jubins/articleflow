@@ -187,12 +187,14 @@ export default function DashboardPage() {
                           {format(new Date(article.created_at), 'MMM dd, yyyy')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                          <Link
-                            href={`/articles/${article.id}`}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            View
-                          </Link>
+                          {article.status !== 'failed' && (
+                            <Link
+                              href={`/articles/${article.id}`}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              View
+                            </Link>
+                          )}
                           {article.google_doc_url && (
                             <a
                               href={article.google_doc_url}
@@ -202,6 +204,9 @@ export default function DashboardPage() {
                             >
                               Google Doc
                             </a>
+                          )}
+                          {article.status === 'failed' && (
+                            <span className="text-gray-400 italic text-xs">Generation failed</span>
                           )}
                         </td>
                       </tr>

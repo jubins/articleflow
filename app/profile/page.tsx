@@ -220,41 +220,41 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-6 rounded-lg border-2 border-blue-200 shadow-sm">
                 <div className="prose prose-sm max-w-none">
-                  <hr className="my-4" />
-                  <h3 className="text-lg font-semibold mb-3">About the Author</h3>
+                  <hr className="my-4 border-gray-400" />
+                  <h3 className="text-lg font-bold mb-3 text-gray-900">About the Author</h3>
 
                   {profile.bio ? (
-                    <p className="mb-3">{profile.bio}</p>
+                    <p className="mb-3 text-gray-900 leading-relaxed">{profile.bio}</p>
                   ) : profile.full_name ? (
-                    <p className="mb-3">Written by {profile.full_name}</p>
+                    <p className="mb-3 text-gray-900">Written by <strong className="font-semibold">{profile.full_name}</strong></p>
                   ) : (
                     <p className="text-gray-400 italic mb-3">Add your bio above to see it here</p>
                   )}
 
                   {(profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
                     <>
-                      <p className="font-medium mb-2">Connect with me:</p>
-                      <p className="space-x-2">
+                      <p className="font-semibold mb-2 text-gray-900">Connect with me:</p>
+                      <p className="space-x-2 text-gray-900">
                         {profile.linkedin_handle && (
                           <span>
-                            🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600">LinkedIn</a>
+                            🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">LinkedIn</a>
                           </span>
                         )}
                         {profile.twitter_handle && (
                           <span>
-                            | 🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600">Twitter/X</a>
+                            | 🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">Twitter/X</a>
                           </span>
                         )}
                         {profile.github_handle && (
                           <span>
-                            | 💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600">GitHub</a>
+                            | 💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">GitHub</a>
                           </span>
                         )}
                         {profile.website && (
                           <span>
-                            | 🌐 <a href={profile.website} className="text-blue-600">Website</a>
+                            | 🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline">Website</a>
                           </span>
                         )}
                       </p>
