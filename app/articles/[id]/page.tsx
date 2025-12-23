@@ -20,8 +20,10 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const router = useRouter()
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
-  const [downloading, setDownloading] = useState(false)
+  const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext'>('preview')
+  const [copySuccess, setCopySuccess] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -59,7 +61,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const handleDownload = async (format: 'md' | 'docx') => {
     if (!article) return
 
-    setDownloading(true)
+    setDownloading(format)
     try {
       const response = await fetch(`/api/articles/${article.id}/download?format=${format}`)
 
@@ -80,7 +82,20 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       console.error('Download error:', err)
       setError('Failed to download file')
     } finally {
-      setDownloading(false)
+      setDownloading(null)
+    }
+  }
+
+  const handleCopy = async () => {
+    if (!article) return
+
+    try {
+      await navigator.clipboard.writeText(article.content)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Copy error:', err)
+      setError('Failed to copy content')
     }
   }
 
@@ -150,37 +165,63 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => handleDownload('md')}
-                disabled={downloading}
-                variant="outline"
-              >
-                {downloading ? 'Downloading...' : 'Download Markdown (.md)'}
-              </Button>
-              <Button
-                onClick={() => handleDownload('docx')}
-                disabled={downloading}
-                variant="outline"
-              >
-                {downloading ? 'Downloading...' : 'Download Word (.docx)'}
-              </Button>
-              {article.google_doc_url && (
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(article.google_doc_url!, '_blank')}
-                >
-                  Open in Google Docs
-                </Button>
-              )}
-            </div>
-          </CardContent>
         </Card>
 
-        {/* Article Content */}
+        {/* Article Content with Tabs */}
         <Card>
-          <CardContent className="pt-8 px-8 pb-8">
+          <CardContent className="p-0">
+            {/* Tabs */}
+            <div className="border-b border-gray-200">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab('preview')}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'preview'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
+                >
+                  Preview
+                </button>
+                <button
+                  onClick={() => setActiveTab('markdown')}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'markdown'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
+                >
+                  Markdown
+                </button>
+                <button
+                  onClick={() => setActiveTab('richtext')}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'richtext'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
+                >
+                  Rich Text
+                </button>
+                <div className="flex-1"></div>
+                {article.google_doc_url && (
+                  <div className="flex items-center pr-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(article.google_doc_url!, '_blank')}
+                    >
+                      Open in Google Docs
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-8">
+              {/* Preview Tab */}
+              {activeTab === 'preview' && (
             <article className="prose prose-lg max-w-none
               [&>*]:text-gray-900
               [&_h1]:text-gray-900 [&_h1]:font-bold [&_h1]:text-4xl [&_h1]:mb-6 [&_h1]:mt-8 [&_h1]:leading-tight
@@ -253,7 +294,99 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               >
                 {article.content}
               </ReactMarkdown>
-            </article>
+                </article>
+              )}
+
+              {/* Markdown Tab */}
+              {activeTab === 'markdown' && (
+                <div className="relative">
+                  {/* Action Icons */}
+                  <div className="absolute top-0 right-0 flex gap-2">
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                      title="Copy markdown"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDownload('md')}
+                      disabled={downloading === 'md'}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                      title="Download markdown"
+                    >
+                      {downloading === 'md' ? (
+                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Markdown Content */}
+                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-800 leading-relaxed border border-gray-200 max-h-[600px]">
+                    {article.content}
+                  </pre>
+                </div>
+              )}
+
+              {/* Rich Text Tab */}
+              {activeTab === 'richtext' && (
+                <div className="relative">
+                  {/* Action Icons */}
+                  <div className="absolute top-0 right-0 flex gap-2 z-10">
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                      title="Copy content"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDownload('docx')}
+                      disabled={downloading === 'docx'}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
+                      title="Download Word document"
+                    >
+                      {downloading === 'docx' ? (
+                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Rich Text Content */}
+                  <div className="prose prose-lg max-w-none bg-white p-6 rounded-lg border border-gray-200 max-h-[600px] overflow-auto">
+                    <div dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br/>') }} />
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
