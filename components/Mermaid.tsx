@@ -16,6 +16,17 @@ export function Mermaid({ chart, id }: MermaidProps) {
     mermaid.initialize({
       startOnLoad: true,
       theme: 'default',
+      themeVariables: {
+        primaryColor: '#f0f9ff',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#64748b',
+        secondaryColor: '#e0f2fe',
+        tertiaryColor: '#f8fafc',
+        background: '#ffffff',
+        mainBkg: '#ffffff',
+        secondBkg: '#f8fafc',
+      },
       securityLevel: 'loose',
       fontFamily: 'system-ui, sans-serif',
     })
@@ -87,8 +98,8 @@ export function Mermaid({ chart, id }: MermaidProps) {
   }
 
   return (
-    <div className="my-6">
-      <div ref={ref} className="flex justify-center" />
+    <div className="my-6 p-6 bg-white rounded-lg">
+      <div ref={ref} className="flex justify-center bg-white" />
       <div className="mt-3 flex justify-end">
         <button
           onClick={handleDownload}

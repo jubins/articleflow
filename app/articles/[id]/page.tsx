@@ -321,6 +321,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                           lineHeight: '1.6',
                           padding: '1rem',
                           border: 'none',
+                          boxShadow: 'none',
+                          outline: 'none',
                         }}
                         codeTagProps={{
                           style: {
@@ -517,6 +519,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                                     lineHeight: '1.6',
                                     padding: '1rem',
                                     border: 'none',
+                                    boxShadow: 'none',
+                                    outline: 'none',
                                   }}
                                   codeTagProps={{
                                     style: {
