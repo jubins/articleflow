@@ -8,40 +8,54 @@ interface MermaidProps {
   id: string
 }
 
+// Initialize mermaid once
+let isInitialized = false
+
 export function Mermaid({ chart, id }: MermaidProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [errorDetails, setErrorDetails] = useState<string>('')
 
   useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      themeVariables: {
-        primaryColor: '#f0f9ff',
-        primaryTextColor: '#1e293b',
-        primaryBorderColor: '#3b82f6',
-        lineColor: '#64748b',
-        secondaryColor: '#e0f2fe',
-        tertiaryColor: '#f8fafc',
-        background: '#ffffff',
-        mainBkg: '#ffffff',
-        secondBkg: '#f8fafc',
-      },
-      securityLevel: 'loose',
-      fontFamily: 'system-ui, sans-serif',
-    })
+    if (!isInitialized) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        themeVariables: {
+          primaryColor: '#f0f9ff',
+          primaryTextColor: '#1e293b',
+          primaryBorderColor: '#3b82f6',
+          lineColor: '#64748b',
+          secondaryColor: '#e0f2fe',
+          tertiaryColor: '#f8fafc',
+          background: '#ffffff',
+          mainBkg: '#ffffff',
+          secondBkg: '#f8fafc',
+        },
+        securityLevel: 'loose',
+        fontFamily: 'system-ui, sans-serif',
+        sequence: {
+          wrap: true,
+          width: 150,
+        },
+      })
+      isInitialized = true
+    }
 
     const renderDiagram = async () => {
       if (!ref.current) return
 
       try {
+        setError(null)
+        setErrorDetails('')
         const { svg } = await mermaid.render(`mermaid-${id}`, chart)
         if (ref.current) {
           ref.current.innerHTML = svg
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Mermaid render error:', err)
         setError('Failed to render diagram')
+        setErrorDetails(err?.message || String(err))
       }
     }
 
@@ -88,10 +102,13 @@ export function Mermaid({ chart, id }: MermaidProps) {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded p-4 my-4">
-        <p className="text-red-700 text-sm">{error}</p>
+        <p className="text-red-700 text-sm font-semibold">{error}</p>
+        {errorDetails && (
+          <p className="text-red-600 text-xs mt-1">{errorDetails}</p>
+        )}
         <details className="mt-2">
-          <summary className="text-xs text-red-600 cursor-pointer">Show diagram code</summary>
-          <pre className="mt-2 text-xs overflow-x-auto">{chart}</pre>
+          <summary className="text-xs text-red-600 cursor-pointer font-medium">Show diagram code</summary>
+          <pre className="mt-2 text-xs overflow-x-auto bg-white p-2 rounded border border-red-200">{chart}</pre>
         </details>
       </div>
     )
