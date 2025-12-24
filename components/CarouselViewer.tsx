@@ -19,7 +19,8 @@ let isMermaidInitialized = false
 
 export function CarouselViewer({ content, title }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [downloading, setDownloading] = useState(false)
+  const [downloadingCurrent, setDownloadingCurrent] = useState(false)
+  const [downloadingAll, setDownloadingAll] = useState(false)
   const [teaserText, setTeaserText] = useState('')
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
 
@@ -81,11 +82,18 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
     }
   }
 
-  const downloadSlideAsWebP = async (index: number) => {
+  const downloadSlideAsWebP = async (index: number, showSlide = false) => {
     const slideElement = slideRefs.current[index]
     if (!slideElement) return
 
-    setDownloading(true)
+    // Temporarily make the slide visible if it's hidden
+    const wasHidden = slideElement.classList.contains('hidden')
+    if (wasHidden && showSlide) {
+      slideElement.classList.remove('hidden')
+      // Wait for render
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+
     try {
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
@@ -94,6 +102,11 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
         useCORS: true,
         allowTaint: true,
       })
+
+      // Hide the slide again if it was hidden
+      if (wasHidden && showSlide) {
+        slideElement.classList.add('hidden')
+      }
 
       // Convert canvas to WebP blob
       const blob = await new Promise<Blob | null>((resolve) => {
@@ -110,22 +123,39 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
       }
     } catch (error) {
       console.error('Error downloading slide:', error)
-      alert('Failed to download slide. Please try again.')
-    } finally {
-      setDownloading(false)
+      // Make sure to unhide if there was an error
+      if (wasHidden && showSlide) {
+        slideElement.classList.add('hidden')
+      }
+      throw error
     }
   }
 
-  const downloadAllSlides = async () => {
-    setDownloading(true)
+  const handleDownloadCurrent = async () => {
+    setDownloadingCurrent(true)
+    try {
+      await downloadSlideAsWebP(currentSlide, false)
+    } catch (error) {
+      alert('Failed to download slide. Please try again.')
+    } finally {
+      setDownloadingCurrent(false)
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true)
     try {
       for (let i = 0; i < slides.length; i++) {
-        await downloadSlideAsWebP(i)
+        await downloadSlideAsWebP(i, true)
         // Add small delay between downloads
-        await new Promise(resolve => setTimeout(resolve, 800))
+        if (i < slides.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 800))
+        }
       }
+    } catch (error) {
+      alert('Failed to download all slides. Some slides may not have been downloaded.')
     } finally {
-      setDownloading(false)
+      setDownloadingAll(false)
     }
   }
 
@@ -203,42 +233,42 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadSlideAsWebP(currentSlide)}
-            disabled={downloading}
+            onClick={handleDownloadCurrent}
+            disabled={downloadingCurrent || downloadingAll}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            {downloading ? 'Downloading...' : 'Download Current'}
+            {downloadingCurrent ? 'Downloading...' : 'Download Current'}
           </Button>
 
           <Button
             size="sm"
-            onClick={downloadAllSlides}
-            disabled={downloading}
+            onClick={handleDownloadAll}
+            disabled={downloadingCurrent || downloadingAll}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
-            {downloading ? 'Downloading All...' : 'Download All Slides'}
+            {downloadingAll ? 'Downloading All...' : 'Download All Slides'}
           </Button>
         </div>
       </div>
 
       {/* Slide Content */}
-      <div className="relative">
+      <div className="relative flex justify-center">
         {slides.map((slide, index) => (
           <div
             key={index}
             ref={(el) => { slideRefs.current[index] = el }}
             className={`
-              bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-lg p-12 min-h-[600px]
+              bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-lg p-12
               ${index === currentSlide ? 'block' : 'hidden'}
             `}
             style={{
-              maxWidth: '1080px',
-              aspectRatio: '1080 / 1350', // LinkedIn carousel aspect ratio
-              margin: '0 auto',
+              width: '960px',
+              height: '540px', // 16:9 aspect ratio (PowerPoint/Google Slides standard)
+              maxWidth: '100%',
             }}
           >
             <SlideContent slide={slide} slideNumber={index + 1} totalSlides={slides.length} />
@@ -255,7 +285,7 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={`
-                relative aspect-[4/5] rounded-lg border-2 overflow-hidden
+                relative aspect-[16/9] rounded-lg border-2 overflow-hidden
                 transition-all hover:shadow-md
                 ${currentSlide === index
                   ? 'border-blue-500 ring-2 ring-blue-200'
@@ -283,6 +313,7 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
 // Separate component for slide content rendering
 function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slideNumber: number; totalSlides: number }) {
   const [renderedContent, setRenderedContent] = useState<string>('')
+  const [mermaidSvg, setMermaidSvg] = useState<string>('')
 
   useEffect(() => {
     const renderMermaid = async () => {
@@ -291,15 +322,19 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
       if (mermaidMatch) {
         try {
           const { svg } = await mermaid.render(`mermaid-slide-${slideNumber}`, mermaidMatch[1])
-          // Replace mermaid block with rendered SVG
-          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, `<div class="mermaid-diagram">${svg}</div>`)
+          // Store the SVG separately
+          setMermaidSvg(svg)
+          // Remove mermaid block from markdown
+          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '<!-- MERMAID_PLACEHOLDER -->')
           setRenderedContent(updated)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
           setRenderedContent(slide)
+          setMermaidSvg('')
         }
       } else {
         setRenderedContent(slide)
+        setMermaidSvg('')
       }
     }
 
@@ -308,7 +343,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900">
+      <div className="flex-1 prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 overflow-auto">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -337,8 +372,17 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                 </code>
               )
             },
-            div({ children, ...props }) {
-              return <div {...props}>{children}</div>
+            p({ children }) {
+              // Replace mermaid placeholder with actual SVG
+              if (children === '<!-- MERMAID_PLACEHOLDER -->') {
+                return (
+                  <div 
+                    className="mermaid-diagram flex justify-center my-4" 
+                    dangerouslySetInnerHTML={{ __html: mermaidSvg }}
+                  />
+                )
+              }
+              return <p>{children}</p>
             },
           }}
         >
