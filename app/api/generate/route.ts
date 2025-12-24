@@ -68,11 +68,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile for author signature
-    const { data: profile } = await supabase
+    // Also ensure profile exists (create if missing to prevent FK constraint errors)
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
       .eq('id', user.id)
       .single()
+
+    // If profile doesn't exist, create it to prevent foreign key constraint errors
+    if (profileError && profileError.code === 'PGRST116') {
+      console.log('Profile not found, creating one for user:', user.id)
+
+      // Create profile
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      await supabase.from('profiles').insert({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || null,
+      })
+
+      // Create user settings if they don't exist (should have been created already, but just in case)
+      const { data: existingSettings } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingSettings) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await supabase.from('user_settings').insert({
+          user_id: user.id,
+          default_ai_provider: 'claude',
+          default_word_count: 2000,
+        })
+      }
+
+      // Fetch the newly created profile
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
+        .eq('id', user.id)
+        .single()
+
+      profile = newProfile
+    }
 
     // Create a draft article record
     const { data: article, error: articleError } = await supabase
