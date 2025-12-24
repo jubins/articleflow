@@ -167,7 +167,7 @@ export function CarouselViewer({ content }: CarouselViewerProps) {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  code({ node, inline, className, children, ...props }) {
+                  code({ inline, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '')
                     const code = String(children).replace(/\n$/, '')
 

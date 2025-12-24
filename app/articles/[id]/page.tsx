@@ -20,9 +20,19 @@ import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import TurndownService from 'turndown'
 
+interface Profile {
+  full_name?: string | null
+  bio?: string | null
+  linkedin_handle?: string | null
+  twitter_handle?: string | null
+  github_handle?: string | null
+  website?: string | null
+}
+
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [article, setArticle] = useState<Article | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
@@ -65,6 +75,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       if (error) throw error
 
       setArticle(data as Article)
+
+      // Load user profile for signature
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData) {
+        setProfile(profileData)
+      }
     } catch (err) {
       console.error('Error loading article:', err)
       setError('Failed to load article')
@@ -403,6 +424,58 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               >
                 {article.content}
               </ReactMarkdown>
+
+              {/* Author Signature */}
+              {profile && (profile.full_name || profile.bio || profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
+                <div className="mt-12 pt-8 border-t-2 border-gray-300">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">About the Author</h3>
+
+                  {profile.full_name && (
+                    <p className="mb-2 text-gray-900 text-base">
+                      Written by <strong className="font-semibold">{profile.full_name}</strong>
+                    </p>
+                  )}
+
+                  {profile.bio && (
+                    <p className="mb-4 text-gray-900 leading-relaxed text-base">{profile.bio}</p>
+                  )}
+
+                  {(profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
+                    <div className="mt-4">
+                      <p className="font-semibold mb-2 text-gray-900 text-base">Connect with me:</p>
+                      <p className="text-gray-900 text-base">
+                        {[
+                          profile.linkedin_handle && (
+                            <span key="linkedin">
+                              🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                            </span>
+                          ),
+                          profile.twitter_handle && (
+                            <span key="twitter">
+                              🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">Twitter/X</a>
+                            </span>
+                          ),
+                          profile.github_handle && (
+                            <span key="github">
+                              💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">GitHub</a>
+                            </span>
+                          ),
+                          profile.website && (
+                            <span key="website">
+                              🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">Website</a>
+                            </span>
+                          ),
+                        ].filter(Boolean).map((item, index, array) => (
+                          <span key={index}>
+                            {item}
+                            {index < array.length - 1 && <span className="mx-2">|</span>}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
                 </article>
               )}
 

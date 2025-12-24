@@ -218,7 +218,8 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>Signature Preview</CardTitle>
               <CardDescription>
-                This is how your signature will appear at the end of articles
+                This is how your signature will appear at the end of articles.
+                Customize by editing your name, bio, and social handles above.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -227,10 +228,12 @@ export default function ProfilePage() {
                   <hr className="my-4 border-gray-400" />
                   <h3 className="text-lg font-bold mb-3 text-gray-900">About the Author</h3>
 
+                  {profile.full_name ? (
+                    <p className="mb-2 text-gray-900">Written by <strong className="font-semibold">{profile.full_name}</strong></p>
+                  ) : null}
+
                   {profile.bio ? (
                     <p className="mb-3 text-gray-900 leading-relaxed">{profile.bio}</p>
-                  ) : profile.full_name ? (
-                    <p className="mb-3 text-gray-900">Written by <strong className="font-semibold">{profile.full_name}</strong></p>
                   ) : (
                     <p className="text-gray-400 italic mb-3">Add your bio above to see it here</p>
                   )}
