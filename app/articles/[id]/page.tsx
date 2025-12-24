@@ -16,6 +16,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
 import { RichTextEditor } from '@/components/RichTextEditor'
+import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import TurndownService from 'turndown'
 
@@ -25,7 +26,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
   const [isEditingRichText, setIsEditingRichText] = useState(false)
@@ -295,6 +296,18 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 >
                   Rich Text
                 </button>
+                {article.article_type === 'carousel' && (
+                  <button
+                    onClick={() => setActiveTab('carousel')}
+                    className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'carousel'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
+                  >
+                    Carousel View
+                  </button>
+                )}
                 <div className="flex-1"></div>
                 {article.google_doc_url && (
                   <div className="flex items-center pr-4">
@@ -564,6 +577,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                       editable={isEditingRichText}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* Carousel Tab */}
+              {activeTab === 'carousel' && article.article_type === 'carousel' && (
+                <div>
+                  <CarouselViewer content={article.content} />
                 </div>
               )}
             </div>
