@@ -233,6 +233,9 @@ export default function DashboardPage() {
                         Title
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -254,6 +257,9 @@ export default function DashboardPage() {
                           {article.word_count && (
                             <div className="text-sm text-gray-500">{article.word_count} words</div>
                           )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                          {article.article_type || 'technical'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={article.status as 'draft' | 'generated' | 'published' | 'failed'} />

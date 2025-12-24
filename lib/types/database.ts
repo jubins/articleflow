@@ -113,6 +113,7 @@ export interface Database {
           tags: string[]
           word_count: number | null
           platform: 'medium' | 'devto' | 'dzone' | 'all'
+          article_type: string
           status: 'draft' | 'generated' | 'published' | 'failed'
           ai_provider: string
           google_doc_id: string | null
@@ -135,6 +136,7 @@ export interface Database {
           tags?: string[]
           word_count?: number | null
           platform: 'medium' | 'devto' | 'dzone' | 'all'
+          article_type?: string
           status?: 'draft' | 'generated' | 'published' | 'failed'
           ai_provider: string
           google_doc_id?: string | null
@@ -157,6 +159,7 @@ export interface Database {
           tags?: string[]
           word_count?: number | null
           platform?: 'medium' | 'devto' | 'dzone' | 'all'
+          article_type?: string
           status?: 'draft' | 'generated' | 'published' | 'failed'
           ai_provider?: string
           google_doc_id?: string | null
