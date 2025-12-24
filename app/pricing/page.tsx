@@ -71,13 +71,13 @@ export default function PricingPage() {
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Download Markdown/DOCX</span>
+                  <span className="text-sm">Full article with images</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Google Docs export</span>
+                  <span className="text-sm">Download Markdown/DOCX</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-red-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

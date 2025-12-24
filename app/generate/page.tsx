@@ -45,6 +45,11 @@ const ARTICLE_TYPES = [
     label: 'Case Study',
     description: 'Real-world implementation story with architecture and results',
   },
+  {
+    value: 'carousel',
+    label: 'LinkedIn Carousel',
+    description: 'Engaging 4-5 slide carousel starting with basics and ending with advanced insights',
+  },
 ]
 
 export default function GeneratePage() {
@@ -272,6 +277,15 @@ export default function GeneratePage() {
                             <li>• Implementation details with code</li>
                             <li>• Performance metrics and results</li>
                             <li>• Lessons learned and takeaways</li>
+                          </>
+                        )}
+                        {formData.articleType === 'carousel' && (
+                          <>
+                            <li>• 4-5 engaging slides with visual diagrams</li>
+                            <li>• Progressive learning from basic to advanced</li>
+                            <li>• Mermaid diagrams or text-based slides</li>
+                            <li>• Ends with enlightening insights or key takeaways</li>
+                            <li>• Perfect for LinkedIn engagement</li>
                           </>
                         )}
                       </ul>
