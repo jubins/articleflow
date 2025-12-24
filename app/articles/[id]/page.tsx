@@ -31,7 +31,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
-  const [convertingMermaid, setConvertingMermaid] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -189,73 +188,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
-    }
-  }
-
-  const handleConvertMermaidToImages = async () => {
-    if (!article) return
-
-    setConvertingMermaid(true)
-    setError('')
-
-    try {
-      // Find all mermaid code blocks
-      const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
-      let updatedContent = article.content
-      const matches = Array.from(article.content.matchAll(mermaidRegex))
-
-      if (matches.length === 0) {
-        setError('No Mermaid diagrams found')
-        setConvertingMermaid(false)
-        return
-      }
-
-      // Process each mermaid diagram
-      for (const match of matches) {
-        const mermaidCode = match[1]
-
-        // Render mermaid to SVG on client
-        const mermaid = (await import('mermaid')).default
-        mermaid.initialize({ startOnLoad: false, theme: 'default' })
-
-        try {
-          const { svg } = await mermaid.render(`temp-${Date.now()}`, mermaidCode)
-
-          // Convert SVG to WebP via API
-          const response = await fetch('/api/mermaid/convert', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ svg }),
-          })
-
-          if (!response.ok) throw new Error('Conversion failed')
-
-          const { imageUrl } = await response.json()
-
-          // Replace mermaid code block with image
-          updatedContent = updatedContent.replace(match[0], `![Diagram](${imageUrl})`)
-        } catch (err) {
-          console.error('Error converting diagram:', err)
-        }
-      }
-
-      // Save updated content
-      const supabase = createClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from('articles')
-        .update({ content: updatedContent })
-        .eq('id', article.id)
-
-      if (error) throw error
-
-      setArticle({ ...article, content: updatedContent })
-      setError(`Successfully converted ${matches.length} diagram(s) to images!`)
-    } catch (err) {
-      console.error('Conversion error:', err)
-      setError('Failed to convert Mermaid diagrams')
-    } finally {
-      setConvertingMermaid(false)
     }
   }
 
