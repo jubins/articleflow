@@ -2,7 +2,33 @@
 
 This document explains how to apply pending database migrations to your ArticleFlow application.
 
-## Pending Migrations
+## 🚨 URGENT: Fix Carousel Generation Error
+
+**If you're seeing: "Could not find the 'file_id' column"**, run this SQL immediately:
+
+### Quick Fix (Do This First!)
+
+1. Go to **Supabase Dashboard** → **SQL Editor**
+2. Copy and paste the contents of `QUICK_FIX.sql` (or the SQL below):
+
+```sql
+-- Add missing columns to articles table
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS file_id TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS rich_text_content TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS article_type TEXT DEFAULT 'technical';
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_articles_file_id ON articles(file_id);
+CREATE INDEX IF NOT EXISTS idx_articles_has_rich_text ON articles((rich_text_content IS NOT NULL));
+CREATE INDEX IF NOT EXISTS idx_articles_article_type ON articles(article_type);
+```
+
+3. Click **Run**
+4. **Test carousel generation again** - it should work now!
+
+---
+
+## Other Pending Migrations
 
 ### 1. Drop markdown_url Column (005_drop_markdown_url.sql)
 
