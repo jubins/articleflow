@@ -31,9 +31,9 @@ export function PasswordInput({
 
   return (
     <div className={className}>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-200 mb-2">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-900 mb-2">
         {label}
-        {required && <span className="text-red-400 ml-1">*</span>}
+        {required && <span className="text-red-600 ml-1">*</span>}
       </label>
       <div className="relative">
         <input
@@ -46,16 +46,16 @@ export function PasswordInput({
           autoComplete={autoComplete}
           className={`
             w-full px-4 py-2 pr-12
-            bg-gray-800 border rounded-lg
-            text-white placeholder-gray-500
+            bg-white border rounded-lg
+            text-gray-900 placeholder-gray-400
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-            ${error ? 'border-red-500' : 'border-gray-700'}
+            ${error ? 'border-red-500' : 'border-gray-300'}
           `}
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
           {showPassword ? (
@@ -96,8 +96,8 @@ export function PasswordInput({
           )}
         </button>
       </div>
-      {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
-      {!error && helperText && <p className="mt-1 text-sm text-gray-400">{helperText}</p>}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {!error && helperText && <p className="mt-1 text-sm text-gray-700">{helperText}</p>}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains all database migrations for ContentForge.
+This directory contains all database migrations for ArticleFlow.
 
 ## Migration Files
 

@@ -13,25 +13,47 @@ import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
+import { RichTextEditor } from '@/components/RichTextEditor'
+import { CarouselViewer } from '@/components/CarouselViewer'
+import { markdownToHtml } from '@/lib/utils/markdown'
+import TurndownService from 'turndown'
+
+interface Profile {
+  full_name?: string | null
+  bio?: string | null
+  linkedin_handle?: string | null
+  twitter_handle?: string | null
+  github_handle?: string | null
+  website?: string | null
+}
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [article, setArticle] = useState<Article | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
   const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
+  const [richTextHtml, setRichTextHtml] = useState('')
 
   useEffect(() => {
     loadArticle()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
+
+  // Convert markdown to HTML when switching to rich text tab
+  useEffect(() => {
+    if (activeTab === 'richtext' && article && !isEditingRichText) {
+      setRichTextHtml(markdownToHtml(article.content))
+    }
+  }, [activeTab, article, isEditingRichText])
 
   const loadArticle = async () => {
     try {
@@ -53,6 +75,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       if (error) throw error
 
       setArticle(data as Article)
+
+      // Load user profile for signature
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData) {
+        setProfile(profileData)
+      }
     } catch (err) {
       console.error('Error loading article:', err)
       setError('Failed to load article')
@@ -108,22 +141,22 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setIsEditingMarkdown(true)
   }
 
-  const handleEditRichText = () => {
-    if (!article) return
-    setEditedContent(article.content)
-    setIsEditingRichText(true)
-  }
-
   const handleSaveEdit = async () => {
     if (!article || !editedContent) return
 
     try {
       const supabase = createClient()
 
+      // Convert markdown to rich text HTML
+      const richTextHtml = markdownToHtml(editedContent)
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from('articles')
-        .update({ content: editedContent })
+        .update({
+          content: editedContent,
+          rich_text_content: richTextHtml,
+        })
         .eq('id', article.id)
 
       if (error) throw error
@@ -142,6 +175,42 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setIsEditingMarkdown(false)
     setIsEditingRichText(false)
     setEditedContent('')
+    setRichTextHtml('')
+  }
+
+  const handleSaveRichText = async () => {
+    if (!article || !richTextHtml) return
+
+    try {
+      // Convert HTML back to markdown
+      const turndownService = new TurndownService({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced',
+      })
+      const markdown = turndownService.turndown(richTextHtml)
+
+      const supabase = createClient()
+
+      // Save both markdown and rich text HTML in database
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('articles')
+        .update({
+          content: markdown,
+          rich_text_content: richTextHtml,
+        })
+        .eq('id', article.id)
+
+      if (error) throw error
+
+      setArticle({ ...article, content: markdown })
+      setIsEditingRichText(false)
+      setRichTextHtml('')
+      setError('')
+    } catch (err) {
+      console.error('Save error:', err)
+      setError('Failed to save changes')
+    }
   }
 
   if (loading) {
@@ -213,7 +282,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         </Card>
 
         {/* Article Content with Tabs */}
-        <Card>
+        <Card className="!shadow-sm !border-gray-100">
           <CardContent className="p-0">
             {/* Tabs */}
             <div className="border-b border-gray-200">
@@ -248,6 +317,18 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 >
                   Rich Text
                 </button>
+                {article.article_type === 'carousel' && (
+                  <button
+                    onClick={() => setActiveTab('carousel')}
+                    className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'carousel'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
+                  >
+                    Carousel View
+                  </button>
+                )}
                 <div className="flex-1"></div>
                 {article.google_doc_url && (
                   <div className="flex items-center pr-4">
@@ -286,7 +367,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               [&_table]:border-collapse [&_table]:w-full [&_table]:my-6 [&_table]:shadow-md [&_table]:rounded-lg [&_table]:overflow-hidden
               [&_th]:border [&_th]:border-gray-300 [&_th]:bg-blue-50 [&_th]:p-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900
               [&_td]:border [&_td]:border-gray-300 [&_td]:p-3 [&_td]:text-gray-900
-              [&_img]:rounded-lg [&_img]:shadow-lg [&_img]:my-6"
+              [&_img]:rounded-lg [&_img]:my-6"
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -310,15 +391,19 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     // Render code blocks with syntax highlighting
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={tomorrow}
+                        style={vscDarkPlus}
                         language={language}
                         PreTag="div"
                         customStyle={{
                           margin: '1.5rem 0',
                           borderRadius: '0.5rem',
-                          border: '1px solid #e5e7eb',
+                          backgroundColor: '#1E1E1E',
                           fontSize: '0.875rem',
                           lineHeight: '1.6',
+                          padding: '1rem',
+                          border: 'none',
+                          boxShadow: 'none',
+                          outline: 'none',
                         }}
                         codeTagProps={{
                           style: {
@@ -339,6 +424,58 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               >
                 {article.content}
               </ReactMarkdown>
+
+              {/* Author Signature */}
+              {profile && (profile.full_name || profile.bio || profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
+                <div className="mt-12 pt-8 border-t-2 border-gray-300">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">About the Author</h3>
+
+                  {profile.full_name && (
+                    <p className="mb-2 text-gray-900 text-base">
+                      Written by <strong className="font-semibold">{profile.full_name}</strong>
+                    </p>
+                  )}
+
+                  {profile.bio && (
+                    <p className="mb-4 text-gray-900 leading-relaxed text-base">{profile.bio}</p>
+                  )}
+
+                  {(profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
+                    <div className="mt-4">
+                      <p className="font-semibold mb-2 text-gray-900 text-base">Connect with me:</p>
+                      <p className="text-gray-900 text-base">
+                        {[
+                          profile.linkedin_handle && (
+                            <span key="linkedin">
+                              🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                            </span>
+                          ),
+                          profile.twitter_handle && (
+                            <span key="twitter">
+                              🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">Twitter/X</a>
+                            </span>
+                          ),
+                          profile.github_handle && (
+                            <span key="github">
+                              💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">GitHub</a>
+                            </span>
+                          ),
+                          profile.website && (
+                            <span key="website">
+                              🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline" target="_blank" rel="noopener noreferrer">Website</a>
+                            </span>
+                          ),
+                        ].filter(Boolean).map((item, index, array) => (
+                          <span key={index}>
+                            {item}
+                            {index < array.length - 1 && <span className="mx-2">|</span>}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
                 </article>
               )}
 
@@ -434,13 +571,25 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               {activeTab === 'richtext' && (
                 <div className="relative">
                   {/* Action Icons */}
-                  <div className="absolute top-0 right-0 flex gap-2 z-10">
+                  <div className="flex justify-end gap-2 mb-4">
                     {!isEditingRichText ? (
                       <>
                         <button
+                          onClick={() => {
+                            setIsEditingRichText(true)
+                            setRichTextHtml(markdownToHtml(article.content))
+                          }}
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                          title="Edit content"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
                           onClick={handleCopy}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Copy content"
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                          title="Copy markdown"
                         >
                           {copySuccess ? (
                             <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,18 +602,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                           )}
                         </button>
                         <button
-                          onClick={handleEditRichText}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                          title="Edit content"
-                        >
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
                           onClick={() => handleDownload('docx')}
                           disabled={downloading === 'docx'}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 bg-white border border-gray-200"
+                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
                           title="Download Word document"
                         >
                           {downloading === 'docx' ? (
@@ -481,8 +621,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     ) : (
                       <>
                         <button
-                          onClick={handleSaveEdit}
-                          className="p-2 hover:bg-green-100 rounded-md transition-colors bg-white border border-gray-200"
+                          onClick={handleSaveRichText}
+                          className="p-2 hover:bg-green-100 rounded-md transition-colors"
                           title="Save changes"
                         >
                           <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -491,7 +631,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className="p-2 hover:bg-red-100 rounded-md transition-colors bg-white border border-gray-200"
+                          className="p-2 hover:bg-red-100 rounded-md transition-colors"
                           title="Cancel editing"
                         >
                           <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,32 +642,21 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     )}
                   </div>
 
-                  {/* Rich Text Content */}
-                  {isEditingRichText ? (
-                    <textarea
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      className="w-full bg-white p-6 rounded-lg text-base text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
-                      rows={20}
+                  {/* Rich Text Editor */}
+                  <div>
+                    <RichTextEditor
+                      content={richTextHtml}
+                      onChange={setRichTextHtml}
+                      editable={isEditingRichText}
                     />
-                  ) : (
-                    <div className="bg-white p-6 rounded-lg border border-gray-200 max-h-[600px] overflow-auto">
-                      <article className="prose prose-lg max-w-none
-                        [&>*]:text-gray-900
-                        [&_h1]:text-gray-900 [&_h1]:font-bold [&_h1]:text-3xl
-                        [&_h2]:text-gray-900 [&_h2]:font-bold [&_h2]:text-2xl
-                        [&_h3]:text-gray-900 [&_h3]:font-bold [&_h3]:text-xl
-                        [&_p]:text-gray-900 [&_p]:leading-relaxed
-                        [&_strong]:text-gray-900 [&_strong]:font-bold
-                        [&_em]:text-gray-900 [&_em]:italic
-                        [&_a]:text-blue-600 [&_a]:font-medium [&_a]:hover:underline
-                        [&_ul]:text-gray-900 [&_ol]:text-gray-900 [&_li]:text-gray-900">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {article.content}
-                        </ReactMarkdown>
-                      </article>
-                    </div>
-                  )}
+                  </div>
+                </div>
+              )}
+
+              {/* Carousel Tab */}
+              {activeTab === 'carousel' && article.article_type === 'carousel' && (
+                <div>
+                  <CarouselViewer content={article.content} />
                 </div>
               )}
             </div>

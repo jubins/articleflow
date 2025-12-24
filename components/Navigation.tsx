@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -18,6 +19,7 @@ export function Navigation() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/articles', label: 'Articles' },
     { href: '/generate', label: 'Generate' },
     { href: '/integrations', label: 'Integrations' },
     { href: '/profile', label: 'Profile' },
@@ -28,8 +30,9 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <Link href="/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">ContentForge</span>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image src="/logo.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
+              <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </Link>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
               {navItems.map((item) => (

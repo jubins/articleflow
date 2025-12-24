@@ -1,0 +1,85 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- White version gradient definitions -->
+  <defs>
+    <linearGradient id="whiteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#F0F0F0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5E5E5;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect for white -->
+    <filter id="whiteGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="#FFFFFF" opacity="0.1"/>
+
+  <!-- Modern 'A' with flowing design -->
+  <g filter="url(#whiteGlow)">
+    <path d="M 45 140 L 60 75 Q 70 45 85 50 L 100 140"
+          stroke="url(#whiteGradient)"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"/>
+
+    <path d="M 52 108 Q 70 105 88 108"
+          stroke="url(#whiteGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- Modern 'F' with flowing design -->
+  <g filter="url(#whiteGlow)">
+    <path d="M 115 140 L 115 50"
+          stroke="url(#whiteGradient)"
+          stroke-width="14"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <path d="M 115 50 Q 135 48 155 52"
+          stroke="url(#whiteGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <path d="M 115 95 Q 130 93 145 95"
+          stroke="url(#whiteGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- Flow lines -->
+  <g opacity="0.6">
+    <path d="M 160 58 Q 170 62 175 70 Q 178 75 180 82"
+          stroke="#FFFFFF"
+          stroke-width="4"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <path d="M 150 100 Q 158 103 165 110 Q 168 115 170 122"
+          stroke="#FFFFFF"
+          stroke-width="3"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <path d="M 40 145 Q 32 150 28 158"
+          stroke="#FFFFFF"
+          stroke-width="3"
+          stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- Decorative dots -->
+  <circle cx="182" cy="85" r="3" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="172" cy="125" r="2.5" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="26" cy="162" r="2.5" fill="#FFFFFF" opacity="0.6"/>
+</svg>

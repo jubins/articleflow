@@ -154,7 +154,7 @@ export default function IntegrationsPage() {
                   <div>
                     <h4 className="text-base font-semibold text-blue-900 mb-2">Why are API keys needed?</h4>
                     <p className="text-sm text-blue-800 mb-3">
-                      ContentForge uses your own API keys to generate articles. This ensures:
+                      ArticleFlow uses your own API keys to generate articles. This ensures:
                     </p>
                     <ul className="space-y-2">
                       <li className="flex items-start text-sm text-blue-800">

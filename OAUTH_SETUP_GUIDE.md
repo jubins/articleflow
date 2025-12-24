@@ -1,8 +1,8 @@
-# Google OAuth Setup Guide for ContentForge
+# Google OAuth Setup Guide for ArticleFlow
 
 ## Overview
 
-ContentForge now uses **Google OAuth** for user authentication instead of service accounts. This means:
+ArticleFlow now uses **Google OAuth** for user authentication instead of service accounts. This means:
 - ✅ Users connect their own Google accounts
 - ✅ No need for service account JSON files
 - ✅ Users manage their own API keys through the UI
@@ -35,7 +35,7 @@ ContentForge now uses **Google OAuth** for user authentication instead of servic
 2. Click **Create Credentials > OAuth client ID**
 3. If prompted, configure the OAuth consent screen first:
    - **User Type**: External (unless you have a Google Workspace)
-   - **App name**: ContentForge
+   - **App name**: ArticleFlow
    - **User support email**: Your email
    - **Developer contact**: Your email
    - **Scopes**: Add these scopes:
@@ -46,7 +46,7 @@ ContentForge now uses **Google OAuth** for user authentication instead of servic
 
 4. Back to **Create OAuth client ID**:
    - **Application type**: Web application
-   - **Name**: ContentForge OAuth
+   - **Name**: ArticleFlow OAuth
    - **Authorized JavaScript origins**:
      - `http://localhost:3000` (for development)
      - `https://your-production-domain.com` (for production)
@@ -100,12 +100,12 @@ ADD COLUMN google_connected_at TIMESTAMPTZ;
 
 ### User Flow
 
-1. **User signs up/logs in** to ContentForge
+1. **User signs up/logs in** to ArticleFlow
 2. **Goes to Integrations page** (`/integrations`)
 3. **Clicks "Connect Google Account"**
 4. **Redirected to Google OAuth consent screen**
 5. **Grants permissions** (read sheets, create docs)
-6. **Redirected back** to ContentForge
+6. **Redirected back** to ArticleFlow
 7. **OAuth tokens stored** in their user_settings record
 
 ### For Developers
@@ -180,7 +180,7 @@ These are stored encrypted in the `user_settings` table per user.
 ### "App is not verified" warning
 
 - Normal for apps in testing mode
-- Click "Advanced" and then "Go to ContentForge (unsafe)" during testing
+- Click "Advanced" and then "Go to ArticleFlow (unsafe)" during testing
 - For production, submit your app for verification
 
 ### "Access blocked: This app's request is invalid"

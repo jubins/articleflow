@@ -1,7 +1,7 @@
-# ContentForge Database Schema
+# ArticleFlow Database Schema
 
 ## Overview
-This document describes the database schema for ContentForge, a content automation pipeline that generates technical articles for Medium, Dev.to, and DZone using AI.
+This document describes the database schema for ArticleFlow, a content automation pipeline that generates technical articles for Medium, Dev.to, and DZone using AI.
 
 ## Tables
 

@@ -46,25 +46,30 @@ Requirements:
 - Ensure technical accuracy
 
 CRITICAL - Architecture Diagrams:
-- Use Mermaid syntax wrapped in \`\`\`mermaid code blocks
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
 - Create diagrams showing system architecture, data flow, or component relationships
-- Make diagrams professional and informative
+- Keep it simple and use standard graph syntax only
 
 CRITICAL - Code Examples:
 - Include real, working code examples
 - Use proper language identifiers in code blocks
 - Explain what the code does
 
-Example Mermaid diagram:
+Example Mermaid diagram (VALID SYNTAX ONLY):
 \`\`\`mermaid
 graph TD
-    A[Client] -->|Request| B[API Gateway]
-    B --> C{Auth Check}
-    C -->|Valid| D[Process]
-    C -->|Invalid| E[Reject]
-    D --> F[Database]
-    F -->|Response| A
+    A[Client Application] -->|HTTP Request| B[API Gateway]
+    B --> C{Authentication}
+    C -->|Valid Token| D[Process Request]
+    C -->|Invalid| E[Return 401]
+    D --> F[(Database)]
+    F -->|Data| D
+    D -->|Response| A
 \`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 Generate a complete article in Markdown format with:
 1. A compelling title
@@ -100,8 +105,23 @@ CRITICAL - Step-by-Step Format:
 - Explain what each step accomplishes
 
 CRITICAL - Workflow Diagrams:
-- Use Mermaid to show the tutorial workflow or process
-- Make it easy to understand the flow
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
+- Keep it simple and use standard graph syntax only
+- Show the tutorial workflow or process clearly
+
+Example Mermaid diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    A[Start] --> B[Install Dependencies]
+    B --> C[Configure Project]
+    C --> D[Write Code]
+    D --> E[Test Application]
+    E --> F[Deploy]
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 Generate a complete tutorial in Markdown format with:
 1. A compelling title starting with "How to..." or "Getting Started with..."
@@ -205,9 +225,25 @@ Requirements:
 - Make it engaging and narrative-driven
 
 CRITICAL - Architecture Diagrams:
-- Show the system architecture
-- Use Mermaid for diagrams
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
+- Show the system architecture clearly
 - Explain the architecture choices
+- Keep it simple and use standard graph syntax only
+
+Example Mermaid diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    A[User Request] --> B[Load Balancer]
+    B --> C[App Server 1]
+    B --> D[App Server 2]
+    C --> E[(Database)]
+    D --> E
+    E --> F[Cache Layer]
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 CRITICAL - Implementation Details:
 - Include actual code snippets
@@ -231,6 +267,60 @@ Format your response as JSON:
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full case study content..."
+}`,
+
+  carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create 4-5 engaging slides perfect for LinkedIn
+- Start with basic concepts and progress to advanced insights
+- Each slide should have a clear focus and key message
+- Include Mermaid diagrams OR text-based content for each slide
+- End with enlightening insights or key takeaways
+- Make it visually engaging and easy to follow
+
+CRITICAL - Slide Structure:
+- Slide 1: Hook/Introduction - Grab attention with the problem or opportunity
+- Slides 2-3: Core Content - Build understanding from basic to intermediate
+- Slide 4: Advanced Insights - Share deeper knowledge or best practices
+- Slide 5: Key Takeaways/CTA - Summarize and provide actionable next steps
+
+CRITICAL - Mermaid Diagrams for Slides:
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
+- Keep diagrams simple and focused on one concept per slide
+- Each slide can have either a diagram OR text content (not both)
+
+Example Mermaid diagram for a slide (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph LR
+    A[Problem] --> B[Solution]
+    B --> C[Benefit]
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
+
+CRITICAL - Content Guidelines:
+- Each slide should be concise and focused (2-4 bullet points max)
+- Use clear headings for each slide
+- Progressive difficulty: basic → intermediate → advanced
+- Final slide should inspire action or deeper thinking
+
+Generate a complete LinkedIn carousel in Markdown format with:
+1. A compelling title for the carousel
+2. A brief description (150-200 characters for SEO)
+3. 3-5 relevant tags
+4. The full carousel content in Markdown (4-5 slides with clear headings)
+
+Format your response as JSON:
+{
+  "title": "Carousel Title Here",
+  "description": "Brief description for SEO",
+  "tags": ["tag1", "tag2", "tag3"],
+  "content": "Full carousel content with 4-5 slides..."
 }`
 }
 
@@ -274,7 +364,7 @@ export class ArticleGeneratorService {
     const prompt = this.fillTemplate(template, options)
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 8192,
       messages: [
         {
@@ -431,7 +521,7 @@ export class ArticleGeneratorService {
         const anthropic = new Anthropic({ apiKey })
         // Try a minimal API call to validate
         await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 10,
           messages: [{ role: 'user', content: 'Hi' }],
         })

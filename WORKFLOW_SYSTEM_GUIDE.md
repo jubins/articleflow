@@ -1,4 +1,4 @@
-# ContentForge Workflow System
+# ArticleFlow Workflow System
 
 ## Overview
 

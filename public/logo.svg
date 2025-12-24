@@ -1,0 +1,98 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern gradient definitions -->
+  <defs>
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2563EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:0.3" />
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle for depth -->
+  <circle cx="100" cy="100" r="90" fill="url(#accentGradient)" opacity="0.15"/>
+
+  <!-- Modern 'A' with flowing design -->
+  <g filter="url(#glow)">
+    <!-- Main A structure -->
+    <path d="M 45 140 L 60 75 Q 70 45 85 50 L 100 140"
+          stroke="url(#mainGradient)"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"/>
+
+    <!-- A crossbar with flow -->
+    <path d="M 52 108 Q 70 105 88 108"
+          stroke="url(#mainGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- Modern 'F' with flowing design -->
+  <g filter="url(#glow)">
+    <!-- Vertical line -->
+    <path d="M 115 140 L 115 50"
+          stroke="url(#mainGradient)"
+          stroke-width="14"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <!-- Top bar with curve -->
+    <path d="M 115 50 Q 135 48 155 52"
+          stroke="url(#mainGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <!-- Middle bar with curve -->
+    <path d="M 115 95 Q 130 93 145 95"
+          stroke="url(#mainGradient)"
+          stroke-width="12"
+          stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- Dynamic flow lines (accent) -->
+  <g opacity="0.5">
+    <path d="M 160 58 Q 170 62 175 70 Q 178 75 180 82"
+          stroke="#3B82F6"
+          stroke-width="4"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.4"/>
+
+    <path d="M 150 100 Q 158 103 165 110 Q 168 115 170 122"
+          stroke="#60A5FA"
+          stroke-width="3"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.3"/>
+
+    <path d="M 40 145 Q 32 150 28 158"
+          stroke="#60A5FA"
+          stroke-width="3"
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.3"/>
+  </g>
+
+  <!-- Decorative dots for modern touch -->
+  <circle cx="182" cy="85" r="3" fill="#3B82F6" opacity="0.5"/>
+  <circle cx="172" cy="125" r="2.5" fill="#60A5FA" opacity="0.4"/>
+  <circle cx="26" cy="162" r="2.5" fill="#60A5FA" opacity="0.4"/>
+</svg>

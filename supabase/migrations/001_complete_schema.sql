@@ -1,4 +1,4 @@
--- ContentForge Complete Database Schema
+-- ArticleFlow Complete Database Schema
 -- This is a comprehensive schema containing all tables, policies, and features
 -- Version: 1.0
 -- Date: 2024-12-17

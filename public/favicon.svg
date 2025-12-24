@@ -1,0 +1,36 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2563EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Simple gradient AF matching header style -->
+  <g>
+    <!-- A -->
+    <path d="M 7 24 L 10 11 L 13 24 M 8 18 L 12 18"
+          stroke="url(#favGrad)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"/>
+
+    <!-- F -->
+    <path d="M 19 24 L 19 11 M 19 11 L 25 11 M 19 17.5 L 23 17.5"
+          stroke="url(#favGrad)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"/>
+  </g>
+
+  <!-- Small flow accent -->
+  <path d="M 26 13 Q 28 14 29 16"
+        stroke="#3B82F6"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        fill="none"
+        opacity="0.4"/>
+</svg>
