@@ -118,7 +118,6 @@ export interface Database {
           ai_provider: string
           google_doc_id: string | null
           google_doc_url: string | null
-          markdown_url: string | null
           file_id: string | null
           generation_metadata: Json
           error_message: string | null
@@ -141,7 +140,6 @@ export interface Database {
           ai_provider: string
           google_doc_id?: string | null
           google_doc_url?: string | null
-          markdown_url?: string | null
           file_id?: string | null
           generation_metadata?: Json
           error_message?: string | null
@@ -164,7 +162,6 @@ export interface Database {
           ai_provider?: string
           google_doc_id?: string | null
           google_doc_url?: string | null
-          markdown_url?: string | null
           file_id?: string | null
           generation_metadata?: Json
           error_message?: string | null

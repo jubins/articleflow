@@ -74,7 +74,6 @@ Stores generated articles with metadata and file references.
 | ai_provider | text | NOT NULL | AI provider used (claude/gemini) |
 | google_doc_id | text | | Google Doc file ID |
 | google_doc_url | text | | Google Doc URL |
-| markdown_url | text | | Supabase Storage URL for markdown file |
 | file_id | text | | File ID used for naming |
 | generation_metadata | jsonb | DEFAULT '{}' | Additional generation metadata |
 | error_message | text | | Error message if generation failed |

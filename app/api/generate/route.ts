@@ -93,8 +93,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (articleError || !article) {
+      console.error('Failed to create article record:', articleError)
       return NextResponse.json(
-        { error: 'Failed to create article record' },
+        {
+          error: 'Failed to create article record',
+          details: articleError?.message || 'Unknown error'
+        },
         { status: 500 }
       )
     }

@@ -12,7 +12,6 @@ interface GenerateSuccess {
     title: string
     word_count: number
     google_doc_url?: string
-    markdown_url?: string
   }
   metadata: {
     generation_time_ms: number
