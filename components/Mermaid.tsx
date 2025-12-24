@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
+import html2canvas from 'html2canvas'
 
 interface MermaidProps {
   chart: string
@@ -65,60 +66,31 @@ export function Mermaid({ chart, id }: MermaidProps) {
   const handleDownload = async () => {
     if (!ref.current) return
 
-    const svg = ref.current.querySelector('svg')
-    if (!svg) return
-
     try {
-      // Clone the SVG to avoid modifying the displayed version
-      const svgClone = svg.cloneNode(true) as SVGElement
-
-      // Ensure SVG has proper dimensions
-      const bbox = svg.getBBox()
-      const width = svg.getAttribute('width') || bbox.width || 800
-      const height = svg.getAttribute('height') || bbox.height || 600
-
-      // Set explicit dimensions on the clone
-      svgClone.setAttribute('width', String(width))
-      svgClone.setAttribute('height', String(height))
-
-      // Ensure viewBox is set
-      if (!svgClone.getAttribute('viewBox')) {
-        svgClone.setAttribute('viewBox', `0 0 ${width} ${height}`)
-      }
-
-      // Add xmlns if not present
-      if (!svgClone.getAttribute('xmlns')) {
-        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-      }
-
-      // Get SVG data from the properly formatted clone
-      const svgData = new XMLSerializer().serializeToString(svgClone)
-
-      console.log('Sending SVG for conversion. Dimensions:', width, 'x', height)
-
-      // Send to server for conversion to WebP
-      const response = await fetch('/api/mermaid/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ svg: svgData }),
+      // Use html2canvas to capture the diagram with proper font rendering
+      const canvas = await html2canvas(ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 3, // High resolution
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText || 'Failed to convert diagram')
+      // Convert canvas to WebP blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/webp', 0.95)
+      })
+
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `diagram-${id}.webp`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
       }
-
-      // Get the image blob directly from the response
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `diagram-${id}.webp`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download failed:', error)
       alert(`Failed to download diagram: ${error instanceof Error ? error.message : 'Unknown error'}`)
