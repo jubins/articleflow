@@ -14,7 +14,6 @@ const generateRequestSchema = z.object({
   platform: z.enum(['medium', 'devto', 'dzone', 'all']).optional().default('all'),
   aiProvider: z.enum(['claude', 'gemini']).optional().default('claude'),
   fileId: z.string().optional(),
-  promptId: z.string().uuid().optional(),
   createGoogleDoc: z.boolean().optional().default(false),
   uploadMarkdown: z.boolean().optional().default(true),
 })
@@ -82,7 +81,6 @@ export async function POST(request: NextRequest) {
       // @ts-ignore - Supabase type inference issue
       .insert({
         user_id: user.id,
-        prompt_id: validatedData.promptId || null,
         title: validatedData.topic, // Temporary title
         content: '',
         platform: validatedData.platform,
@@ -218,16 +216,6 @@ export async function POST(request: NextRequest) {
       // Note: Markdown and rich text are now stored directly in the database
       // No need to upload to external storage
       // The markdown_url field is deprecated but kept for backward compatibility
-
-      // Mark prompt as processed if provided
-      if (validatedData.promptId) {
-        await supabase
-          .from('prompts')
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore - Supabase type inference issue
-          .update({ processed: true })
-          .eq('id', validatedData.promptId)
-      }
 
       // Log final success
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment

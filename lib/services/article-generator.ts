@@ -364,7 +364,7 @@ export class ArticleGeneratorService {
     const prompt = this.fillTemplate(template, options)
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 8192,
       messages: [
         {
@@ -521,7 +521,7 @@ export class ArticleGeneratorService {
         const anthropic = new Anthropic({ apiKey })
         // Try a minimal API call to validate
         await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 10,
           messages: [{ role: 'user', content: 'Hi' }],
         })

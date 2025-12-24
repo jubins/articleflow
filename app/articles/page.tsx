@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
@@ -12,17 +11,11 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 
-export default function DashboardPage() {
-  const router = useRouter()
+export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [stats, setStats] = useState({
-    total: 0,
-    generated: 0,
-    failed: 0,
-    draft: 0,
-  })
+  const [filter, setFilter] = useState<'all' | 'generated' | 'draft' | 'failed'>('all')
 
   useEffect(() => {
     loadArticles()
@@ -35,7 +28,6 @@ export default function DashboardPage() {
 
       if (!user) return
 
-      // Get all articles (not just 20)
       const { data: articlesData, error } = await supabase
         .from('articles')
         .select('*')
@@ -44,16 +36,7 @@ export default function DashboardPage() {
 
       if (error) throw error
 
-      const typedArticles = (articlesData || []) as Article[]
-      setArticles(typedArticles)
-
-      // Calculate stats
-      const total = typedArticles.length
-      const generated = typedArticles.filter(a => a.status === 'generated').length
-      const failed = typedArticles.filter(a => a.status === 'failed').length
-      const draft = typedArticles.filter(a => a.status === 'draft').length
-
-      setStats({ total, generated, failed, draft })
+      setArticles((articlesData || []) as Article[])
     } catch (error) {
       console.error('Error loading articles:', error)
     } finally {
@@ -79,16 +62,7 @@ export default function DashboardPage() {
         throw new Error('Failed to delete article')
       }
 
-      // Remove from local state
       setArticles(articles.filter(a => a.id !== articleId))
-
-      // Recalculate stats
-      const newArticles = articles.filter(a => a.id !== articleId)
-      const total = newArticles.length
-      const generated = newArticles.filter(a => a.status === 'generated').length
-      const failed = newArticles.filter(a => a.status === 'failed').length
-      const draft = newArticles.filter(a => a.status === 'draft').length
-      setStats({ total, generated, failed, draft })
     } catch (error) {
       console.error('Error deleting article:', error)
       alert('Failed to delete article. Please try again.')
@@ -96,6 +70,10 @@ export default function DashboardPage() {
       setDeleting(null)
     }
   }
+
+  const filteredArticles = filter === 'all'
+    ? articles
+    : articles.filter(a => a.status === filter)
 
   if (loading) {
     return (
@@ -110,12 +88,12 @@ export default function DashboardPage() {
       <div className="px-4 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your articles and track your progress</p>
+            <h1 className="text-3xl font-bold text-gray-900">All Articles</h1>
+            <p className="text-gray-600 mt-1">{filteredArticles.length} total articles</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/articles">
-              <Button variant="outline">All Articles</Button>
+            <Link href="/dashboard">
+              <Button variant="outline">Dashboard</Button>
             </Link>
             <Link href="/generate">
               <Button>Generate Article</Button>
@@ -123,87 +101,70 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Articles</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
-                </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Generated</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">{stats.generated}</p>
-                </div>
-                <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Drafts</p>
-                  <p className="text-3xl font-bold text-gray-600 mt-2">{stats.draft}</p>
-                </div>
-                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Failed</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">{stats.failed}</p>
-                </div>
-                <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Filter Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setFilter('all')}
+                className={`${
+                  filter === 'all'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                All Articles
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                  {articles.length}
+                </span>
+              </button>
+              <button
+                onClick={() => setFilter('generated')}
+                className={`${
+                  filter === 'generated'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                Generated
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                  {articles.filter(a => a.status === 'generated').length}
+                </span>
+              </button>
+              <button
+                onClick={() => setFilter('draft')}
+                className={`${
+                  filter === 'draft'
+                    ? 'border-gray-500 text-gray-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                Drafts
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                  {articles.filter(a => a.status === 'draft').length}
+                </span>
+              </button>
+              <button
+                onClick={() => setFilter('failed')}
+                className={`${
+                  filter === 'failed'
+                    ? 'border-red-500 text-red-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                Failed
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                  {articles.filter(a => a.status === 'failed').length}
+                </span>
+              </button>
+            </nav>
+          </div>
         </div>
 
-        {/* Recent Articles */}
+        {/* Articles List */}
         <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Recent Articles</CardTitle>
-                <CardDescription>Your most recently generated articles</CardDescription>
-              </div>
-              {articles.length > 0 && (
-                <Link href="/articles">
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {articles.length === 0 ? (
+          <CardContent className="p-0">
+            {filteredArticles.length === 0 ? (
               <div className="text-center py-12">
                 <svg
                   className="mx-auto h-12 w-12 text-gray-400"
@@ -218,13 +179,19 @@ export default function DashboardPage() {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No articles yet</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by generating your first article.</p>
-                <div className="mt-6">
-                  <Link href="/generate">
-                    <Button>Generate Article</Button>
-                  </Link>
-                </div>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No articles found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {filter !== 'all'
+                    ? `No ${filter} articles yet.`
+                    : 'Get started by generating your first article.'}
+                </p>
+                {filter === 'all' && (
+                  <div className="mt-6">
+                    <Link href="/generate">
+                      <Button>Generate Article</Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -249,10 +216,12 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {articles.slice(0, 10).map((article) => (
+                    {filteredArticles.map((article) => (
                       <tr key={article.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900 max-w-md truncate">{article.title}</div>
+                          <div className="text-sm font-medium text-gray-900 max-w-md truncate">
+                            {article.title}
+                          </div>
                           {article.word_count && (
                             <div className="text-sm text-gray-500">{article.word_count} words</div>
                           )}
@@ -300,13 +269,6 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
-                {articles.length > 10 && (
-                  <div className="mt-4 text-center">
-                    <Link href="/articles">
-                      <Button variant="outline">View All {articles.length} Articles</Button>
-                    </Link>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
