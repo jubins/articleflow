@@ -97,7 +97,7 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
     try {
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
-        scale: 2, // Higher quality
+        scale: 3, // Higher quality for better resolution
         logging: false,
         useCORS: true,
         allowTaint: true,
@@ -280,7 +280,7 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
       <div className="mt-8">
         <h3 className="text-sm font-medium text-gray-700 mb-3">All Slides</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {slides.map((_, index) => (
+          {slides.map((slide, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
@@ -292,15 +292,11 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
                   : 'border-gray-200 hover:border-gray-300'}
               `}
             >
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-400">
-                    {index + 1}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Slide {index + 1}
-                  </div>
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 p-2 text-[0.5rem] overflow-hidden">
+                <SlideThumbnail slide={slide} slideNumber={index + 1} />
+              </div>
+              <div className="absolute bottom-1 right-1 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">
+                {index + 1}
               </div>
             </button>
           ))}
@@ -374,10 +370,15 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
             },
             p({ children }) {
               // Replace mermaid placeholder with actual SVG
-              if (children === '<!-- MERMAID_PLACEHOLDER -->') {
+              // Check if children is a string or contains the placeholder
+              const childText = typeof children === 'string' ? children :
+                                Array.isArray(children) ? children.join('') :
+                                String(children)
+
+              if (childText.includes('MERMAID_PLACEHOLDER') && mermaidSvg) {
                 return (
-                  <div 
-                    className="mermaid-diagram flex justify-center my-4" 
+                  <div
+                    className="mermaid-diagram flex justify-center my-4"
                     dangerouslySetInnerHTML={{ __html: mermaidSvg }}
                   />
                 )
@@ -394,6 +395,68 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
       <div className="mt-auto pt-4 text-center text-sm text-gray-400 font-medium">
         {slideNumber} / {totalSlides}
       </div>
+    </div>
+  )
+}
+
+// Thumbnail preview component
+function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: number }) {
+  const [mermaidSvg, setMermaidSvg] = useState<string>('')
+  const [content, setContent] = useState<string>('')
+
+  useEffect(() => {
+    const renderMermaid = async () => {
+      const mermaidMatch = slide.match(/\`\`\`mermaid\n([\s\S]*?)\`\`\`/)
+      if (mermaidMatch) {
+        try {
+          const { svg } = await mermaid.render(`mermaid-thumb-${slideNumber}`, mermaidMatch[1])
+          setMermaidSvg(svg)
+          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '<!-- MERMAID_PLACEHOLDER -->')
+          setContent(updated)
+        } catch (err) {
+          console.error('Mermaid thumbnail rendering error:', err)
+          setContent(slide)
+        }
+      } else {
+        setContent(slide)
+      }
+    }
+
+    renderMermaid()
+  }, [slide, slideNumber])
+
+  return (
+    <div className="prose prose-xs max-w-none text-[0.45rem] leading-tight">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => <div className="font-bold mb-0.5">{children}</div>,
+          h2: ({ children }) => <div className="font-bold mb-0.5">{children}</div>,
+          h3: ({ children }) => <div className="font-semibold mb-0.5">{children}</div>,
+          p: ({ children }) => {
+            const childText = typeof children === 'string' ? children :
+                              Array.isArray(children) ? children.join('') :
+                              String(children)
+
+            if (childText.includes('MERMAID_PLACEHOLDER') && mermaidSvg) {
+              return (
+                <div
+                  className="my-0.5 flex justify-center"
+                  style={{ fontSize: '0.3rem' }}
+                  dangerouslySetInnerHTML={{ __html: mermaidSvg }}
+                />
+              )
+            }
+            return <div className="mb-0.5">{children}</div>
+          },
+          ul: ({ children }) => <ul className="list-disc pl-2 mb-0.5 space-y-0">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-2 mb-0.5 space-y-0">{children}</ol>,
+          li: ({ children }) => <li className="mb-0">{children}</li>,
+          code: ({ children }) => <code className="text-[0.4rem]">{children}</code>,
+        }}
+      >
+        {content || slide}
+      </ReactMarkdown>
     </div>
   )
 }
