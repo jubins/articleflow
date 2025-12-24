@@ -219,12 +219,11 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
                   setShowColorPicker(!showColorPicker)
                   setShowHighlightPicker(false)
                 }}
-                className={`p-2 rounded hover:bg-gray-200 transition-colors ${showColorPicker ? 'bg-gray-200' : ''}`}
+                className={`px-2.5 py-1.5 rounded hover:bg-gray-200 transition-colors flex flex-col items-center ${showColorPicker ? 'bg-gray-200' : ''}`}
                 title="Text color"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
+                <span className="text-lg font-bold leading-none">A</span>
+                <div className="w-full h-0.5 mt-0.5" style={{ backgroundColor: editor?.getAttributes('textStyle')?.color || '#000000' }}></div>
               </button>
               {showColorPicker && (
                 <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[280px]">
@@ -351,9 +350,8 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
               className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
               title="Undo"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 10a7 7 0 0112.93-3.93l1.42-1.42A9 9 0 003 10z"/>
-                <path d="M13.93 6.07A7 7 0 004 10H2a9 9 0 0113.93-5.93l-2 2z"/>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
             </button>
 
@@ -363,9 +361,8 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
               className="p-2 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
               title="Redo"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M17 10a7 7 0 01-12.93 3.93l-1.42 1.42A9 9 0 0017 10z"/>
-                <path d="M6.07 13.93A7 7 0 0116 10h2a9 9 0 01-13.93 5.93l2-2z"/>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
               </svg>
             </button>
           </div>
