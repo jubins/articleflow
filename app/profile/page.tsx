@@ -84,6 +84,7 @@ export default function ProfilePage() {
         // @ts-ignore - Supabase type inference issue
         .upsert({
           id: user.id,
+          email: user.email,
           full_name: profile.full_name || null,
           bio: profile.bio || null,
           linkedin_handle: profile.linkedin_handle || null,
