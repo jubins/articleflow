@@ -126,10 +126,16 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     try {
       const supabase = createClient()
 
+      // Convert markdown to rich text HTML
+      const richTextHtml = markdownToHtml(editedContent)
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from('articles')
-        .update({ content: editedContent })
+        .update({
+          content: editedContent,
+          rich_text_content: richTextHtml,
+        })
         .eq('id', article.id)
 
       if (error) throw error
@@ -164,10 +170,14 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       const supabase = createClient()
 
+      // Save both markdown and rich text HTML in database
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from('articles')
-        .update({ content: markdown })
+        .update({
+          content: markdown,
+          rich_text_content: richTextHtml,
+        })
         .eq('id', article.id)
 
       if (error) throw error

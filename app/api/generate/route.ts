@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
-import { StorageService } from '@/lib/services/storage'
+import { markdownToHtml } from '@/lib/utils/markdown'
 // import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
 import { z } from 'zod'
 
@@ -136,7 +136,10 @@ export async function POST(request: NextRequest) {
 
       const generationTime = Date.now() - startTime
 
-      // Update article with generated content
+      // Convert markdown to rich text HTML for storage
+      const richTextHtml = markdownToHtml(generatedArticle.content)
+
+      // Update article with generated content (store both markdown and rich text in database)
       const { error: updateError } = await supabase
         .from('articles')
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -144,6 +147,7 @@ export async function POST(request: NextRequest) {
         .update({
           title: generatedArticle.title,
           content: generatedArticle.content,
+          rich_text_content: richTextHtml,
           description: generatedArticle.description,
           tags: generatedArticle.tags,
           word_count: generatedArticle.wordCount,
@@ -211,57 +215,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Upload markdown if requested
-      let markdownUrl: string | null = null
-
-      if (validatedData.uploadMarkdown) {
-        try {
-          const storageService = new StorageService()
-          const fileId = validatedData.fileId || typedArticle.id
-
-          const upload = await storageService.uploadMarkdown({
-            userId: user.id,
-            fileId,
-            content: generatedArticle.content,
-            fileName: `${fileId}.md`,
-          })
-
-          markdownUrl = upload.url
-
-          // Update article with markdown URL
-          await supabase
-            .from('articles')
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore - Supabase type inference issue
-            .update({
-              markdown_url: markdownUrl,
-            })
-            .eq('id', typedArticle.id)
-
-          // Log success
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore - Supabase type inference issue
-          await supabase.from('generation_logs').insert({
-            user_id: user.id,
-            article_id: typedArticle.id,
-            action: 'upload_markdown',
-            status: 'success',
-            metadata: { markdown_url: markdownUrl },
-          })
-        } catch (uploadError) {
-          console.error('Failed to upload markdown:', uploadError)
-          // Log failure but don't fail the whole request
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore - Supabase type inference issue
-          await supabase.from('generation_logs').insert({
-            user_id: user.id,
-            article_id: typedArticle.id,
-            action: 'upload_markdown',
-            status: 'failed',
-            error_message: uploadError instanceof Error ? uploadError.message : 'Unknown error',
-          })
-        }
-      }
+      // Note: Markdown and rich text are now stored directly in the database
+      // No need to upload to external storage
+      // The markdown_url field is deprecated but kept for backward compatibility
 
       // Mark prompt as processed if provided
       if (validatedData.promptId) {
@@ -299,7 +255,6 @@ export async function POST(request: NextRequest) {
           tags: generatedArticle.tags,
           word_count: generatedArticle.wordCount,
           google_doc_url: googleDocUrl,
-          markdown_url: markdownUrl,
           platform: validatedData.platform,
           ai_provider: validatedData.aiProvider,
         },

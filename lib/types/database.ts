@@ -148,6 +148,7 @@ export interface Database {
           workflow_id: string | null
           title: string
           content: string
+          rich_text_content: string | null
           description: string | null
           tags: string[]
           word_count: number | null
@@ -171,6 +172,7 @@ export interface Database {
           workflow_id?: string | null
           title: string
           content: string
+          rich_text_content?: string | null
           description?: string | null
           tags?: string[]
           word_count?: number | null
@@ -194,6 +196,7 @@ export interface Database {
           workflow_id?: string | null
           title?: string
           content?: string
+          rich_text_content?: string | null
           description?: string | null
           tags?: string[]
           word_count?: number | null

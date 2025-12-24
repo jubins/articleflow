@@ -123,4 +123,46 @@ export class R2StorageService {
       throw new Error(`Failed to upload batch: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
+
+  /**
+   * Upload markdown file to R2
+   */
+  async uploadMarkdown(options: {
+    userId: string
+    fileId: string
+    content: string
+    fileName?: string
+  }): Promise<R2UploadResult> {
+    const fileName = options.fileName || `${options.fileId}.md`
+    const folder = `${options.userId}/markdown`
+    const buffer = Buffer.from(options.content, 'utf-8')
+
+    return await this.upload({
+      buffer,
+      contentType: 'text/markdown',
+      fileName,
+      folder,
+    })
+  }
+
+  /**
+   * Upload text file to R2
+   */
+  async uploadText(options: {
+    userId: string
+    fileId: string
+    content: string
+    fileName: string
+    contentType?: string
+  }): Promise<R2UploadResult> {
+    const folder = `${options.userId}/text`
+    const buffer = Buffer.from(options.content, 'utf-8')
+
+    return await this.upload({
+      buffer,
+      contentType: options.contentType || 'text/plain',
+      fileName: options.fileName,
+      folder,
+    })
+  }
 }
