@@ -69,8 +69,32 @@ export function Mermaid({ chart, id }: MermaidProps) {
     if (!svg) return
 
     try {
-      // Get SVG data
-      const svgData = new XMLSerializer().serializeToString(svg)
+      // Clone the SVG to avoid modifying the displayed version
+      const svgClone = svg.cloneNode(true) as SVGElement
+
+      // Ensure SVG has proper dimensions
+      const bbox = svg.getBBox()
+      const width = svg.getAttribute('width') || bbox.width || 800
+      const height = svg.getAttribute('height') || bbox.height || 600
+
+      // Set explicit dimensions on the clone
+      svgClone.setAttribute('width', String(width))
+      svgClone.setAttribute('height', String(height))
+
+      // Ensure viewBox is set
+      if (!svgClone.getAttribute('viewBox')) {
+        svgClone.setAttribute('viewBox', `0 0 ${width} ${height}`)
+      }
+
+      // Add xmlns if not present
+      if (!svgClone.getAttribute('xmlns')) {
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      }
+
+      // Get SVG data from the properly formatted clone
+      const svgData = new XMLSerializer().serializeToString(svgClone)
+
+      console.log('Sending SVG for conversion. Dimensions:', width, 'x', height)
 
       // Send to server for conversion to WebP
       const response = await fetch('/api/mermaid/convert', {
@@ -79,7 +103,10 @@ export function Mermaid({ chart, id }: MermaidProps) {
         body: JSON.stringify({ svg: svgData }),
       })
 
-      if (!response.ok) throw new Error('Failed to convert diagram')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || 'Failed to convert diagram')
+      }
 
       const { imageUrl } = await response.json()
 
@@ -97,7 +124,7 @@ export function Mermaid({ chart, id }: MermaidProps) {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download failed:', error)
-      alert('Failed to download diagram. Please try again.')
+      alert(`Failed to download diagram: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
