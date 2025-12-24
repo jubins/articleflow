@@ -50,10 +50,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Successfully converted to WebP. Size:', webpBuffer.length, 'bytes')
 
-    // Upload to R2
-    const imageUrl = await uploadMermaidDiagram(webpBuffer)
-
-    return NextResponse.json({ imageUrl })
+    // Return the image directly instead of uploading to R2
+    // This avoids 401 errors from private R2 buckets
+    return new NextResponse(webpBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Disposition': 'attachment; filename="diagram.webp"',
+        'Cache-Control': 'no-cache',
+      },
+    })
   } catch (error) {
     console.error('Error converting Mermaid diagram:', error)
     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')

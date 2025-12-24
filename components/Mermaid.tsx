@@ -104,15 +104,12 @@ export function Mermaid({ chart, id }: MermaidProps) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.details || 'Failed to convert diagram')
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to convert diagram')
       }
 
-      const { imageUrl } = await response.json()
-
-      // Download the WebP image
-      const imageResponse = await fetch(imageUrl)
-      const blob = await imageResponse.blob()
+      // Get the image blob directly from the response
+      const blob = await response.blob()
       const url = URL.createObjectURL(blob)
 
       const a = document.createElement('a')

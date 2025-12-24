@@ -320,8 +320,8 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
           const { svg } = await mermaid.render(`mermaid-slide-${slideNumber}`, mermaidMatch[1])
           // Store the SVG separately
           setMermaidSvg(svg)
-          // Remove mermaid block from markdown
-          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '<!-- MERMAID_PLACEHOLDER -->')
+          // Remove mermaid block from markdown and use a text marker
+          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '\n\n__MERMAID_DIAGRAM_PLACEHOLDER__\n\n')
           setRenderedContent(updated)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -375,7 +375,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                                 Array.isArray(children) ? children.join('') :
                                 String(children)
 
-              if (childText.includes('MERMAID_PLACEHOLDER') && mermaidSvg) {
+              if (childText.includes('__MERMAID_DIAGRAM_PLACEHOLDER__') && mermaidSvg) {
                 return (
                   <div
                     className="mermaid-diagram flex justify-center my-4"
@@ -411,7 +411,7 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
         try {
           const { svg } = await mermaid.render(`mermaid-thumb-${slideNumber}`, mermaidMatch[1])
           setMermaidSvg(svg)
-          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '<!-- MERMAID_PLACEHOLDER -->')
+          const updated = slide.replace(/\`\`\`mermaid\n[\s\S]*?\`\`\`/, '\n\n__MERMAID_DIAGRAM_PLACEHOLDER__\n\n')
           setContent(updated)
         } catch (err) {
           console.error('Mermaid thumbnail rendering error:', err)
@@ -438,7 +438,7 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
                               Array.isArray(children) ? children.join('') :
                               String(children)
 
-            if (childText.includes('MERMAID_PLACEHOLDER') && mermaidSvg) {
+            if (childText.includes('__MERMAID_DIAGRAM_PLACEHOLDER__') && mermaidSvg) {
               return (
                 <div
                   className="my-0.5 flex justify-center"
