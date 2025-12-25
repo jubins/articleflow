@@ -10,11 +10,43 @@ import { Button } from './ui/Button'
 import html2canvas from 'html2canvas'
 import mermaid from 'mermaid'
 import { ReactNode } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface CarouselViewerProps {
   content: string
   title?: string
   linkedinTeaser?: string
+}
+
+// Theme definitions
+type CarouselTheme = 'classic' | 'academic' | 'modern'
+
+interface ThemeStyle {
+  name: string
+  description: string
+  background: string
+  className: string
+}
+
+const THEMES: Record<CarouselTheme, ThemeStyle> = {
+  classic: {
+    name: 'Classic White',
+    description: 'Clean white background',
+    background: '#ffffff',
+    className: 'bg-white',
+  },
+  academic: {
+    name: 'Academic Gray',
+    description: 'Professional light gray with subtle texture',
+    background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)',
+    className: 'bg-gradient-to-br from-gray-50 to-gray-100',
+  },
+  modern: {
+    name: 'Modern Gradient',
+    description: 'Soft blue-gray gradient',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    className: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
+  },
 }
 
 // Initialize mermaid once
@@ -24,6 +56,8 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
+  const [selectedTheme, setSelectedTheme] = useState<CarouselTheme>('classic')
+  const [savingTheme, setSavingTheme] = useState(false)
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Initialize mermaid
@@ -37,6 +71,49 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       isMermaidInitialized = true
     }
   }, [])
+
+  // Load user's theme preference
+  useEffect(() => {
+    const loadTheme = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data } = await supabase
+          .from('user_settings')
+          .select('carousel_theme')
+          .eq('user_id', user.id)
+          .single()
+
+        if (data?.carousel_theme) {
+          setSelectedTheme(data.carousel_theme as CarouselTheme)
+        }
+      }
+    }
+
+    loadTheme()
+  }, [])
+
+  const handleThemeChange = async (theme: CarouselTheme) => {
+    setSelectedTheme(theme)
+    setSavingTheme(true)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        await supabase
+          .from('user_settings')
+          .update({ carousel_theme: theme })
+          .eq('user_id', user.id)
+      }
+    } catch (error) {
+      console.error('Failed to save theme:', error)
+    } finally {
+      setSavingTheme(false)
+    }
+  }
 
   // Parse content into slides
   const parseSlides = (markdown: string): string[] => {
@@ -156,6 +233,34 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 
   return (
     <div className="space-y-6">
+      {/* Theme Selector */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Slide Theme</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {(Object.keys(THEMES) as CarouselTheme[]).map((theme) => (
+            <button
+              key={theme}
+              onClick={() => handleThemeChange(theme)}
+              disabled={savingTheme}
+              className={`
+                p-4 rounded-lg border-2 transition-all text-left
+                ${selectedTheme === theme
+                  ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'}
+                ${savingTheme ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+              `}
+            >
+              <div
+                className={`h-12 rounded mb-2 ${THEMES[theme].className}`}
+                style={{ background: THEMES[theme].background }}
+              />
+              <div className="font-medium text-sm text-gray-900">{THEMES[theme].name}</div>
+              <div className="text-xs text-gray-500">{THEMES[theme].description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* LinkedIn Teaser Text */}
       {linkedinTeaser && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
@@ -252,13 +357,14 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
             key={index}
             ref={(el) => { slideRefs.current[index] = el }}
             className={`
-              bg-white rounded-lg shadow-lg overflow-hidden
+              ${THEMES[selectedTheme].className} rounded-lg shadow-lg overflow-hidden
               ${index === currentSlide ? 'block' : 'hidden'}
             `}
             style={{
               width: '1280px',
               height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
+              background: THEMES[selectedTheme].background,
             }}
           >
             <SlideContent slide={slide} slideNumber={index + 1} totalSlides={slides.length} />
@@ -349,7 +455,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
   }
 
   return (
-    <div className="h-full flex flex-col p-16 bg-white">
+    <div className="h-full flex flex-col p-16">
       {/* Content area with constrained height */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto pr-4">
