@@ -3,7 +3,7 @@
 
 ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS carousel_theme TEXT DEFAULT 'classic';
 
-COMMENT ON COLUMN user_settings.carousel_theme IS 'Preferred carousel slide background theme: classic, academic, or modern';
+COMMENT ON COLUMN user_settings.carousel_theme IS 'Preferred carousel slide background theme: classic, academic, modern, elegant, professional';
 
 -- Add check constraint to ensure valid theme values
 ALTER TABLE user_settings
@@ -11,4 +11,4 @@ ALTER TABLE user_settings
 
 ALTER TABLE user_settings
   ADD CONSTRAINT carousel_theme_check
-  CHECK (carousel_theme IN ('classic', 'academic', 'modern'));
+  CHECK (carousel_theme IN ('classic', 'academic', 'modern', 'elegant', 'professional'));

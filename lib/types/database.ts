@@ -64,7 +64,7 @@ export interface Database {
           google_token_expires_at: string | null
           google_connected: boolean
           google_connected_at: string | null
-          carousel_theme: 'classic' | 'academic' | 'modern'
+          carousel_theme: 'classic' | 'academic' | 'modern' | 'elegant' | 'professional'
           created_at: string
           updated_at: string
         }

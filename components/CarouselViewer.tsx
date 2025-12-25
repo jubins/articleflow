@@ -19,13 +19,15 @@ interface CarouselViewerProps {
 }
 
 // Theme definitions
-type CarouselTheme = 'classic' | 'academic' | 'modern'
+type CarouselTheme = 'classic' | 'academic' | 'modern' | 'elegant' | 'professional'
 
 interface ThemeStyle {
   name: string
   description: string
   background: string
   className: string
+  textColor: string
+  isDark: boolean
 }
 
 const THEMES: Record<CarouselTheme, ThemeStyle> = {
@@ -34,18 +36,46 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     description: 'Clean white background',
     background: '#ffffff',
     className: 'bg-white',
+    textColor: 'text-gray-900',
+    isDark: false,
   },
   academic: {
     name: 'Academic Gray',
-    description: 'Professional light gray with subtle texture',
+    description: 'Professional light gray',
     background: 'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)',
     className: 'bg-gradient-to-br from-gray-50 to-gray-100',
+    textColor: 'text-gray-900',
+    isDark: false,
   },
   modern: {
-    name: 'Modern Gradient',
-    description: 'Soft blue-gray gradient',
+    name: 'Modern Blue',
+    description: 'Soft blue gradient',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     className: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
+    textColor: 'text-gray-900',
+    isDark: false,
+  },
+  elegant: {
+    name: 'Elegant Pattern',
+    description: 'White with subtle dots',
+    background: `
+      radial-gradient(circle at 20px 20px, rgba(0,0,0,0.05) 1px, transparent 1px),
+      #ffffff
+    `,
+    className: 'bg-white',
+    textColor: 'text-gray-900',
+    isDark: false,
+  },
+  professional: {
+    name: 'Professional Dark',
+    description: 'Dark gradient with pattern',
+    background: `
+      radial-gradient(circle at 40px 40px, rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(135deg, #1e293b 0%, #0f172a 100%)
+    `,
+    className: 'bg-gradient-to-br from-slate-800 to-slate-900',
+    textColor: 'text-white',
+    isDark: true,
   },
 }
 
@@ -218,7 +248,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     setDownloadingCurrent(true)
     try {
       await downloadSlideAsWebP(currentSlide, false)
-    } catch (error) {
+    } catch {
       alert('Failed to download slide. Please try again.')
     } finally {
       setDownloadingCurrent(false)
@@ -235,7 +265,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
           await new Promise(resolve => setTimeout(resolve, 800))
         }
       }
-    } catch (error) {
+    } catch {
       alert('Failed to download all slides. Some slides may not have been downloaded.')
     } finally {
       setDownloadingAll(false)
@@ -254,14 +284,14 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       {/* Theme Selector */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Slide Theme</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {(Object.keys(THEMES) as CarouselTheme[]).map((theme) => (
             <button
               key={theme}
               onClick={() => handleThemeChange(theme)}
               disabled={savingTheme}
               className={`
-                p-4 rounded-lg border-2 transition-all text-left
+                p-3 rounded-lg border-2 transition-all text-left
                 ${selectedTheme === theme
                   ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 bg-white'}
@@ -269,8 +299,11 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               `}
             >
               <div
-                className={`h-12 rounded mb-2 ${THEMES[theme].className}`}
-                style={{ background: THEMES[theme].background }}
+                className={`h-12 rounded mb-2 ${THEMES[theme].className} border border-gray-200`}
+                style={{
+                  background: THEMES[theme].background,
+                  backgroundSize: '40px 40px'
+                }}
               />
               <div className="font-medium text-sm text-gray-900">{THEMES[theme].name}</div>
               <div className="text-xs text-gray-500">{THEMES[theme].description}</div>
@@ -385,7 +418,12 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               background: THEMES[selectedTheme].background,
             }}
           >
-            <SlideContent slide={slide} slideNumber={index + 1} totalSlides={slides.length} />
+            <SlideContent
+              slide={slide}
+              slideNumber={index + 1}
+              totalSlides={slides.length}
+              theme={THEMES[selectedTheme]}
+            />
           </div>
         ))}
       </div>
@@ -421,10 +459,9 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 }
 
 // Separate component for slide content rendering
-function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slideNumber: number; totalSlides: number }) {
+function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle }) {
   const [processedContent, setProcessedContent] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(true)
-  const diagramRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
   useEffect(() => {
     const processSlide = async () => {
@@ -449,7 +486,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
           const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
 
           // Store SVG and create placeholder
-          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}"></div>`
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -462,7 +499,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
     }
 
     processSlide()
-  }, [slide, slideNumber])
+  }, [slide, slideNumber, theme])
 
   if (isProcessing) {
     return (
@@ -482,16 +519,16 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className="text-4xl font-bold text-gray-900 mb-6">{children}</h2>
+                <h2 className={`text-4xl font-bold ${theme.textColor} mb-6`}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className="text-3xl font-semibold text-gray-800 mb-4">{children}</h3>
+                <h3 className={`text-3xl font-semibold ${theme.textColor} mb-4`}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className="text-xl text-gray-700 mb-4 leading-relaxed">{children}</p>
+                <p className={`text-xl ${theme.textColor} mb-4 leading-relaxed`}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className="text-xl text-gray-700 space-y-3 mb-6 list-disc pl-6">{children}</ul>
+                <ul className={`text-xl ${theme.textColor} space-y-3 mb-6 list-disc pl-6`}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
                 <li className="leading-relaxed">{children}</li>
@@ -517,9 +554,11 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
+                  const isDark = props['data-is-dark'] === 'true'
+
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
@@ -528,6 +567,19 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                       '<svg',
                       '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto;"'
                     )
+
+                    // Wrap in white background for dark themes
+                    if (isDark) {
+                      return (
+                        <div className="flex justify-center items-center my-8">
+                          <div
+                            className="bg-white rounded-lg p-6 inline-block"
+                            style={{ maxHeight: '500px', overflow: 'visible' }}
+                            dangerouslySetInnerHTML={{ __html: svg }}
+                          />
+                        </div>
+                      )
+                    }
 
                     return (
                       <div
@@ -549,7 +601,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
 
       {/* Slide number indicator */}
       <div className="mt-6 text-center">
-        <span className="text-lg text-gray-400 font-medium">
+        <span className={`text-lg ${theme.isDark ? 'text-gray-300' : 'text-gray-400'} font-medium`}>
           {slideNumber} / {totalSlides}
         </span>
       </div>
