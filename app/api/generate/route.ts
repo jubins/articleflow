@@ -183,6 +183,19 @@ export async function POST(request: NextRequest) {
       // Convert markdown to rich text HTML for storage
       const richTextHtml = markdownToHtml(generatedArticle.content)
 
+      // Generate LinkedIn teaser for carousel articles
+      let linkedinTeaser: string | null = null
+      if (validatedData.articleType === 'carousel') {
+        const teasers = [
+          `Want to learn more about ${generatedArticle.title}? 📚`,
+          `Curious about ${generatedArticle.title}? Swipe through! 👉`,
+          `Master ${generatedArticle.title} in 5 slides! 💡`,
+          `Everything you need to know about ${generatedArticle.title} 🚀`,
+          `Quick guide to ${generatedArticle.title}! Save this for later 🔖`,
+        ]
+        linkedinTeaser = teasers[Math.floor(Math.random() * teasers.length)]
+      }
+
       // Update article with generated content (store both markdown and rich text in database)
       const { error: updateError } = await supabase
         .from('articles')
@@ -197,6 +210,7 @@ export async function POST(request: NextRequest) {
           word_count: generatedArticle.wordCount,
           status: 'generated',
           generated_at: new Date().toISOString(),
+          linkedin_teaser: linkedinTeaser,
           generation_metadata: generatedArticle.metadata,
         })
         .eq('id', typedArticle.id)

@@ -119,6 +119,7 @@ export interface Database {
           google_doc_id: string | null
           google_doc_url: string | null
           file_id: string | null
+          linkedin_teaser: string | null
           generation_metadata: Json
           error_message: string | null
           generated_at: string | null
@@ -141,6 +142,7 @@ export interface Database {
           google_doc_id?: string | null
           google_doc_url?: string | null
           file_id?: string | null
+          linkedin_teaser?: string | null
           generation_metadata?: Json
           error_message?: string | null
           generated_at?: string | null
@@ -163,6 +165,7 @@ export interface Database {
           google_doc_id?: string | null
           google_doc_url?: string | null
           file_id?: string | null
+          linkedin_teaser?: string | null
           generation_metadata?: Json
           error_message?: string | null
           generated_at?: string | null

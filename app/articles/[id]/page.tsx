@@ -660,7 +660,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               {/* Carousel Tab */}
               {activeTab === 'carousel' && article.article_type === 'carousel' && (
                 <div>
-                  <CarouselViewer content={article.content} title={article.title} />
+                  <CarouselViewer
+                    content={article.content}
+                    title={article.title}
+                    linkedinTeaser={article.linkedin_teaser || undefined}
+                  />
                 </div>
               )}
             </div>

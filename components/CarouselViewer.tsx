@@ -13,16 +13,16 @@ import mermaid from 'mermaid'
 interface CarouselViewerProps {
   content: string
   title?: string
+  linkedinTeaser?: string
 }
 
 // Initialize mermaid once
 let isMermaidInitialized = false
 
-export function CarouselViewer({ content, title }: CarouselViewerProps) {
+export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
-  const [teaserText, setTeaserText] = useState('')
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Initialize mermaid
@@ -36,22 +36,6 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
       isMermaidInitialized = true
     }
   }, [])
-
-  // Generate LinkedIn teaser text
-  useEffect(() => {
-    if (title) {
-      const teasers = [
-        `Want to learn more about ${title}? 📚`,
-        `Curious about ${title}? Swipe through! 👉`,
-        `Master ${title} in 5 slides! 💡`,
-        `Everything you need to know about ${title} 🚀`,
-        `Quick guide to ${title}! Save this for later 🔖`,
-      ]
-      // Pick a random teaser
-      const randomTeaser = teasers[Math.floor(Math.random() * teasers.length)]
-      setTeaserText(randomTeaser)
-    }
-  }, [title])
 
   // Parse content into slides
   const parseSlides = (markdown: string): string[] => {
@@ -163,14 +147,16 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
   }
 
   const copyTeaserText = () => {
-    navigator.clipboard.writeText(teaserText)
-    alert('Teaser text copied to clipboard!')
+    if (linkedinTeaser) {
+      navigator.clipboard.writeText(linkedinTeaser)
+      alert('Teaser text copied to clipboard!')
+    }
   }
 
   return (
     <div className="space-y-6">
       {/* LinkedIn Teaser Text */}
-      {teaserText && (
+      {linkedinTeaser && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -180,7 +166,7 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
                 </svg>
                 LinkedIn Post Ready
               </h3>
-              <p className="text-base text-blue-800 font-medium mb-3">{teaserText}</p>
+              <p className="text-base text-blue-800 font-medium mb-3">{linkedinTeaser}</p>
               <p className="text-xs text-blue-600">
                 💡 Tip: Copy this text and post it with your carousel images on LinkedIn for maximum engagement!
               </p>
