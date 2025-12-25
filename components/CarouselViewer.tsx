@@ -98,10 +98,12 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
     try {
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
-        scale: 3, // Higher quality for better resolution
+        scale: 2, // Good balance between quality and file size for 1280x720
         logging: false,
         useCORS: true,
         allowTaint: true,
+        windowWidth: 1280,
+        windowHeight: 720,
       })
 
       // Hide the slide again if it was hidden
@@ -263,12 +265,12 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
             key={index}
             ref={(el) => { slideRefs.current[index] = el }}
             className={`
-              bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-lg p-12
+              bg-white rounded-lg shadow-lg overflow-hidden
               ${index === currentSlide ? 'block' : 'hidden'}
             `}
             style={{
-              width: '960px',
-              height: '540px', // 16:9 aspect ratio (PowerPoint/Google Slides standard)
+              width: '1280px',
+              height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
             }}
           >
@@ -360,57 +362,85 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 overflow-auto">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-          components={{
-            code({ inline, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '')
-              const code = String(children).replace(/\n$/, '')
+    <div className="h-full flex flex-col p-16 bg-white">
+      {/* Content area with constrained height */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto pr-4">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              h2: ({ children }) => (
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">{children}</h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-3xl font-semibold text-gray-800 mb-4">{children}</h3>
+              ),
+              p: ({ children }) => (
+                <p className="text-xl text-gray-700 mb-4 leading-relaxed">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="text-xl text-gray-700 space-y-3 mb-6 list-disc pl-6">{children}</ul>
+              ),
+              li: ({ children }) => (
+                <li className="leading-relaxed">{children}</li>
+              ),
+              code({ inline, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '')
+                const code = String(children).replace(/\n$/, '')
 
-              return !inline && match ? (
-                <SyntaxHighlighter
-                  style={vscDarkPlus}
-                  language={match[1]}
-                  PreTag="div"
-                  customStyle={{ fontSize: '0.9rem' }}
-                  {...props}
-                >
-                  {code}
-                </SyntaxHighlighter>
-              ) : (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              )
-            },
-            // Render HTML divs (for mermaid placeholders)
-            div({ node, className, ...props }: any) {
-              if (className === 'mermaid-rendered') {
-                const svgData = (props as any)['data-svg']
-                if (svgData) {
-                  const svg = decodeURIComponent(svgData)
-                  return (
-                    <div
-                      className="flex justify-center my-6"
-                      dangerouslySetInnerHTML={{ __html: svg }}
-                    />
-                  )
+                return !inline && match ? (
+                  <SyntaxHighlighter
+                    style={vscDarkPlus}
+                    language={match[1]}
+                    PreTag="div"
+                    customStyle={{ fontSize: '1rem', maxHeight: '400px' }}
+                    {...props}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                )
+              },
+              // Render HTML divs (for mermaid placeholders)
+              div({ node, className, ...props }: any) {
+                if (className === 'mermaid-rendered') {
+                  const svgData = (props as any)['data-svg']
+                  if (svgData) {
+                    let svg = decodeURIComponent(svgData)
+
+                    // Inject CSS to constrain SVG size
+                    svg = svg.replace(
+                      '<svg',
+                      '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto;"'
+                    )
+
+                    return (
+                      <div
+                        className="flex justify-center items-center my-8"
+                        style={{ maxHeight: '500px', overflow: 'visible' }}
+                        dangerouslySetInnerHTML={{ __html: svg }}
+                      />
+                    )
+                  }
                 }
-              }
-              return <div className={className} {...props} />
-            },
-          }}
-        >
-          {processedContent}
-        </ReactMarkdown>
+                return <div className={className} {...props} />
+              },
+            }}
+          >
+            {processedContent}
+          </ReactMarkdown>
+        </div>
       </div>
 
       {/* Slide number indicator */}
-      <div className="mt-auto pt-4 text-center text-sm text-gray-400 font-medium">
-        {slideNumber} / {totalSlides}
+      <div className="mt-6 text-center">
+        <span className="text-lg text-gray-400 font-medium">
+          {slideNumber} / {totalSlides}
+        </span>
       </div>
     </div>
   )
@@ -467,11 +497,18 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
             if (className === 'mermaid-rendered-thumb') {
               const svgData = (props as any)['data-svg']
               if (svgData) {
-                const svg = decodeURIComponent(svgData)
+                let svg = decodeURIComponent(svgData)
+
+                // Scale down for thumbnail
+                svg = svg.replace(
+                  '<svg',
+                  '<svg style="max-width: 100%; max-height: 80px; height: auto; width: auto;"'
+                )
+
                 return (
                   <div
-                    className="my-0.5 flex justify-center"
-                    style={{ fontSize: '0.25rem', transform: 'scale(0.8)' }}
+                    className="my-0.5 flex justify-center items-center"
+                    style={{ maxHeight: '80px', overflow: 'hidden' }}
                     dangerouslySetInnerHTML={{ __html: svg }}
                   />
                 )
