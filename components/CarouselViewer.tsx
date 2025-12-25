@@ -50,7 +50,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
   modern: {
     name: 'Modern Blue',
     description: 'Soft blue gradient',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
     className: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
     textColor: 'text-gray-900',
     isDark: false,
@@ -59,7 +59,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     name: 'Elegant Pattern',
     description: 'White with subtle dots',
     background: `
-      radial-gradient(circle at 20px 20px, rgba(0,0,0,0.05) 1px, transparent 1px),
+      radial-gradient(circle at center, rgba(0,0,0,0.12) 1.5px, transparent 1.5px),
       #ffffff
     `,
     className: 'bg-white',
@@ -70,7 +70,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     name: 'Professional Dark',
     description: 'Dark gradient with pattern',
     background: `
-      radial-gradient(circle at 40px 40px, rgba(255,255,255,0.08) 1px, transparent 1px),
+      radial-gradient(circle at center, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
       linear-gradient(135deg, #1e293b 0%, #0f172a 100%)
     `,
     className: 'bg-gradient-to-br from-slate-800 to-slate-900',
@@ -416,7 +416,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
               background: THEMES[selectedTheme].background,
-              backgroundSize: '40px 40px, 100%',
+              backgroundSize: '20px 20px, 100%',
             }}
           >
             <SlideContent
@@ -511,25 +511,25 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-16">
+    <div className="h-full flex flex-col p-12">
       {/* Content area with constrained height */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto pr-4">
+        <div className="h-full overflow-hidden">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-4xl font-bold ${theme.textColor} mb-6`}>{children}</h2>
+                <h2 className={`text-3xl font-bold ${theme.textColor} mb-4`}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-3xl font-semibold ${theme.textColor} mb-4`}>{children}</h3>
+                <h3 className={`text-2xl font-semibold ${theme.textColor} mb-3`}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-xl ${theme.textColor} mb-4 leading-relaxed`}>{children}</p>
+                <p className={`text-lg ${theme.textColor} mb-3 leading-relaxed`}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-xl ${theme.textColor} space-y-3 mb-6 list-disc pl-6`}>{children}</ul>
+                <ul className={`text-lg ${theme.textColor} space-y-2 mb-4 list-disc pl-6`}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
                 <li className="leading-relaxed">{children}</li>
@@ -543,7 +543,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     style={vscDarkPlus}
                     language={match[1]}
                     PreTag="div"
-                    customStyle={{ fontSize: '1rem', maxHeight: '400px' }}
+                    customStyle={{ fontSize: '0.875rem', maxHeight: '300px' }}
                     {...props}
                   >
                     {code}
@@ -568,13 +568,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                       // Inject white background and constrain SVG size
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto; background: white; padding: 20px; border-radius: 8px;"'
+                        '<svg style="max-width: 100%; max-height: 320px; height: auto; width: auto; background: white; padding: 16px; border-radius: 8px;"'
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-8"
-                          style={{ maxHeight: '500px', overflow: 'visible' }}
+                          className="flex justify-center items-center my-4"
+                          style={{ maxHeight: '360px', overflow: 'visible' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
@@ -583,13 +583,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     // For light themes, just constrain size
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto;"'
+                      '<svg style="max-width: 100%; max-height: 320px; height: auto; width: auto;"'
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-8"
-                        style={{ maxHeight: '500px', overflow: 'visible' }}
+                        className="flex justify-center items-center my-4"
+                        style={{ maxHeight: '360px', overflow: 'visible' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
@@ -605,8 +605,8 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
       </div>
 
       {/* Slide number indicator */}
-      <div className="mt-6 text-center">
-        <span className={`text-lg ${theme.isDark ? 'text-gray-300' : 'text-gray-400'} font-medium`}>
+      <div className="mt-4 text-center">
+        <span className={`text-base ${theme.isDark ? 'text-gray-300' : 'text-gray-400'} font-medium`}>
           {slideNumber} / {totalSlides}
         </span>
       </div>
