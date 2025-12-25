@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
+import html2canvas from 'html2canvas'
 
 interface MermaidProps {
   chart: string
@@ -65,39 +66,34 @@ export function Mermaid({ chart, id }: MermaidProps) {
   const handleDownload = async () => {
     if (!ref.current) return
 
-    const svg = ref.current.querySelector('svg')
-    if (!svg) return
-
     try {
-      // Get SVG data
-      const svgData = new XMLSerializer().serializeToString(svg)
-
-      // Send to server for conversion to WebP
-      const response = await fetch('/api/mermaid/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ svg: svgData }),
+      // Use html2canvas to capture the diagram with proper font rendering
+      const canvas = await html2canvas(ref.current, {
+        backgroundColor: '#ffffff',
+        scale: 3, // High resolution
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
       })
 
-      if (!response.ok) throw new Error('Failed to convert diagram')
+      // Convert canvas to WebP blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/webp', 0.95)
+      })
 
-      const { imageUrl } = await response.json()
-
-      // Download the WebP image
-      const imageResponse = await fetch(imageUrl)
-      const blob = await imageResponse.blob()
-      const url = URL.createObjectURL(blob)
-
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `diagram-${id}.webp`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `diagram-${id}.webp`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
     } catch (error) {
       console.error('Download failed:', error)
-      alert('Failed to download diagram. Please try again.')
+      alert(`Failed to download diagram: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

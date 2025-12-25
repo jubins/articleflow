@@ -64,6 +64,7 @@ export interface Database {
           google_token_expires_at: string | null
           google_connected: boolean
           google_connected_at: string | null
+          carousel_theme: 'classic' | 'academic' | 'modern' | 'elegant' | 'professional'
           created_at: string
           updated_at: string
         }
@@ -81,6 +82,7 @@ export interface Database {
           google_token_expires_at?: string | null
           google_connected?: boolean
           google_connected_at?: string | null
+          carousel_theme?: 'classic' | 'academic' | 'modern'
           created_at?: string
           updated_at?: string
         }
@@ -98,6 +100,7 @@ export interface Database {
           google_token_expires_at?: string | null
           google_connected?: boolean
           google_connected_at?: string | null
+          carousel_theme?: 'classic' | 'academic' | 'modern'
           created_at?: string
           updated_at?: string
         }
@@ -118,8 +121,8 @@ export interface Database {
           ai_provider: string
           google_doc_id: string | null
           google_doc_url: string | null
-          markdown_url: string | null
           file_id: string | null
+          linkedin_teaser: string | null
           generation_metadata: Json
           error_message: string | null
           generated_at: string | null
@@ -141,8 +144,8 @@ export interface Database {
           ai_provider: string
           google_doc_id?: string | null
           google_doc_url?: string | null
-          markdown_url?: string | null
           file_id?: string | null
+          linkedin_teaser?: string | null
           generation_metadata?: Json
           error_message?: string | null
           generated_at?: string | null
@@ -164,8 +167,8 @@ export interface Database {
           ai_provider?: string
           google_doc_id?: string | null
           google_doc_url?: string | null
-          markdown_url?: string | null
           file_id?: string | null
+          linkedin_teaser?: string | null
           generation_metadata?: Json
           error_message?: string | null
           generated_at?: string | null

@@ -68,11 +68,55 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile for author signature
-    const { data: profile } = await supabase
+    // Also ensure profile exists (create if missing to prevent FK constraint errors)
+    const profileResponse = await supabase
       .from('profiles')
       .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
       .eq('id', user.id)
       .single()
+
+    let profile = profileResponse.data
+    const profileError = profileResponse.error
+
+    // If profile doesn't exist, create it to prevent foreign key constraint errors
+    if (profileError && profileError.code === 'PGRST116') {
+      console.log('Profile not found, creating one for user:', user.id)
+
+      // Create profile
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      await supabase.from('profiles').insert({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || null,
+      })
+
+      // Create user settings if they don't exist (should have been created already, but just in case)
+      const { data: existingSettings } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingSettings) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await supabase.from('user_settings').insert({
+          user_id: user.id,
+          default_ai_provider: 'claude',
+          default_word_count: 2000,
+        })
+      }
+
+      // Fetch the newly created profile
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
+        .eq('id', user.id)
+        .single()
+
+      profile = newProfile
+    }
 
     // Create a draft article record
     const { data: article, error: articleError } = await supabase
@@ -93,8 +137,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (articleError || !article) {
+      console.error('Failed to create article record:', articleError)
       return NextResponse.json(
-        { error: 'Failed to create article record' },
+        {
+          error: 'Failed to create article record',
+          details: articleError?.message || 'Unknown error'
+        },
         { status: 500 }
       )
     }
@@ -138,6 +186,19 @@ export async function POST(request: NextRequest) {
       // Convert markdown to rich text HTML for storage
       const richTextHtml = markdownToHtml(generatedArticle.content)
 
+      // Generate LinkedIn teaser for carousel articles
+      let linkedinTeaser: string | null = null
+      if (validatedData.articleType === 'carousel') {
+        const teasers = [
+          `Want to learn more about ${generatedArticle.title}? 📚`,
+          `Curious about ${generatedArticle.title}? Swipe through! 👉`,
+          `Master ${generatedArticle.title} in 5 slides! 💡`,
+          `Everything you need to know about ${generatedArticle.title} 🚀`,
+          `Quick guide to ${generatedArticle.title}! Save this for later 🔖`,
+        ]
+        linkedinTeaser = teasers[Math.floor(Math.random() * teasers.length)]
+      }
+
       // Update article with generated content (store both markdown and rich text in database)
       const { error: updateError } = await supabase
         .from('articles')
@@ -152,6 +213,7 @@ export async function POST(request: NextRequest) {
           word_count: generatedArticle.wordCount,
           status: 'generated',
           generated_at: new Date().toISOString(),
+          linkedin_teaser: linkedinTeaser,
           generation_metadata: generatedArticle.metadata,
         })
         .eq('id', typedArticle.id)

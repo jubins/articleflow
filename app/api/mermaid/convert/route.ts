@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
-import { uploadMermaidDiagram } from '@/lib/storage/r2'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,20 +12,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Convert SVG to WebP using sharp
-    const buffer = Buffer.from(svg)
-    const webpBuffer = await sharp(buffer)
+    // Clean and prepare SVG
+    let cleanSvg = svg.trim()
+
+    // Check if SVG has dimensions, if not add default ones
+    if (!cleanSvg.includes('width=') || !cleanSvg.includes('height=')) {
+      // Extract viewBox if present to determine dimensions
+      const viewBoxMatch = cleanSvg.match(/viewBox="([^"]+)"/)
+      let width = 800
+      let height = 600
+
+      if (viewBoxMatch) {
+        const viewBox = viewBoxMatch[1].split(' ')
+        width = parseInt(viewBox[2]) || 800
+        height = parseInt(viewBox[3]) || 600
+      }
+
+      // Add dimensions to SVG
+      cleanSvg = cleanSvg.replace(
+        /<svg/,
+        `<svg width="${width}" height="${height}"`
+      )
+    }
+
+    console.log('Converting SVG to WebP. SVG length:', cleanSvg.length)
+
+    // Convert SVG string to buffer with UTF-8 encoding
+    const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
+
+    // Convert SVG to WebP using sharp with proper density for better quality
+    const webpBuffer = await sharp(svgBuffer, {
+      density: 150 // Higher DPI for better quality
+    })
       .webp({ quality: 90 })
       .toBuffer()
 
-    // Upload to R2
-    const imageUrl = await uploadMermaidDiagram(webpBuffer)
+    console.log('Successfully converted to WebP. Size:', webpBuffer.length, 'bytes')
 
-    return NextResponse.json({ imageUrl })
+    // Return the image directly instead of uploading to R2
+    // This avoids 401 errors from private R2 buckets
+    return new NextResponse(webpBuffer as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Disposition': 'attachment; filename="diagram.webp"',
+        'Cache-Control': 'no-cache',
+      },
+    })
   } catch (error) {
     console.error('Error converting Mermaid diagram:', error)
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+
     return NextResponse.json(
-      { error: 'Failed to convert diagram' },
+      {
+        error: 'Failed to convert diagram',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

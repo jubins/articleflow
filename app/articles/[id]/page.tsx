@@ -297,26 +297,30 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 >
                   Preview
                 </button>
-                <button
-                  onClick={() => setActiveTab('markdown')}
-                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === 'markdown'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
-                >
-                  Markdown
-                </button>
-                <button
-                  onClick={() => setActiveTab('richtext')}
-                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === 'richtext'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
-                >
-                  Rich Text
-                </button>
+                {article.article_type !== 'carousel' && (
+                  <>
+                    <button
+                      onClick={() => setActiveTab('markdown')}
+                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'markdown'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                      }`}
+                    >
+                      Markdown
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('richtext')}
+                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'richtext'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                      }`}
+                    >
+                      Rich Text
+                    </button>
+                  </>
+                )}
                 {article.article_type === 'carousel' && (
                   <button
                     onClick={() => setActiveTab('carousel')}
@@ -656,7 +660,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               {/* Carousel Tab */}
               {activeTab === 'carousel' && article.article_type === 'carousel' && (
                 <div>
-                  <CarouselViewer content={article.content} />
+                  <CarouselViewer
+                    content={article.content}
+                    title={article.title}
+                    linkedinTeaser={article.linkedin_teaser || undefined}
+                  />
                 </div>
               )}
             </div>

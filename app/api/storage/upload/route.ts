@@ -44,11 +44,15 @@ export async function POST(request: NextRequest) {
     const typedArticle = article as Article
 
     // Check if markdown already uploaded
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - markdown_url field not in type definition but exists in database
     if (typedArticle.markdown_url) {
       return NextResponse.json(
         {
           success: true,
           message: 'Markdown file already uploaded',
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           url: typedArticle.markdown_url,
         }
       )
