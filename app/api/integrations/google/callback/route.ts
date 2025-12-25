@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Handle Google OAuth callback
  * GET /api/integrations/google/callback?code=...&state=...

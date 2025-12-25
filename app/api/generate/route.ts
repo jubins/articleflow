@@ -6,6 +6,8 @@ import { markdownToHtml } from '@/lib/utils/markdown'
 // import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 // Request validation schema
 const generateRequestSchema = z.object({
   topic: z.string().min(1, 'Topic is required'),
