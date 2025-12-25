@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -9,6 +9,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from './ui/Button'
 import html2canvas from 'html2canvas'
 import mermaid from 'mermaid'
+import { ReactNode } from 'react'
 
 interface CarouselViewerProps {
   content: string
@@ -356,22 +357,22 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             components={{
-              h2: ({ children }: any) => (
+              h2: ({ children }: { children?: ReactNode }) => (
                 <h2 className="text-4xl font-bold text-gray-900 mb-6">{children}</h2>
               ),
-              h3: ({ children }: any) => (
+              h3: ({ children }: { children?: ReactNode }) => (
                 <h3 className="text-3xl font-semibold text-gray-800 mb-4">{children}</h3>
               ),
-              p: ({ children }: any) => (
+              p: ({ children }: { children?: ReactNode }) => (
                 <p className="text-xl text-gray-700 mb-4 leading-relaxed">{children}</p>
               ),
-              ul: ({ children }: any) => (
+              ul: ({ children }: { children?: ReactNode }) => (
                 <ul className="text-xl text-gray-700 space-y-3 mb-6 list-disc pl-6">{children}</ul>
               ),
-              li: ({ children }: any) => (
+              li: ({ children }: { children?: ReactNode }) => (
                 <li className="leading-relaxed">{children}</li>
               ),
-              code({ node, inline, className, children, ...props }: any) {
+              code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
                 const match = /language-(\w+)/.exec(className || '')
                 const code = String(children).replace(/\n$/, '')
 
@@ -392,9 +393,9 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ node, className, ...props }: any) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string }) {
                 if (className === 'mermaid-rendered') {
-                  const svgData = (props as any)['data-svg']
+                  const svgData = props['data-svg']
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
@@ -415,7 +416,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                 }
                 return <div className={className} {...props} />
               },
-            }}
+            } as Partial<Components>}
           >
             {processedContent}
           </ReactMarkdown>
@@ -471,17 +472,17 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          h1: ({ children }: any) => <div className="font-bold mb-0.5">{children}</div>,
-          h2: ({ children }: any) => <div className="font-bold mb-0.5">{children}</div>,
-          h3: ({ children }: any) => <div className="font-semibold mb-0.5">{children}</div>,
-          p: ({ children }: any) => <div className="mb-0.5">{children}</div>,
-          ul: ({ children }: any) => <ul className="list-disc pl-2 mb-0.5 space-y-0">{children}</ul>,
-          ol: ({ children }: any) => <ol className="list-decimal pl-2 mb-0.5 space-y-0">{children}</ol>,
-          li: ({ children }: any) => <li className="mb-0">{children}</li>,
-          code: ({ children }: any) => <code className="text-[0.4rem]">{children}</code>,
-          div({ node, className, ...props }: any) {
+          h1: ({ children }: { children?: ReactNode }) => <div className="font-bold mb-0.5">{children}</div>,
+          h2: ({ children }: { children?: ReactNode }) => <div className="font-bold mb-0.5">{children}</div>,
+          h3: ({ children }: { children?: ReactNode }) => <div className="font-semibold mb-0.5">{children}</div>,
+          p: ({ children }: { children?: ReactNode }) => <div className="mb-0.5">{children}</div>,
+          ul: ({ children }: { children?: ReactNode }) => <ul className="list-disc pl-2 mb-0.5 space-y-0">{children}</ul>,
+          ol: ({ children }: { children?: ReactNode }) => <ol className="list-decimal pl-2 mb-0.5 space-y-0">{children}</ol>,
+          li: ({ children }: { children?: ReactNode }) => <li className="mb-0">{children}</li>,
+          code: ({ children }: { children?: ReactNode }) => <code className="text-[0.4rem]">{children}</code>,
+          div({ className, ...props }: { className?: string; 'data-svg'?: string }) {
             if (className === 'mermaid-rendered-thumb') {
-              const svgData = (props as any)['data-svg']
+              const svgData = props['data-svg']
               if (svgData) {
                 let svg = decodeURIComponent(svgData)
 
@@ -502,7 +503,7 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
             }
             return <div className={className} {...props} />
           },
-        }}
+        } as Partial<Components>}
       >
         {processedContent || slide}
       </ReactMarkdown>
