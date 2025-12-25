@@ -28,6 +28,7 @@ interface ThemeStyle {
   className: string
   textColor: string
   isDark: boolean
+  needsWhiteDiagramBg?: boolean
 }
 
 const THEMES: Record<CarouselTheme, ThemeStyle> = {
@@ -54,12 +55,13 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     className: 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50',
     textColor: 'text-gray-900',
     isDark: false,
+    needsWhiteDiagramBg: true,
   },
   elegant: {
     name: 'Elegant Pattern',
     description: 'White with subtle dots',
     background: `
-      radial-gradient(circle at center, rgba(0,0,0,0.12) 1.5px, transparent 1.5px),
+      radial-gradient(circle, rgba(0,0,0,0.15) 1px, transparent 1px),
       #ffffff
     `,
     className: 'bg-white',
@@ -70,7 +72,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     name: 'Professional Dark',
     description: 'Dark gradient with pattern',
     background: `
-      radial-gradient(circle at center, rgba(255,255,255,0.15) 1.5px, transparent 1.5px),
+      radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px),
       linear-gradient(135deg, #1e293b 0%, #0f172a 100%)
     `,
     className: 'bg-gradient-to-br from-slate-800 to-slate-900',
@@ -416,7 +418,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
               background: THEMES[selectedTheme].background,
-              backgroundSize: '20px 20px, 100%',
+              backgroundSize: '15px 15px, 100%',
             }}
           >
             <SlideContent
@@ -487,7 +489,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
           const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
 
           // Store SVG and create placeholder
-          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}"></div>`
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -511,7 +513,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-12">
+    <div className="h-full flex flex-col p-14">
       {/* Content area with constrained height */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-hidden">
@@ -520,16 +522,16 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-3xl font-bold ${theme.textColor} mb-4`}>{children}</h2>
+                <h2 className={`text-4xl font-bold ${theme.textColor} mb-5`}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-2xl font-semibold ${theme.textColor} mb-3`}>{children}</h3>
+                <h3 className={`text-2xl font-semibold ${theme.textColor} mb-4`}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-lg ${theme.textColor} mb-3 leading-relaxed`}>{children}</p>
+                <p className={`text-xl ${theme.textColor} mb-4 leading-relaxed`}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-lg ${theme.textColor} space-y-2 mb-4 list-disc pl-6`}>{children}</ul>
+                <ul className={`text-xl ${theme.textColor} space-y-2 mb-5 list-disc pl-6`}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
                 <li className="leading-relaxed">{children}</li>
@@ -543,7 +545,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     style={vscDarkPlus}
                     language={match[1]}
                     PreTag="div"
-                    customStyle={{ fontSize: '0.875rem', maxHeight: '300px' }}
+                    customStyle={{ fontSize: '0.95rem', maxHeight: '350px' }}
                     {...props}
                   >
                     {code}
@@ -555,41 +557,42 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
                   const isDark = props['data-is-dark'] === 'true'
+                  const needsWhiteBg = props['data-needs-white-bg'] === 'true'
 
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
-                    // Wrap in white background for dark themes
-                    if (isDark) {
+                    // Wrap in white background for dark themes or themes that need white diagram backgrounds
+                    if (isDark || needsWhiteBg) {
                       // Inject white background and constrain SVG size
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 100%; max-height: 320px; height: auto; width: auto; background: white; padding: 16px; border-radius: 8px;"'
+                        '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto; background: white; padding: 18px; border-radius: 8px;"'
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-4"
-                          style={{ maxHeight: '360px', overflow: 'visible' }}
+                          className="flex justify-center items-center my-5"
+                          style={{ maxHeight: '420px', overflow: 'visible' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For light themes, just constrain size
+                    // For other light themes, just constrain size
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 100%; max-height: 320px; height: auto; width: auto;"'
+                      '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto;"'
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-4"
-                        style={{ maxHeight: '360px', overflow: 'visible' }}
+                        className="flex justify-center items-center my-5"
+                        style={{ maxHeight: '420px', overflow: 'visible' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
@@ -605,8 +608,8 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
       </div>
 
       {/* Slide number indicator */}
-      <div className="mt-4 text-center">
-        <span className={`text-base ${theme.isDark ? 'text-gray-300' : 'text-gray-400'} font-medium`}>
+      <div className="mt-5 text-center">
+        <span className={`text-lg ${theme.isDark ? 'text-gray-300' : 'text-gray-400'} font-medium`}>
           {slideNumber} / {totalSlides}
         </span>
       </div>
