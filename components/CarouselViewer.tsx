@@ -58,6 +58,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const [downloadingAll, setDownloadingAll] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState<CarouselTheme>('classic')
   const [savingTheme, setSavingTheme] = useState(false)
+  const [displayTeaser, setDisplayTeaser] = useState('')
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Initialize mermaid
@@ -71,6 +72,23 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       isMermaidInitialized = true
     }
   }, [])
+
+  // Set display teaser (from prop or generate fallback)
+  useEffect(() => {
+    if (linkedinTeaser) {
+      setDisplayTeaser(linkedinTeaser)
+    } else if (title) {
+      // Fallback: generate teaser if not in database
+      const teasers = [
+        `Want to learn more about ${title}? 📚`,
+        `Curious about ${title}? Swipe through! 👉`,
+        `Master ${title} in 5 slides! 💡`,
+        `Everything you need to know about ${title} 🚀`,
+        `Quick guide to ${title}! Save this for later 🔖`,
+      ]
+      setDisplayTeaser(teasers[Math.floor(Math.random() * teasers.length)])
+    }
+  }, [linkedinTeaser, title])
 
   // Load user's theme preference
   useEffect(() => {
@@ -225,8 +243,8 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   }
 
   const copyTeaserText = () => {
-    if (linkedinTeaser) {
-      navigator.clipboard.writeText(linkedinTeaser)
+    if (displayTeaser) {
+      navigator.clipboard.writeText(displayTeaser)
       alert('Teaser text copied to clipboard!')
     }
   }
@@ -262,7 +280,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       </div>
 
       {/* LinkedIn Teaser Text */}
-      {linkedinTeaser && (
+      {displayTeaser && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -272,7 +290,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
                 </svg>
                 LinkedIn Post Ready
               </h3>
-              <p className="text-base text-blue-800 font-medium mb-3">{linkedinTeaser}</p>
+              <p className="text-base text-blue-800 font-medium mb-3">{displayTeaser}</p>
               <p className="text-xs text-blue-600">
                 💡 Tip: Copy this text and post it with your carousel images on LinkedIn for maximum engagement!
               </p>
