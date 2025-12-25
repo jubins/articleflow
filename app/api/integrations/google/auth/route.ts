@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Initiate Google OAuth flow
  * GET /api/integrations/google/auth
