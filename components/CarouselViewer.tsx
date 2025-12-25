@@ -416,6 +416,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
               background: THEMES[selectedTheme].background,
+              backgroundSize: '40px 40px, 100%',
             }}
           >
             <SlideContent
@@ -562,24 +563,28 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
-                    // Inject CSS to constrain SVG size
+                    // Wrap in white background for dark themes
+                    if (isDark) {
+                      // Inject white background and constrain SVG size
+                      svg = svg.replace(
+                        '<svg',
+                        '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto; background: white; padding: 20px; border-radius: 8px;"'
+                      )
+
+                      return (
+                        <div
+                          className="flex justify-center items-center my-8"
+                          style={{ maxHeight: '500px', overflow: 'visible' }}
+                          dangerouslySetInnerHTML={{ __html: svg }}
+                        />
+                      )
+                    }
+
+                    // For light themes, just constrain size
                     svg = svg.replace(
                       '<svg',
                       '<svg style="max-width: 100%; max-height: 450px; height: auto; width: auto;"'
                     )
-
-                    // Wrap in white background for dark themes
-                    if (isDark) {
-                      return (
-                        <div className="flex justify-center items-center my-8">
-                          <div
-                            className="bg-white rounded-lg p-6 inline-block"
-                            style={{ maxHeight: '500px', overflow: 'visible' }}
-                            dangerouslySetInnerHTML={{ __html: svg }}
-                          />
-                        </div>
-                      )
-                    }
 
                     return (
                       <div
