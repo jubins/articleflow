@@ -69,11 +69,14 @@ export async function POST(request: NextRequest) {
 
     // Get user profile for author signature
     // Also ensure profile exists (create if missing to prevent FK constraint errors)
-    let { data: profile, error: profileError } = await supabase
+    const profileResponse = await supabase
       .from('profiles')
       .select('full_name, bio, linkedin_handle, twitter_handle, github_handle, website')
       .eq('id', user.id)
       .single()
+
+    let profile = profileResponse.data
+    const profileError = profileResponse.error
 
     // If profile doesn't exist, create it to prevent foreign key constraint errors
     if (profileError && profileError.code === 'PGRST116') {

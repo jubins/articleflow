@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
-import { uploadMermaidDiagram } from '@/lib/storage/r2'
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Return the image directly instead of uploading to R2
     // This avoids 401 errors from private R2 buckets
-    return new NextResponse(webpBuffer, {
+    return new NextResponse(webpBuffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'image/webp',
