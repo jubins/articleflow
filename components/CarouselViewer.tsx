@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from './ui/Button'
@@ -363,6 +364,7 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
       <div className="flex-1 prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 overflow-auto">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
           components={{
             code({ inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '')
@@ -401,9 +403,6 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
               return <div className={className} {...props} />
             },
           }}
-          // Allow HTML to render our mermaid placeholders
-          rehypePlugins={[]}
-          skipHtml={false}
         >
           {processedContent}
         </ReactMarkdown>
@@ -454,6 +453,7 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
     <div className="prose prose-xs max-w-none text-[0.45rem] leading-tight">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
         components={{
           h1: ({ children }) => <div className="font-bold mb-0.5">{children}</div>,
           h2: ({ children }) => <div className="font-bold mb-0.5">{children}</div>,
@@ -480,7 +480,6 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
             return <div className={className} {...props} />
           },
         }}
-        skipHtml={false}
       >
         {processedContent || slide}
       </ReactMarkdown>
