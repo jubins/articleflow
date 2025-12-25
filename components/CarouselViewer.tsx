@@ -308,35 +308,55 @@ export function CarouselViewer({ content, title }: CarouselViewerProps) {
 
 // Separate component for slide content rendering
 function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slideNumber: number; totalSlides: number }) {
-  const [mermaidSvgs, setMermaidSvgs] = useState<Map<number, string>>(new Map())
+  const [processedContent, setProcessedContent] = useState<string>('')
+  const [isProcessing, setIsProcessing] = useState(true)
+  const diagramRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
   useEffect(() => {
-    const renderMermaidDiagrams = async () => {
+    const processSlide = async () => {
+      setIsProcessing(true)
+
       // Find all mermaid code blocks
-      const mermaidRegex = /\`\`\`mermaid\n([\s\S]*?)\`\`\`/g
+      const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
       const matches = Array.from(slide.matchAll(mermaidRegex))
 
-      if (matches.length > 0) {
-        const newSvgs = new Map<number, string>()
-
-        for (let i = 0; i < matches.length; i++) {
-          try {
-            const { svg } = await mermaid.render(`mermaid-slide-${slideNumber}-${i}`, matches[i][1])
-            newSvgs.set(i, svg)
-          } catch (err) {
-            console.error('Mermaid rendering error:', err)
-          }
-        }
-
-        setMermaidSvgs(newSvgs)
+      if (matches.length === 0) {
+        setProcessedContent(slide)
+        setIsProcessing(false)
+        return
       }
+
+      let processed = slide
+
+      // Replace each mermaid block with a placeholder div
+      for (let i = 0; i < matches.length; i++) {
+        const diagramId = `diagram-${slideNumber}-${i}`
+        try {
+          const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
+
+          // Store SVG and create placeholder
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}"></div>`
+          processed = processed.replace(matches[i][0], placeholder)
+        } catch (err) {
+          console.error('Mermaid rendering error:', err)
+          processed = processed.replace(matches[i][0], `<div class="text-red-500">Error rendering diagram</div>`)
+        }
+      }
+
+      setProcessedContent(processed)
+      setIsProcessing(false)
     }
 
-    renderMermaidDiagrams()
+    processSlide()
   }, [slide, slideNumber])
 
-  // Track which mermaid diagram we're on
-  let mermaidIndex = -1
+  if (isProcessing) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-gray-400 animate-pulse">Loading slide...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -347,28 +367,6 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
             code({ inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '')
               const code = String(children).replace(/\n$/, '')
-
-              // Render mermaid diagrams
-              if (className === 'language-mermaid') {
-                mermaidIndex++
-                const svg = mermaidSvgs.get(mermaidIndex)
-
-                if (svg) {
-                  return (
-                    <div
-                      className="mermaid-diagram flex justify-center my-4"
-                      dangerouslySetInnerHTML={{ __html: svg }}
-                    />
-                  )
-                }
-
-                // If SVG not ready yet, show loading
-                return (
-                  <div className="flex justify-center my-4 text-gray-400">
-                    <div className="animate-pulse">Loading diagram...</div>
-                  </div>
-                )
-              }
 
               return !inline && match ? (
                 <SyntaxHighlighter
@@ -386,9 +384,28 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
                 </code>
               )
             },
+            // Render HTML divs (for mermaid placeholders)
+            div({ node, className, ...props }: any) {
+              if (className === 'mermaid-rendered') {
+                const svgData = (props as any)['data-svg']
+                if (svgData) {
+                  const svg = decodeURIComponent(svgData)
+                  return (
+                    <div
+                      className="flex justify-center my-6"
+                      dangerouslySetInnerHTML={{ __html: svg }}
+                    />
+                  )
+                }
+              }
+              return <div className={className} {...props} />
+            },
           }}
+          // Allow HTML to render our mermaid placeholders
+          rehypePlugins={[]}
+          skipHtml={false}
         >
-          {slide}
+          {processedContent}
         </ReactMarkdown>
       </div>
 
@@ -402,33 +419,36 @@ function SlideContent({ slide, slideNumber, totalSlides }: { slide: string; slid
 
 // Thumbnail preview component
 function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: number }) {
-  const [mermaidSvgs, setMermaidSvgs] = useState<Map<number, string>>(new Map())
+  const [processedContent, setProcessedContent] = useState<string>('')
 
   useEffect(() => {
-    const renderMermaidDiagrams = async () => {
-      const mermaidRegex = /\`\`\`mermaid\n([\s\S]*?)\`\`\`/g
+    const processSlide = async () => {
+      const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
       const matches = Array.from(slide.matchAll(mermaidRegex))
 
-      if (matches.length > 0) {
-        const newSvgs = new Map<number, string>()
-
-        for (let i = 0; i < matches.length; i++) {
-          try {
-            const { svg } = await mermaid.render(`mermaid-thumb-${slideNumber}-${i}`, matches[i][1])
-            newSvgs.set(i, svg)
-          } catch (err) {
-            console.error('Mermaid thumbnail rendering error:', err)
-          }
-        }
-
-        setMermaidSvgs(newSvgs)
+      if (matches.length === 0) {
+        setProcessedContent(slide)
+        return
       }
+
+      let processed = slide
+
+      for (let i = 0; i < matches.length; i++) {
+        try {
+          const { svg } = await mermaid.render(`mermaid-thumb-${slideNumber}-${i}`, matches[i][1])
+          const placeholder = `<div class="mermaid-rendered-thumb" data-svg="${encodeURIComponent(svg)}"></div>`
+          processed = processed.replace(matches[i][0], placeholder)
+        } catch (err) {
+          console.error('Mermaid thumbnail rendering error:', err)
+          processed = processed.replace(matches[i][0], '')
+        }
+      }
+
+      setProcessedContent(processed)
     }
 
-    renderMermaidDiagrams()
+    processSlide()
   }, [slide, slideNumber])
-
-  let mermaidIndex = -1
 
   return (
     <div className="prose prose-xs max-w-none text-[0.45rem] leading-tight">
@@ -442,29 +462,27 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
           ul: ({ children }) => <ul className="list-disc pl-2 mb-0.5 space-y-0">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-2 mb-0.5 space-y-0">{children}</ol>,
           li: ({ children }) => <li className="mb-0">{children}</li>,
-          code: ({ inline, className, children }) => {
-            if (className === 'language-mermaid') {
-              mermaidIndex++
-              const svg = mermaidSvgs.get(mermaidIndex)
-
-              if (svg) {
+          code: ({ children }) => <code className="text-[0.4rem]">{children}</code>,
+          div({ node, className, ...props }: any) {
+            if (className === 'mermaid-rendered-thumb') {
+              const svgData = (props as any)['data-svg']
+              if (svgData) {
+                const svg = decodeURIComponent(svgData)
                 return (
                   <div
                     className="my-0.5 flex justify-center"
-                    style={{ fontSize: '0.3rem' }}
+                    style={{ fontSize: '0.25rem', transform: 'scale(0.8)' }}
                     dangerouslySetInnerHTML={{ __html: svg }}
                   />
                 )
               }
-
-              return <div className="text-[0.3rem] text-gray-400">Loading...</div>
             }
-
-            return <code className="text-[0.4rem]">{children}</code>
+            return <div className={className} {...props} />
           },
         }}
+        skipHtml={false}
       >
-        {slide}
+        {processedContent || slide}
       </ReactMarkdown>
     </div>
   )
