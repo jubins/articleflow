@@ -31,6 +31,33 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
+        // Check if there's a trial article to save
+        const trialArticleStr = localStorage.getItem('trialArticle')
+        if (trialArticleStr) {
+          try {
+            const trialArticle = JSON.parse(trialArticleStr)
+            // Save the trial article to the database
+            const saveResponse = await fetch('/api/trial/save', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(trialArticle),
+            })
+
+            if (saveResponse.ok) {
+              const { articleId } = await saveResponse.json()
+              // Clear localStorage
+              localStorage.removeItem('trialArticle')
+              // Redirect to the saved article
+              router.push(`/articles/${articleId}`)
+              router.refresh()
+              return
+            }
+          } catch (err) {
+            console.error('Failed to save trial article:', err)
+            // Continue to dashboard even if save fails
+          }
+        }
+
         router.push('/dashboard')
         router.refresh()
       }

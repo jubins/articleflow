@@ -38,11 +38,40 @@ export default function SignupPage() {
       if (error) {
         setError(error.message)
       } else {
-        setSuccess(true)
-        // Redirect to login after a brief delay
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
+        // Check if user is auto-confirmed (email verification disabled)
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (session) {
+          // User is auto-logged in, save trial article if exists
+          const trialArticleStr = localStorage.getItem('trialArticle')
+          if (trialArticleStr) {
+            try {
+              const trialArticle = JSON.parse(trialArticleStr)
+              const saveResponse = await fetch('/api/trial/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trialArticle),
+              })
+
+              if (saveResponse.ok) {
+                const { articleId } = await saveResponse.json()
+                localStorage.removeItem('trialArticle')
+                router.push(`/articles/${articleId}`)
+                return
+              }
+            } catch (err) {
+              console.error('Failed to save trial article:', err)
+            }
+          }
+          // No trial article, go to dashboard
+          router.push('/dashboard')
+        } else {
+          // Email verification required
+          setSuccess(true)
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+        }
       }
     } catch {
       setError('An unexpected error occurred')

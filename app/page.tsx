@@ -52,6 +52,14 @@ export default function LandingPage() {
       const data = await response.json()
       setGeneratedArticle(data)
       setShowSignupPrompt(true)
+
+      // Save to localStorage so it persists after signup
+      localStorage.setItem('trialArticle', JSON.stringify({
+        title: data.title,
+        content: data.content,
+        articleType,
+        timestamp: new Date().toISOString()
+      }))
     } catch (err) {
       console.error('Generation error:', err)
       setError(err instanceof Error ? err.message : 'Failed to generate article')
