@@ -112,23 +112,37 @@ async function convertMermaidDiagramsToImages(
   }
 
   try {
-    // Initialize R2 storage
-    const r2 = new R2StorageService()
+    // Initialize R2 storage - check if credentials are available
+    let r2: R2StorageService | null = null
+    try {
+      r2 = new R2StorageService()
+    } catch (error) {
+      console.error('R2 storage not configured, will use mermaid.ink direct URLs:', error)
+      // Fall back to using mermaid.ink URLs directly without uploading to R2
+    }
 
-    // Convert each diagram to an image and upload to R2
+    // Convert each diagram to an image
     for (const diagram of diagrams) {
       try {
         // Encode the Mermaid code as base64 for mermaid.ink API
         const base64Code = Buffer.from(diagram.code).toString('base64')
         const mermaidInkUrl = `https://mermaid.ink/img/${base64Code}`
 
-        // Upload the image to R2
-        const result = await r2.uploadFromUrl(mermaidInkUrl, {
-          folder: `articles/${articleId}/diagrams`,
-          fileName: `diagram-${diagram.index}.png`,
-        })
+        let imageUrl = mermaidInkUrl
 
-        images.set(`diagram-${diagram.index}`, result.url)
+        // Upload to R2 if available
+        if (r2) {
+          const result = await r2.uploadFromUrl(mermaidInkUrl, {
+            folder: `articles/${articleId}/diagrams`,
+            fileName: `diagram-${diagram.index}.png`,
+          })
+          imageUrl = result.url
+          console.log(`Successfully uploaded diagram ${diagram.index} to R2:`, result.url)
+        } else {
+          console.log(`Using mermaid.ink URL for diagram ${diagram.index}:`, mermaidInkUrl)
+        }
+
+        images.set(`diagram-${diagram.index}`, imageUrl)
       } catch (err) {
         console.error(`Failed to process diagram ${diagram.index}:`, err)
         // If conversion fails, keep the original Mermaid code
@@ -145,7 +159,7 @@ async function convertMermaidDiagramsToImages(
         index++
 
         if (imageUrl) {
-          return `![Architecture Diagram](${imageUrl})`
+          return `![Mermaid Diagram](${imageUrl})`
         }
         return match // Keep original if conversion failed
       }

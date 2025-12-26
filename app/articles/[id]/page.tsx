@@ -42,6 +42,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -51,7 +52,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   // Convert markdown to HTML when switching to rich text tab
   useEffect(() => {
     if (activeTab === 'richtext' && article && !isEditingRichText) {
-      setRichTextHtml(markdownToHtml(article.content))
+      // Use stored rich text content if available, otherwise convert from markdown
+      setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
     }
   }, [activeTab, article, isEditingRichText])
 
@@ -139,6 +141,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
     setEditedContent(article.content)
     setIsEditingMarkdown(true)
+    setHasUnsavedChanges(false)
   }
 
   const handleSaveEdit = async () => {
@@ -161,9 +164,10 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       if (error) throw error
 
-      setArticle({ ...article, content: editedContent })
+      setArticle({ ...article, content: editedContent, rich_text_content: richTextHtml })
       setIsEditingMarkdown(false)
       setIsEditingRichText(false)
+      setHasUnsavedChanges(false)
       setError('')
     } catch (err) {
       console.error('Save error:', err)
@@ -175,7 +179,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setIsEditingMarkdown(false)
     setIsEditingRichText(false)
     setEditedContent('')
-    setRichTextHtml('')
+    setHasUnsavedChanges(false)
+    // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
   const handleSaveRichText = async () => {
@@ -203,14 +208,31 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       if (error) throw error
 
-      setArticle({ ...article, content: markdown })
+      setArticle({ ...article, content: markdown, rich_text_content: richTextHtml })
       setIsEditingRichText(false)
-      setRichTextHtml('')
+      setHasUnsavedChanges(false)
       setError('')
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
     }
+  }
+
+  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
+    if (hasUnsavedChanges && (isEditingMarkdown || isEditingRichText)) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave this tab? Your changes will be lost.'
+      )
+      if (!confirmed) {
+        return
+      }
+      // Reset editing states if user confirms
+      setIsEditingMarkdown(false)
+      setIsEditingRichText(false)
+      setHasUnsavedChanges(false)
+      setEditedContent('')
+    }
+    setActiveTab(newTab)
   }
 
   if (loading) {
@@ -288,7 +310,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
             <div className="border-b border-gray-200">
               <div className="flex">
                 <button
-                  onClick={() => setActiveTab('preview')}
+                  onClick={() => handleTabChange('preview')}
                   className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                     activeTab === 'preview'
                       ? 'border-blue-600 text-blue-600'
@@ -300,7 +322,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 {article.article_type !== 'carousel' && (
                   <>
                     <button
-                      onClick={() => setActiveTab('markdown')}
+                      onClick={() => handleTabChange('markdown')}
                       className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                         activeTab === 'markdown'
                           ? 'border-blue-600 text-blue-600'
@@ -310,7 +332,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                       Markdown
                     </button>
                     <button
-                      onClick={() => setActiveTab('richtext')}
+                      onClick={() => handleTabChange('richtext')}
                       className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                         activeTab === 'richtext'
                           ? 'border-blue-600 text-blue-600'
@@ -323,7 +345,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 )}
                 {article.article_type === 'carousel' && (
                   <button
-                    onClick={() => setActiveTab('carousel')}
+                    onClick={() => handleTabChange('carousel')}
                     className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                       activeTab === 'carousel'
                         ? 'border-blue-600 text-blue-600'
@@ -559,7 +581,10 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   {isEditingMarkdown ? (
                     <textarea
                       value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
+                      onChange={(e) => {
+                        setEditedContent(e.target.value)
+                        setHasUnsavedChanges(true)
+                      }}
                       className="w-full bg-gray-50 p-6 rounded-lg text-sm font-mono text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
                       rows={20}
                     />
@@ -581,7 +606,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                         <button
                           onClick={() => {
                             setIsEditingRichText(true)
-                            setRichTextHtml(markdownToHtml(article.content))
+                            setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+                            setHasUnsavedChanges(false)
                           }}
                           className="p-2 hover:bg-gray-100 rounded-md transition-colors"
                           title="Edit content"
@@ -650,7 +676,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   <div>
                     <RichTextEditor
                       content={richTextHtml}
-                      onChange={setRichTextHtml}
+                      onChange={(html) => {
+                        setRichTextHtml(html)
+                        if (isEditingRichText) {
+                          setHasUnsavedChanges(true)
+                        }
+                      }}
                       editable={isEditingRichText}
                     />
                   </div>
