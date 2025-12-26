@@ -175,19 +175,15 @@ async function convertMarkdownToDocx(
     })
   )
 
-  let currentParagraph: string[] = []
   let inCodeBlock = false
   let codeBlockContent: string[] = []
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
     // Handle images
     const imageMatch = line.match(/!\[.*?\]\((.*?)\)/)
     if (imageMatch) {
-      if (currentParagraph.length > 0) {
-        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
-        currentParagraph = []
-      }
-
       const imageUrl = imageMatch[1]
       try {
         // Fetch the image
@@ -221,16 +217,25 @@ async function convertMarkdownToDocx(
     // Handle code blocks
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
-        // End code block
+        // End code block - create one paragraph with proper line breaks
+        const textRuns: TextRun[] = []
+        codeBlockContent.forEach((codeLine, index) => {
+          textRuns.push(
+            new TextRun({
+              text: codeLine,
+              font: 'Courier New',
+              size: 20,
+            })
+          )
+          // Add line break after each line except the last
+          if (index < codeBlockContent.length - 1) {
+            textRuns.push(new TextRun({ break: 1 }))
+          }
+        })
+
         children.push(
           new Paragraph({
-            children: [
-              new TextRun({
-                text: codeBlockContent.join('\n'),
-                font: 'Courier New',
-                size: 20,
-              }),
-            ],
+            children: textRuns,
             spacing: { before: 200, after: 200 },
             shading: {
               fill: 'F5F5F5',
@@ -252,10 +257,6 @@ async function convertMarkdownToDocx(
 
     // Handle headings
     if (line.startsWith('# ')) {
-      if (currentParagraph.length > 0) {
-        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
-        currentParagraph = []
-      }
       children.push(
         new Paragraph({
           text: line.replace(/^#\s+/, ''),
@@ -264,10 +265,6 @@ async function convertMarkdownToDocx(
         })
       )
     } else if (line.startsWith('## ')) {
-      if (currentParagraph.length > 0) {
-        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
-        currentParagraph = []
-      }
       children.push(
         new Paragraph({
           text: line.replace(/^##\s+/, ''),
@@ -276,10 +273,6 @@ async function convertMarkdownToDocx(
         })
       )
     } else if (line.startsWith('### ')) {
-      if (currentParagraph.length > 0) {
-        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
-        currentParagraph = []
-      }
       children.push(
         new Paragraph({
           text: line.replace(/^###\s+/, ''),
@@ -287,30 +280,29 @@ async function convertMarkdownToDocx(
           spacing: { before: 200, after: 150 },
         })
       )
+    } else if (line.startsWith('#### ')) {
+      children.push(
+        new Paragraph({
+          text: line.replace(/^####\s+/, ''),
+          heading: HeadingLevel.HEADING_4,
+          spacing: { before: 150, after: 100 },
+        })
+      )
     } else if (line.trim() === '') {
-      // Empty line - end current paragraph
-      if (currentParagraph.length > 0) {
-        children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
-        currentParagraph = []
-      }
+      // Skip empty lines - they're handled by paragraph spacing
+      continue
     } else {
-      // Regular text - clean markdown syntax
-      const cleanedLine = line
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic
-        .replace(/`(.*?)`/g, '$1') // Remove inline code
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links but keep text
-        .trim()
-
-      if (cleanedLine) {
-        currentParagraph.push(cleanedLine)
+      // Regular text - parse markdown formatting
+      const textRuns = parseMarkdownLine(line)
+      if (textRuns.length > 0) {
+        children.push(
+          new Paragraph({
+            children: textRuns,
+            spacing: { after: 200 },
+          })
+        )
       }
     }
-  }
-
-  // Add remaining paragraph
-  if (currentParagraph.length > 0) {
-    children.push(new Paragraph({ text: currentParagraph.join(' '), spacing: { after: 200 } }))
   }
 
   const doc = new Document({
@@ -323,4 +315,50 @@ async function convertMarkdownToDocx(
   })
 
   return await Packer.toBuffer(doc)
+}
+
+function parseMarkdownLine(line: string): TextRun[] {
+  const textRuns: TextRun[] = []
+  const segments: Array<{text: string, bold?: boolean, italics?: boolean, code?: boolean}> = []
+
+  // Match bold text
+  const boldRegex = /\*\*(.*?)\*\*/g
+  let match
+  let lastIndex = 0
+
+  while ((match = boldRegex.exec(line)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      segments.push({ text: line.substring(lastIndex, match.index) })
+    }
+    // Add bold text
+    segments.push({ text: match[1], bold: true })
+    lastIndex = boldRegex.lastIndex
+  }
+  // Add remaining text
+  if (lastIndex < line.length) {
+    segments.push({ text: line.substring(lastIndex) })
+  }
+
+  // If no formatting found, return plain text
+  if (segments.length === 0) {
+    segments.push({ text: line })
+  }
+
+  // Convert segments to TextRuns
+  for (const segment of segments) {
+    if (segment.text.trim()) {
+      textRuns.push(
+        new TextRun({
+          text: segment.text,
+          bold: segment.bold,
+          italics: segment.italics,
+          font: segment.code ? 'Courier New' : undefined,
+          shading: segment.code ? { fill: 'F5F5F5' } : undefined,
+        })
+      )
+    }
+  }
+
+  return textRuns
 }

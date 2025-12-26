@@ -58,10 +58,11 @@ export default function DocsPage() {
         </Card>
 
         {/* Getting Started */}
-        <Card className="mb-6" id="getting-started">
-          <CardHeader>
-            <CardTitle className="text-2xl">Getting Started</CardTitle>
-          </CardHeader>
+        <div id="getting-started">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Getting Started</CardTitle>
+            </CardHeader>
           <CardContent className="prose max-w-none">
             <h3 className="text-xl font-semibold mb-3">1. Sign Up</h3>
             <p className="text-gray-700 mb-4">
@@ -80,10 +81,12 @@ export default function DocsPage() {
               in Settings. Free tier users can use our platform API keys with usage limits.
             </p>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* API Keys */}
-        <Card className="mb-6" id="api-keys">
+        <div id="api-keys">
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">Setting Up API Keys</CardTitle>
           </CardHeader>
@@ -113,10 +116,12 @@ export default function DocsPage() {
               </p>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Generating Articles */}
-        <Card className="mb-6" id="generating">
+        <div id="generating">
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">Generating Articles</CardTitle>
           </CardHeader>
@@ -152,10 +157,12 @@ export default function DocsPage() {
               </p>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Article Types */}
-        <Card className="mb-6" id="article-types">
+        <div id="article-types">
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">Article Types</CardTitle>
           </CardHeader>
@@ -204,10 +211,12 @@ export default function DocsPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Google Docs Integration */}
-        <Card className="mb-6" id="google-docs">
+        <div id="google-docs">
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">Google Docs Integration</CardTitle>
           </CardHeader>
@@ -228,10 +237,12 @@ export default function DocsPage() {
               <li>Use Google Docs&apos; powerful editing features</li>
             </ul>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Google Sheets Integration */}
-        <Card className="mb-6" id="google-sheets">
+        <div id="google-sheets">
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">Google Sheets Integration</CardTitle>
           </CardHeader>
@@ -254,7 +265,8 @@ export default function DocsPage() {
               <li><strong>article_url</strong>: Generated article URL (auto-filled)</li>
             </ul>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
 
         {/* Need Help */}
         <Card className="bg-blue-50 border-blue-200">

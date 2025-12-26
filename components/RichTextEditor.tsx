@@ -152,6 +152,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           <div className="flex flex-wrap gap-2 items-center">
             {/* Font Family */}
             <select
+              value={editor.getAttributes('textStyle').fontFamily || 'Arial, sans-serif'}
               onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
               className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -164,9 +165,9 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
             {/* Font Size */}
             <select
+              value={(editor.getAttributes('textStyle').fontSize || '11pt').replace('pt', '')}
               onChange={(e) => editor.chain().focus().setFontSize(`${e.target.value}pt`).run()}
               className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              defaultValue="11"
             >
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -297,12 +298,18 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
             {/* Headings */}
             <select
+              value={
+                editor.isActive('heading', { level: 1 }) ? '1' :
+                editor.isActive('heading', { level: 2 }) ? '2' :
+                editor.isActive('heading', { level: 3 }) ? '3' :
+                editor.isActive('heading', { level: 4 }) ? '4' : '0'
+              }
               onChange={(e) => {
                 const level = parseInt(e.target.value)
                 if (level === 0) {
                   editor.chain().focus().setParagraph().run()
                 } else {
-                  editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 | 4 }).run()
+                  editor.chain().focus().setHeading({ level: level as 1 | 2 | 3 | 4 }).run()
                 }
               }}
               className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
