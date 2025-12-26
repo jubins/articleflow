@@ -15,6 +15,9 @@ const nextConfig = {
       'marked',
       'marked-gfm-heading-id',
       'marked-mangle',
+      'react-markdown',
+      'remark-gfm',
+      'rehype-raw',
     ],
   },
   // Ensure middleware runs on Edge Runtime without Node.js dependencies
@@ -29,7 +32,10 @@ const nextConfig = {
         'html2canvas',
         'marked',
         'marked-gfm-heading-id',
-        'marked-mangle'
+        'marked-mangle',
+        'react-markdown',
+        'remark-gfm',
+        'rehype-raw'
       );
     }
     return config;
