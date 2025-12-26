@@ -8,8 +8,18 @@ import { Card, CardContent } from '@/components/ui/Card'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+const ARTICLE_TYPES = [
+  { value: 'tutorial', label: 'Tutorial / How-To', free: true },
+  { value: 'comparison', label: 'Comparison / Review', free: true },
+  { value: 'case-study', label: 'Case Study', free: true },
+  { value: 'technical', label: 'Technical Article', free: false },
+  { value: 'best-practices', label: 'Best Practices', free: false },
+  { value: 'carousel', label: 'LinkedIn Carousel', free: false },
+]
+
 export default function LandingPage() {
   const [prompt, setPrompt] = useState('')
+  const [articleType, setArticleType] = useState('tutorial')
   const [generating, setGenerating] = useState(false)
   const [generatedArticle, setGeneratedArticle] = useState<{
     title: string
@@ -31,7 +41,7 @@ export default function LandingPage() {
       const response = await fetch('/api/trial/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, articleType }),
       })
 
       if (!response.ok) {
@@ -109,6 +119,34 @@ export default function LandingPage() {
 
             {!generatedArticle ? (
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Article Type
+                  </label>
+                  <select
+                    value={articleType}
+                    onChange={(e) => {
+                      const selectedType = ARTICLE_TYPES.find(t => t.value === e.target.value)
+                      if (selectedType?.free) {
+                        setArticleType(e.target.value)
+                      }
+                    }}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={generating}
+                  >
+                    {ARTICLE_TYPES.map((type) => (
+                      <option
+                        key={type.value}
+                        value={type.value}
+                        disabled={!type.free}
+                        className={!type.free ? 'text-gray-400' : ''}
+                      >
+                        {type.label} {!type.free ? '(Sign up required)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     What would you like to write about?

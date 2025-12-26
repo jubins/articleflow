@@ -268,7 +268,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   ))}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span>Platform: {article.platform}</span>
+                  <span>Type: {article.article_type || 'technical'}</span>
                   <span>•</span>
                   <span>{article.word_count} words</span>
                   <span>•</span>

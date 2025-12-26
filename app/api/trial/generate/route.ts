@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 // We absorb the cost as a free trial for users
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json()
+    const { prompt, articleType = 'tutorial' } = await request.json()
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -14,22 +14,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Only allow free article types for trial
+    const freeTypes = ['tutorial', 'comparison', 'case-study']
+    if (!freeTypes.includes(articleType)) {
+      return NextResponse.json(
+        { error: 'This article type requires a subscription. Please sign up.' },
+        { status: 403 }
+      )
+    }
+
     // Use environment variable for trial generations
     const apiKey = process.env.TRIAL_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY
 
-    if (!apiKey) {
+    if (!apiKey || apiKey.includes('your-key-here') || !apiKey.startsWith('sk-ant-')) {
       return NextResponse.json(
         { error: 'Trial service not configured. Please contact support.' },
-        { status: 500 }
+        { status: 503 }
       )
     }
 
     const client = new Anthropic({ apiKey })
 
     // Generate a shorter article for trial (saves cost)
+    const typeInstructions = {
+      tutorial: 'Create a step-by-step tutorial with clear instructions and examples.',
+      comparison: 'Create a comparison article with analysis tables comparing different options.',
+      'case-study': 'Create a case study with a real-world scenario, implementation details, and results.',
+    }
+
     const systemPrompt = `You are an expert technical writer. Generate a well-structured, informative article based on the user's prompt.
 
 Guidelines:
+- Article type: ${articleType}
+- ${typeInstructions[articleType as keyof typeof typeInstructions] || ''}
 - Make it approximately 800-1200 words
 - Use proper markdown formatting
 - Include code examples where relevant
