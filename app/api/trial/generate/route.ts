@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // This endpoint uses OUR API key to generate a trial article
 // We absorb the cost as a free trial for users
@@ -23,17 +23,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use environment variable for trial generations
-    const apiKey = process.env.TRIAL_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY
+    // Use Google AI API key from environment for trial generations
+    const apiKey = process.env.GOOGLE_AI_API_KEY
 
-    if (!apiKey || apiKey.includes('your-key-here') || !apiKey.startsWith('sk-ant-')) {
+    if (!apiKey || apiKey.includes('your-key-here') || apiKey.length < 20) {
       return NextResponse.json(
         { error: 'Trial service not configured. Please contact support.' },
         { status: 503 }
       )
     }
 
-    const client = new Anthropic({ apiKey })
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     // Generate a shorter article for trial (saves cost)
     const typeInstructions = {
@@ -61,34 +62,20 @@ Return ONLY a JSON object with this structure:
 
 Do not include any text before or after the JSON.`
 
-    const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    })
-
-    const content = response.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response format from AI')
-    }
+    const result = await model.generateContent([systemPrompt, prompt])
+    const responseText = result.response.text()
 
     // Parse the JSON response
     let articleData
     try {
       // Extract JSON from the response (in case there's extra text)
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/)
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         throw new Error('No JSON found in response')
       }
       articleData = JSON.parse(jsonMatch[0])
     } catch {
-      console.error('Failed to parse AI response:', content.text)
+      console.error('Failed to parse AI response:', responseText)
       throw new Error('Failed to parse article data from AI response')
     }
 
