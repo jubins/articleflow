@@ -5,12 +5,6 @@ export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
-    // Allow public routes to pass through without checks
-    // This prevents issues if middleware accidentally runs on excluded routes
-    if (pathname === '/' || pathname === '/pricing') {
-      return NextResponse.next()
-    }
-
     // Check for required environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -100,15 +94,25 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all routes EXCEPT:
-     * - api routes (handled separately)
-     * - static files (_next/static)
-     * - image optimization (_next/image)
-     * - favicon, images, etc
-     * - public routes (/, /pricing)
+     * Match protected routes only:
+     * - /dashboard, /generate, /history, /settings (protected routes)
+     * - /login, /signup (auth routes for redirects)
+     * - /integrations, /profile, /articles (other app routes)
      *
-     * Then filter in code to only process auth/protected routes
+     * EXCLUDE:
+     * - / (home page) and /pricing (public pages)
+     * - /api/* (API routes)
+     * - /_next/* (Next.js internals)
+     * - Static files (images, favicon, etc)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/dashboard/:path*',
+    '/generate/:path*',
+    '/history/:path*',
+    '/settings/:path*',
+    '/login',
+    '/signup',
+    '/integrations/:path*',
+    '/profile/:path*',
+    '/articles/:path*',
   ],
 }
