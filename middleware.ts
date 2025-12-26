@@ -2,6 +2,14 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Allow public routes to pass through without checks
+  // This prevents issues if middleware accidentally runs on excluded routes
+  if (pathname === '/' || pathname === '/pricing') {
+    return NextResponse.next()
+  }
+
   // Check for required environment variables
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -11,9 +19,15 @@ export async function middleware(request: NextRequest) {
     console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING')
     console.error('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:', supabaseKey ? 'SET' : 'MISSING')
 
-    // Redirect to a configuration error page or show a message
-    // For now, we'll just block access to protected routes
-    return NextResponse.redirect(new URL('/login', request.url))
+    // Only redirect to login if we're on a protected route
+    // Avoid redirecting login/signup to prevent loops
+    if (!pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // For login/signup pages, let them through even without env vars
+    // The page will handle showing appropriate errors
+    return NextResponse.next()
   }
 
   let response = NextResponse.next({
