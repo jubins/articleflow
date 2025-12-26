@@ -177,9 +177,6 @@ export default function LandingPage() {
                   {generating ? 'Generating Your Article...' : 'Generate Free Article'}
                 </Button>
 
-                <p className="text-xs text-gray-500 text-center">
-                  This will use our API credits. Sign up to use your own API key.
-                </p>
               </div>
             ) : (
               <div className="space-y-6">
