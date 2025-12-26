@@ -6,13 +6,31 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: undefined,
     },
-    serverComponentsExternalPackages: ['sharp', 'docx', 'googleapis', 'mermaid', 'html2canvas'],
+    serverComponentsExternalPackages: [
+      'sharp',
+      'docx',
+      'googleapis',
+      'mermaid',
+      'html2canvas',
+      'marked',
+      'marked-gfm-heading-id',
+      'marked-mangle',
+    ],
   },
   // Ensure middleware runs on Edge Runtime without Node.js dependencies
   webpack: (config, { isServer, nextRuntime }) => {
     if (isServer && nextRuntime === 'edge') {
       config.externals = config.externals || [];
-      config.externals.push('sharp', 'docx', 'googleapis', 'mermaid', 'html2canvas');
+      config.externals.push(
+        'sharp',
+        'docx',
+        'googleapis',
+        'mermaid',
+        'html2canvas',
+        'marked',
+        'marked-gfm-heading-id',
+        'marked-mangle'
+      );
     }
     return config;
   },
