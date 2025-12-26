@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { GoogleSheetsService } from '@/lib/services/google-sheets'
 import { z } from 'zod'
 
+// Force Node.js runtime for googleapis compatibility
+export const runtime = 'nodejs'
+
 // Request validation schema
 const syncRequestSchema = z.object({
   spreadsheetId: z.string().optional(), // Optional, will use user settings if not provided

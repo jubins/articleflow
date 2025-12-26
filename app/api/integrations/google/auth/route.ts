@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
 
+// Force Node.js runtime for googleapis compatibility
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**

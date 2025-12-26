@@ -4,6 +4,9 @@ import { GoogleDocsService } from '@/lib/services/google-docs'
 import { Article } from '@/lib/types/database'
 import { z } from 'zod'
 
+// Force Node.js runtime for googleapis compatibility
+export const runtime = 'nodejs'
+
 // Request validation schema
 const createDocRequestSchema = z.object({
   articleId: z.string().uuid(),

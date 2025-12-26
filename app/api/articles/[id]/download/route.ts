@@ -4,6 +4,9 @@ import { Article } from '@/lib/types/database'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } from 'docx'
 import { R2StorageService } from '@/lib/services/r2-storage'
 
+// Force Node.js runtime for docx package compatibility
+export const runtime = 'nodejs'
+
 interface MermaidDiagram {
   code: string
   index: number

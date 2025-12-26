@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 
+// Force Node.js runtime for sharp compatibility
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   try {
     const { svg } = await request.json()

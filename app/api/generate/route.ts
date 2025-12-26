@@ -6,6 +6,8 @@ import { markdownToHtml } from '@/lib/utils/markdown'
 // import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
 import { z } from 'zod'
 
+// Force Node.js runtime for googleapis compatibility
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // Request validation schema
