@@ -8,8 +8,18 @@ import { Card, CardContent } from '@/components/ui/Card'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+const ARTICLE_TYPES = [
+  { value: 'tutorial', label: 'Tutorial / How-To', free: true },
+  { value: 'comparison', label: 'Comparison / Review', free: true },
+  { value: 'case-study', label: 'Case Study', free: true },
+  { value: 'technical', label: 'Technical Article', free: false },
+  { value: 'best-practices', label: 'Best Practices', free: false },
+  { value: 'carousel', label: 'LinkedIn Carousel', free: false },
+]
+
 export default function LandingPage() {
   const [prompt, setPrompt] = useState('')
+  const [articleType, setArticleType] = useState('tutorial')
   const [generating, setGenerating] = useState(false)
   const [generatedArticle, setGeneratedArticle] = useState<{
     title: string
@@ -31,7 +41,7 @@ export default function LandingPage() {
       const response = await fetch('/api/trial/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, articleType }),
       })
 
       if (!response.ok) {
@@ -42,6 +52,14 @@ export default function LandingPage() {
       const data = await response.json()
       setGeneratedArticle(data)
       setShowSignupPrompt(true)
+
+      // Save to localStorage so it persists after signup
+      localStorage.setItem('trialArticle', JSON.stringify({
+        title: data.title,
+        content: data.content,
+        articleType,
+        timestamp: new Date().toISOString()
+      }))
     } catch (err) {
       console.error('Generation error:', err)
       setError(err instanceof Error ? err.message : 'Failed to generate article')
@@ -111,6 +129,34 @@ export default function LandingPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Article Type
+                  </label>
+                  <select
+                    value={articleType}
+                    onChange={(e) => {
+                      const selectedType = ARTICLE_TYPES.find(t => t.value === e.target.value)
+                      if (selectedType?.free) {
+                        setArticleType(e.target.value)
+                      }
+                    }}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={generating}
+                  >
+                    {ARTICLE_TYPES.map((type) => (
+                      <option
+                        key={type.value}
+                        value={type.value}
+                        disabled={!type.free}
+                        className={!type.free ? 'text-gray-400' : ''}
+                      >
+                        {type.label} {!type.free ? '(Sign up required)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     What would you like to write about?
                   </label>
                   <textarea
@@ -139,9 +185,6 @@ export default function LandingPage() {
                   {generating ? 'Generating Your Article...' : 'Generate Free Article'}
                 </Button>
 
-                <p className="text-xs text-gray-500 text-center">
-                  This will use our API credits. Sign up to use your own API key.
-                </p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -349,17 +392,16 @@ export default function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Resources</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white">Documentation</a></li>
-                <li><a href="#" className="hover:text-white">API Reference</a></li>
-                <li><a href="#" className="hover:text-white">Guides</a></li>
+                <li><Link href="/docs" className="hover:text-white">Documentation</Link></li>
+                <li><Link href="/guides" className="hover:text-white">Guides</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-white font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white">Terms of Service</a></li>
+                <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
               </ul>
             </div>
           </div>

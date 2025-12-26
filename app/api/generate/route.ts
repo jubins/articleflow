@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the appropriate API key based on provider
-    const apiKey = validatedData.aiProvider === 'claude'
+    // For free tier users, fall back to environment API keys if user hasn't set their own
+    const userApiKey = validatedData.aiProvider === 'claude'
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore - Supabase type inference issue with settings
       ? settings.anthropic_api_key
@@ -62,9 +63,16 @@ export async function POST(request: NextRequest) {
       // @ts-ignore - Supabase type inference issue with settings
       : settings.google_ai_api_key
 
+    const envApiKey = validatedData.aiProvider === 'claude'
+      ? process.env.ANTHROPIC_API_KEY
+      : process.env.GOOGLE_AI_API_KEY
+
+    // Use user's API key if available, otherwise fall back to environment key (free tier)
+    const apiKey = userApiKey || envApiKey
+
     if (!apiKey) {
       return NextResponse.json(
-        { error: `${validatedData.aiProvider === 'claude' ? 'Claude' : 'Gemini'} API key not configured. Please add it in Settings.` },
+        { error: `${validatedData.aiProvider === 'claude' ? 'Claude' : 'Gemini'} API key not configured. Please add your API key in Settings or upgrade to use our credits.` },
         { status: 400 }
       )
     }
