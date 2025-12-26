@@ -1,4 +1,3 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -10,6 +9,10 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/' || pathname === '/pricing') {
       return NextResponse.next()
     }
+
+    // Lazy import Supabase only for protected routes to avoid Edge Runtime issues
+    // This prevents @supabase/ssr from executing at module level
+    const { createServerClient } = await import('@supabase/ssr')
 
     // Check for required environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
