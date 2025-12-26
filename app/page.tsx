@@ -1,6 +1,7 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
+// Use nodejs runtime to avoid __dirname errors with local fonts
+export const runtime = 'nodejs'
 
 import { useState } from 'react'
 import Link from 'next/link'
