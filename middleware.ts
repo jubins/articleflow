@@ -5,6 +5,12 @@ export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname
 
+    // CRITICAL: Allow public routes to pass through immediately
+    // This prevents any middleware logic from running on these routes
+    if (pathname === '/' || pathname === '/pricing') {
+      return NextResponse.next()
+    }
+
     // Check for required environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -94,25 +100,13 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match protected routes only:
-     * - /dashboard, /generate, /history, /settings (protected routes)
-     * - /login, /signup (auth routes for redirects)
-     * - /integrations, /profile, /articles (other app routes)
+     * Match all routes except:
+     * - API routes (/api/*)
+     * - Static files (_next/static, _next/image)
+     * - Public assets (favicon, images, etc)
      *
-     * EXCLUDE:
-     * - / (home page) and /pricing (public pages)
-     * - /api/* (API routes)
-     * - /_next/* (Next.js internals)
-     * - Static files (images, favicon, etc)
+     * Public routes (/, /pricing) are handled via early return in middleware
      */
-    '/dashboard/:path*',
-    '/generate/:path*',
-    '/history/:path*',
-    '/settings/:path*',
-    '/login',
-    '/signup',
-    '/integrations/:path*',
-    '/profile/:path*',
-    '/articles/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
