@@ -86,23 +86,15 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match only protected routes and auth routes:
-     * - /dashboard/*
-     * - /generate/*
-     * - /articles/*
-     * - /profile/*
-     * - /integrations/*
-     * - /settings/*
-     * - /login
-     * - /signup
+     * Match all routes EXCEPT:
+     * - api routes (handled separately)
+     * - static files (_next/static)
+     * - image optimization (_next/image)
+     * - favicon, images, etc
+     * - public routes (/, /pricing)
+     *
+     * Then filter in code to only process auth/protected routes
      */
-    '/dashboard/:path*',
-    '/generate/:path*',
-    '/articles/:path*',
-    '/profile/:path*',
-    '/integrations/:path*',
-    '/settings/:path*',
-    '/login',
-    '/signup',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
