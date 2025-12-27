@@ -574,31 +574,31 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-10" data-slide-content>
+    <div className="h-full flex flex-col p-8" data-slide-content>
       {/* Content area with constrained height */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="h-full overflow-hidden">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-[1.75rem] leading-tight font-bold ${theme.textColor} mb-4 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
+                <h2 className={`text-[1.65rem] leading-tight font-bold ${theme.textColor} mb-3 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-[1.35rem] leading-snug font-semibold ${theme.textColor} mb-3 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
+                <h3 className={`text-[1.25rem] leading-snug font-semibold ${theme.textColor} mb-2 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-[1.05rem] leading-relaxed ${theme.textColor} mb-3`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.6' }}>{children}</p>
+                <p className={`text-[1rem] leading-relaxed ${theme.textColor} mb-2`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.5' }}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-[1.05rem] ${theme.textColor} space-y-2 mb-4 list-disc pl-6`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
+                <ul className={`text-[1rem] ${theme.textColor} space-y-1.5 mb-3 list-disc pl-6`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
-                <li className="leading-relaxed" style={{ lineHeight: '1.6' }}>{children}</li>
+                <li className="leading-relaxed" style={{ lineHeight: '1.5' }}>{children}</li>
               ),
               table: ({ children }: { children?: ReactNode }) => (
-                <div className="my-4 overflow-x-auto">
+                <div className="my-3 overflow-x-auto">
                   <table
                     className="w-full border-collapse"
                     style={{
@@ -621,7 +621,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
               ),
               th: ({ children }: { children?: ReactNode }) => (
                 <th
-                  className={`px-4 py-2 text-left text-[0.95rem] font-semibold ${theme.textColor}`}
+                  className={`px-3 py-1.5 text-left text-[0.9rem] font-semibold ${theme.textColor}`}
                   style={{
                     letterSpacing: '0.01em',
                     wordSpacing: '0.05em',
@@ -633,7 +633,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
               ),
               td: ({ children }: { children?: ReactNode }) => (
                 <td
-                  className={`px-4 py-2 text-[0.95rem] ${theme.textColor}`}
+                  className={`px-3 py-1.5 text-[0.9rem] ${theme.textColor}`}
                   style={{
                     letterSpacing: '0.01em',
                     wordSpacing: '0.05em',
@@ -675,31 +675,31 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
 
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
-                      // Inject white background and constrain SVG size to prevent cutoff
+                      // Inject white background and constrain SVG size to fit within slide bounds
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 85%; max-height: 280px; height: auto; width: auto; background: white; padding: 12px; border-radius: 8px; display: block; margin: 0 auto;"'
+                        '<svg style="max-width: 75%; max-height: 220px; height: auto; width: auto; background: white; padding: 10px; border-radius: 6px; display: block; margin: 0 auto;"'
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-3"
-                          style={{ maxHeight: '300px', minHeight: '200px' }}
+                          className="flex justify-center items-center my-2"
+                          style={{ maxHeight: '240px' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For other light themes, just constrain size to prevent cutoff
+                    // For other light themes, just constrain size to fit within slide bounds
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 85%; max-height: 280px; height: auto; width: auto; display: block; margin: 0 auto;"'
+                      '<svg style="max-width: 75%; max-height: 220px; height: auto; width: auto; display: block; margin: 0 auto;"'
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-3"
-                        style={{ maxHeight: '300px', minHeight: '200px' }}
+                        className="flex justify-center items-center my-2"
+                        style={{ maxHeight: '240px' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
