@@ -206,7 +206,7 @@ export default function DocsPage() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">LinkedIn Carousel</h3>
                 <p className="text-gray-700">
-                  Engaging 4-5 slide carousel starting with basics and ending with advanced insights
+                  Engaging 4-10 slide carousel starting with basics and ending with advanced insights
                 </p>
               </div>
             </div>
