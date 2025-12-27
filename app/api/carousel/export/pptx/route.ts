@@ -126,41 +126,70 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
           try {
             const diagramCode = matches[diagramIndex][1]
 
-            console.log(`Rendering diagram ${diagramIndex + 1} for slide ${slideIndex + 1} server-side...`)
-
-            // Render Mermaid diagram to SVG server-side
-            const { svg } = await mermaid.render(
-              `pptx-diagram-${slideIndex}-${diagramIndex}`,
-              diagramCode,
-              {
-                fontFamily: 'Arial, sans-serif',
-              }
-            )
-
-            // Convert SVG string to buffer
-            const svgBuffer = Buffer.from(svg, 'utf-8')
-
-            // Convert SVG to WebP using sharp with proper density for quality
-            const webpBuffer = await sharp(svgBuffer, {
-              density: 150 // Higher DPI for better quality
-            })
-              .webp({ quality: 90 })
-              .toBuffer()
-
-            // Generate unique filename
+            // Generate hash and expected R2 URL
             const hash = crypto.createHash('md5').update(diagramCode).digest('hex').substring(0, 8)
-            const fileName = `carousel-diagram-slide${slideIndex + 1}-${diagramIndex + 1}-${hash}.webp`
+            const fileName = `carousel-diagram-${slideIndex}-${hash}.webp`
 
-            // Upload to R2
-            const uploadResult = await r2Service.upload({
-              buffer: webpBuffer,
-              contentType: 'image/webp',
-              fileName,
-              folder: `articles/${articleId}/diagrams`,
-            })
+            // Construct expected R2 URL
+            const r2AccountId = process.env.R2_ACCOUNT_ID
+            const expectedUrl = `https://pub-${r2AccountId}.r2.dev/articles/${articleId}/diagrams/${fileName}`
 
-            console.log(`Uploaded diagram to R2: ${uploadResult.url}`)
-            urls.push(uploadResult.url)
+            console.log(`Checking if diagram already exists in R2: ${expectedUrl}`)
+
+            // Try to fetch existing diagram from R2
+            let diagramUrl = expectedUrl
+            let shouldUpload = false
+
+            try {
+              const headResponse = await fetch(expectedUrl, { method: 'HEAD' })
+              if (headResponse.ok) {
+                console.log(`✓ Diagram ${diagramIndex + 1} for slide ${slideIndex + 1} already exists in R2, reusing it`)
+                diagramUrl = expectedUrl
+              } else {
+                console.log(`✗ Diagram not found in R2 (${headResponse.status}), will render and upload`)
+                shouldUpload = true
+              }
+            } catch (error) {
+              console.log('✗ Error checking R2, will render and upload:', error)
+              shouldUpload = true
+            }
+
+            // If diagram doesn't exist in R2, render and upload it
+            if (shouldUpload) {
+              console.log(`Rendering diagram ${diagramIndex + 1} for slide ${slideIndex + 1} server-side...`)
+
+              // Render Mermaid diagram to SVG server-side
+              const { svg } = await mermaid.render(
+                `pptx-diagram-${slideIndex}-${diagramIndex}`,
+                diagramCode,
+                {
+                  fontFamily: 'Arial, sans-serif',
+                }
+              )
+
+              // Convert SVG string to buffer
+              const svgBuffer = Buffer.from(svg, 'utf-8')
+
+              // Convert SVG to WebP using sharp with proper density for quality
+              const webpBuffer = await sharp(svgBuffer, {
+                density: 150 // Higher DPI for better quality
+              })
+                .webp({ quality: 90 })
+                .toBuffer()
+
+              // Upload to R2
+              const uploadResult = await r2Service.upload({
+                buffer: webpBuffer,
+                contentType: 'image/webp',
+                fileName,
+                folder: `articles/${articleId}/diagrams`,
+              })
+
+              console.log(`Uploaded new diagram to R2: ${uploadResult.url}`)
+              diagramUrl = uploadResult.url
+            }
+
+            urls.push(diagramUrl)
           } catch (error) {
             console.error(`Failed to process diagram ${diagramIndex + 1} for slide ${slideIndex + 1}:`, error)
           }

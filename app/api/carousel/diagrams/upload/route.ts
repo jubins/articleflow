@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, slideIndex, articleId } = await request.json()
+    const { svg, slideIndex, articleId, mermaidCode } = await request.json()
 
     if (!svg) {
       return NextResponse.json(
@@ -73,9 +73,13 @@ export async function POST(request: NextRequest) {
     // Upload to R2
     const r2Service = new R2StorageService()
 
-    // Generate unique filename
-    const hash = crypto.createHash('md5').update(cleanSvg).digest('hex').substring(0, 8)
+    // Generate unique filename using mermaidCode if available, otherwise use SVG
+    // This ensures consistent naming with PPTX export
+    const hashSource = mermaidCode || cleanSvg
+    const hash = crypto.createHash('md5').update(hashSource).digest('hex').substring(0, 8)
     const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.webp`
+
+    console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using SVG hash)'}`)
 
     const uploadResult = await r2Service.upload({
       buffer: webpBuffer,
