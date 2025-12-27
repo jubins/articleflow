@@ -126,23 +126,24 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
           try {
             const diagramCode = matches[diagramIndex][1]
 
-            // Render Mermaid diagram to SVG using mermaid.ink API
-            const mermaidInkUrl = `https://mermaid.ink/img/${Buffer.from(diagramCode).toString('base64')}`
+            console.log(`Rendering diagram ${diagramIndex + 1} for slide ${slideIndex + 1} server-side...`)
 
-            console.log(`Fetching diagram ${diagramIndex + 1} for slide ${slideIndex + 1} from mermaid.ink...`)
+            // Render Mermaid diagram to SVG server-side
+            const { svg } = await mermaid.render(
+              `pptx-diagram-${slideIndex}-${diagramIndex}`,
+              diagramCode,
+              {
+                fontFamily: 'Arial, sans-serif',
+              }
+            )
 
-            // Fetch and convert to WebP
-            const response = await fetch(mermaidInkUrl)
-            if (!response.ok) {
-              console.error(`Failed to fetch diagram from mermaid.ink: ${response.statusText}`)
-              continue
-            }
+            // Convert SVG string to buffer
+            const svgBuffer = Buffer.from(svg, 'utf-8')
 
-            const arrayBuffer = await response.arrayBuffer()
-            const buffer = Buffer.from(arrayBuffer)
-
-            // Convert to WebP for better quality and smaller size
-            const webpBuffer = await sharp(buffer)
+            // Convert SVG to WebP using sharp with proper density for quality
+            const webpBuffer = await sharp(svgBuffer, {
+              density: 150 // Higher DPI for better quality
+            })
               .webp({ quality: 90 })
               .toBuffer()
 

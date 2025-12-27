@@ -233,42 +233,115 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId }: Ca
   }, [nextSlide, prevSlide])
 
   // Helper function to inline all computed styles for SVG elements
-  const inlineSvgStyles = (svg: SVGElement): SVGElement => {
+  const inlineSvgStyles = (svg: SVGElement): { svg: SVGElement; hasContent: boolean } => {
     const clone = svg.cloneNode(true) as SVGElement
 
-    // Get all elements in the SVG
-    const allElements = clone.querySelectorAll('*')
+    // Check if SVG has any text content
+    const textElements = clone.querySelectorAll('text, tspan')
+    const hasTextContent = Array.from(textElements).some(el => el.textContent?.trim())
 
-    // Inline computed styles for all elements
+    if (!hasTextContent) {
+      console.warn('SVG has no text content - may be incomplete')
+      return { svg: clone, hasContent: false }
+    }
+
+    // Process all style tags and apply inline
+    const styleTags = clone.querySelectorAll('style')
+    const cssRules: { selector: string; rules: string }[] = []
+
+    styleTags.forEach(styleTag => {
+      const cssText = styleTag.textContent || ''
+      // Parse CSS rules (basic parser for simple selectors)
+      const ruleMatches = cssText.matchAll(/([^{]+)\{([^}]+)\}/g)
+      for (const match of ruleMatches) {
+        const selector = match[1].trim()
+        const rules = match[2].trim()
+        cssRules.push({ selector, rules })
+      }
+    })
+
+    // Get all elements and inline their computed styles
+    const allElements = clone.querySelectorAll('*')
     const sourceElements = svg.querySelectorAll('*')
+
     allElements.forEach((element, index) => {
       const sourceElement = sourceElements[index]
-      if (sourceElement) {
-        const computedStyle = window.getComputedStyle(sourceElement)
+      if (!sourceElement) return
 
-        // Important style properties to preserve
-        const importantStyles = [
-          'fill', 'stroke', 'stroke-width', 'font-family', 'font-size',
-          'font-weight', 'font-style', 'text-anchor', 'dominant-baseline',
-          'color', 'opacity', 'visibility', 'display'
-        ]
+      const computedStyle = window.getComputedStyle(sourceElement)
+      const tagName = element.tagName.toLowerCase()
 
-        let styleString = ''
-        importantStyles.forEach(prop => {
-          const value = computedStyle.getPropertyValue(prop)
-          if (value && value !== 'none' && value !== 'normal') {
-            styleString += `${prop}:${value};`
-          }
-        })
+      // Comprehensive list of SVG properties to preserve
+      const svgProperties = [
+        // Text properties
+        'font-family', 'font-size', 'font-weight', 'font-style',
+        'text-anchor', 'dominant-baseline', 'text-decoration',
+        'letter-spacing', 'word-spacing', 'line-height',
+        // Color and fill
+        'fill', 'stroke', 'color',
+        // Stroke properties
+        'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+        'stroke-dasharray', 'stroke-opacity',
+        // General properties
+        'opacity', 'visibility', 'display',
+        // Transform
+        'transform', 'transform-origin',
+      ]
 
-        if (styleString) {
-          (element as HTMLElement).setAttribute('style',
-            ((element as HTMLElement).getAttribute('style') || '') + styleString)
+      const styles: Record<string, string> = {}
+
+      // Get computed styles
+      svgProperties.forEach(prop => {
+        const value = computedStyle.getPropertyValue(prop)
+        if (value && value !== '' && value !== 'none' && value !== 'normal') {
+          styles[prop] = value
+        }
+      })
+
+      // Apply CSS rules that match this element
+      cssRules.forEach(({ selector, rules }) => {
+        // Simple selector matching (handles .class, #id, tag)
+        if (
+          (selector.startsWith('.') && element.classList.contains(selector.slice(1))) ||
+          (selector.startsWith('#') && element.id === selector.slice(1)) ||
+          (selector === tagName)
+        ) {
+          const rulePairs = rules.split(';').filter(r => r.trim())
+          rulePairs.forEach(pair => {
+            const [prop, value] = pair.split(':').map(s => s.trim())
+            if (prop && value) {
+              styles[prop] = value
+            }
+          })
+        }
+      })
+
+      // Build style string
+      const existingStyle = (element as HTMLElement).getAttribute('style') || ''
+      const newStyles = Object.entries(styles)
+        .map(([prop, value]) => `${prop}:${value}`)
+        .join(';')
+
+      if (newStyles) {
+        (element as HTMLElement).setAttribute('style',
+          existingStyle ? `${existingStyle};${newStyles}` : newStyles
+        )
+      }
+
+      // Ensure text elements have explicit fill color
+      if (tagName === 'text' || tagName === 'tspan') {
+        const currentStyle = (element as HTMLElement).getAttribute('style') || ''
+        if (!currentStyle.includes('fill:')) {
+          const fillColor = computedStyle.fill || computedStyle.color || '#000000'
+          ;(element as HTMLElement).setAttribute('style', `${currentStyle};fill:${fillColor}`)
         }
       }
     })
 
-    return clone
+    // Remove style tags as they're now inlined
+    styleTags.forEach(tag => tag.remove())
+
+    return { svg: clone, hasContent: true }
   }
 
   const downloadSlideAsWebP = async (index: number, showSlide = false) => {
@@ -297,7 +370,13 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId }: Ca
         const uploadPromises = Array.from(svgElements).map(async (svg, svgIndex) => {
           try {
             // Clone SVG and inline all computed styles
-            const styledSvg = inlineSvgStyles(svg)
+            const { svg: styledSvg, hasContent } = inlineSvgStyles(svg)
+
+            // Skip uploading if diagram has no content
+            if (!hasContent) {
+              console.warn(`Skipping diagram ${svgIndex + 1} - no text content found`)
+              return null
+            }
 
             // Serialize SVG to string
             const serializer = new XMLSerializer()
@@ -858,10 +937,10 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-8" data-slide-content>
+    <div className="h-full flex flex-col p-12" data-slide-content>
       {/* Content area with constrained height */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="h-full overflow-hidden">
+      <div className="flex-1 overflow-visible flex flex-col">
+        <div className="h-full overflow-visible">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
