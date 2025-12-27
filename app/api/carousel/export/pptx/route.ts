@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { content, theme, title, linkedinTeaser } = await request.json()
+    const { content, theme, title, linkedinTeaser, articleId } = await request.json()
 
     if (!content) {
       return NextResponse.json(
@@ -28,10 +28,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
+        { status: 400 }
+      )
+    }
+
     console.log('Generating PPTX for carousel...')
 
     // Step 1: Extract and upload all Mermaid diagrams to R2
-    const diagramUrls = await extractAndUploadDiagrams(content, user.id)
+    const diagramUrls = await extractAndUploadDiagrams(content, articleId)
 
     console.log(`Uploaded ${diagramUrls.size} diagrams to R2`)
 
@@ -80,7 +87,7 @@ export async function POST(request: NextRequest) {
  * Extract Mermaid diagrams from content and upload to R2
  * Returns a map of slide index to diagram URLs
  */
-async function extractAndUploadDiagrams(content: string, userId: string): Promise<Map<number, string[]>> {
+async function extractAndUploadDiagrams(content: string, articleId: string): Promise<Map<number, string[]>> {
   const diagramUrls = new Map<number, string[]>()
 
   try {
@@ -148,7 +155,7 @@ async function extractAndUploadDiagrams(content: string, userId: string): Promis
               buffer: webpBuffer,
               contentType: 'image/webp',
               fileName,
-              folder: `${userId}/carousel-diagrams`,
+              folder: `articles/${articleId}/diagrams`,
             })
 
             console.log(`Uploaded diagram to R2: ${uploadResult.url}`)

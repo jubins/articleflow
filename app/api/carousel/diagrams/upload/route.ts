@@ -17,11 +17,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, slideIndex } = await request.json()
+    const { svg, slideIndex, articleId } = await request.json()
 
     if (!svg) {
       return NextResponse.json(
         { error: 'SVG data is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
         { status: 400 }
       )
     }
@@ -74,7 +81,7 @@ export async function POST(request: NextRequest) {
       buffer: webpBuffer,
       contentType: 'image/webp',
       fileName,
-      folder: `${user.id}/carousel-diagrams`,
+      folder: `articles/${articleId}/diagrams`,
     })
 
     console.log('Uploaded diagram to R2:', uploadResult.url)

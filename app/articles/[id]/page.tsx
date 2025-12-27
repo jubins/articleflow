@@ -773,6 +773,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     content={article.content}
                     title={article.title}
                     linkedinTeaser={article.linkedin_teaser || undefined}
+                    articleId={params.id}
                   />
                 </div>
               )}

@@ -17,6 +17,7 @@ interface CarouselViewerProps {
   content: string
   title?: string
   linkedinTeaser?: string
+  articleId?: string
 }
 
 // Theme definitions
@@ -90,7 +91,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
 // Initialize mermaid once
 let isMermaidInitialized = false
 
-export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewerProps) {
+export function CarouselViewer({ content, title, linkedinTeaser, articleId }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
@@ -309,6 +310,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               body: JSON.stringify({
                 svg: svgString,
                 slideIndex: index,
+                articleId,
               }),
             })
 
@@ -403,10 +405,13 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 
       // Step 3: Get the element's actual dimensions for consistent capture
       const rect = slideElement.getBoundingClientRect()
-      const targetWidth = 1280 // Standard width for 16:9 carousel slides
-      const targetHeight = 720 // Standard height for 16:9 carousel slides (1280 / 16 * 9)
 
-      // Step 4: Capture slide with html2canvas using consistent dimensions
+      // Use the actual rendered dimensions of the slide element
+      // This ensures we capture exactly what's visible without excess whitespace
+      const targetWidth = Math.round(rect.width)
+      const targetHeight = Math.round(rect.height)
+
+      // Step 4: Capture slide with html2canvas using actual dimensions
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
         scale: 3, // Higher scale for better quality (3x native resolution)
@@ -415,20 +420,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         allowTaint: true,
         width: targetWidth,
         height: targetHeight,
-        windowWidth: targetWidth,
-        windowHeight: targetHeight,
         onclone: (clonedDoc) => {
-          // Find the cloned slide element
-          const clonedSlide = clonedDoc.querySelector('[data-slide-content]')?.parentElement as HTMLElement
-          if (clonedSlide) {
-            // Force consistent dimensions on the cloned slide
-            clonedSlide.style.width = `${targetWidth}px`
-            clonedSlide.style.height = `${targetHeight}px`
-            clonedSlide.style.maxWidth = `${targetWidth}px`
-            clonedSlide.style.minWidth = `${targetWidth}px`
-            clonedSlide.style.minHeight = `${targetHeight}px`
-          }
-
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
           if (clonedElement) {
@@ -556,6 +548,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
           theme: selectedTheme,
           title: title || 'LinkedIn Carousel',
           linkedinTeaser: displayTeaser,
+          articleId,
         }),
       })
 
