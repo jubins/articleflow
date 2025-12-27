@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { R2StorageService } from '@/lib/services/r2-storage'
 import sharp from 'sharp'
 import crypto from 'crypto'
+import { saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +18,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, slideIndex } = await request.json()
+    const { svg, slideIndex, articleId, mermaidCode } = await request.json()
 
     if (!svg) {
       return NextResponse.json(
         { error: 'SVG data is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
         { status: 400 }
       )
     }
@@ -66,18 +74,34 @@ export async function POST(request: NextRequest) {
     // Upload to R2
     const r2Service = new R2StorageService()
 
-    // Generate unique filename
-    const hash = crypto.createHash('md5').update(cleanSvg).digest('hex').substring(0, 8)
+    // Generate unique filename using mermaidCode if available, otherwise use SVG
+    // This ensures consistent naming with PPTX export
+    const hashSource = mermaidCode || cleanSvg
+    const hash = crypto.createHash('md5').update(hashSource).digest('hex').substring(0, 8)
     const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.webp`
+
+    console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using SVG hash)'}`)
 
     const uploadResult = await r2Service.upload({
       buffer: webpBuffer,
       contentType: 'image/webp',
       fileName,
-      folder: `${user.id}/carousel-diagrams`,
+      folder: `articles/${articleId}/diagrams`,
     })
 
     console.log('Uploaded diagram to R2:', uploadResult.url)
+
+    // Save diagram URL to cache if mermaidCode is provided
+    if (mermaidCode) {
+      const cached = await saveDiagramToCache(articleId, mermaidCode, uploadResult.url)
+      if (cached) {
+        console.log('✓ Diagram URL saved to articles.diagram_images cache')
+      } else {
+        console.warn('⚠ Failed to save diagram URL to cache, but upload succeeded')
+      }
+    } else {
+      console.log('ℹ No mermaid code provided, skipping cache save')
+    }
 
     return NextResponse.json({
       success: true,
