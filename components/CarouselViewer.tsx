@@ -58,27 +58,29 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     needsWhiteDiagramBg: true,
   },
   elegant: {
-    name: 'Edge Pattern',
+    name: 'Elegant Pattern',
     description: 'Wavy blue dot pattern',
     background: `
-      radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 50%, rgba(147, 197, 253, 0.08) 0%, transparent 50%),
-      radial-gradient(circle, rgba(59, 130, 246, 0.4) 1px, transparent 1px),
-      linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)
+      radial-gradient(ellipse at 10% 30%, rgba(96, 165, 250, 0.15) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 70%, rgba(147, 197, 253, 0.15) 0%, transparent 40%),
+      radial-gradient(ellipse at 30% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 35%),
+      radial-gradient(ellipse at 70% 20%, rgba(191, 219, 254, 0.12) 0%, transparent 35%),
+      radial-gradient(circle, rgba(59, 130, 246, 0.35) 1.5px, transparent 1.5px),
+      linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)
     `,
-    className: 'bg-gradient-to-br from-blue-50 to-blue-100',
+    className: 'bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200',
     textColor: 'text-gray-900',
     isDark: false,
     needsWhiteDiagramBg: true,
   },
   professional: {
     name: 'Professional Dark',
-    description: 'Dark gradient with pattern',
+    description: 'Deep dark gradient',
     background: `
-      radial-gradient(circle, rgba(139, 92, 246, 0.15) 1px, transparent 1px),
-      linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #1e293b 75%, #0f172a 100%)
+      radial-gradient(circle, rgba(100, 80, 200, 0.12) 1px, transparent 1px),
+      linear-gradient(135deg, #0a0a1a 0%, #0f0f23 25%, #0c1220 75%, #020617 100%)
     `,
-    className: 'bg-gradient-to-br from-indigo-950 via-violet-900 to-slate-900',
+    className: 'bg-gradient-to-br from-gray-950 via-slate-950 to-black',
     textColor: 'text-white',
     isDark: true,
   },
@@ -573,6 +575,28 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
               li: ({ children }: { children?: ReactNode }) => (
                 <li className="leading-relaxed">{children}</li>
               ),
+              table: ({ children }: { children?: ReactNode }) => (
+                <div className="my-5 overflow-x-auto">
+                  <table className={`min-w-full border-collapse ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}>
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }: { children?: ReactNode }) => (
+                <thead className={`${theme.isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>{children}</thead>
+              ),
+              tbody: ({ children }: { children?: ReactNode }) => (
+                <tbody>{children}</tbody>
+              ),
+              tr: ({ children }: { children?: ReactNode }) => (
+                <tr className={`border-b ${theme.isDark ? 'border-gray-700' : 'border-gray-200'}`}>{children}</tr>
+              ),
+              th: ({ children }: { children?: ReactNode }) => (
+                <th className={`px-4 py-3 text-left text-base font-semibold ${theme.textColor}`}>{children}</th>
+              ),
+              td: ({ children }: { children?: ReactNode }) => (
+                <td className={`px-4 py-3 text-base ${theme.textColor}`}>{children}</td>
+              ),
               code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
                 const match = /language-(\w+)/.exec(className || '')
                 const code = String(children).replace(/\n$/, '')
@@ -608,13 +632,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                       // Inject white background and constrain SVG size
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto; background: white; padding: 18px; border-radius: 8px;"'
+                        '<svg style="max-width: 100%; max-height: 480px; height: auto; width: auto; background: white; padding: 20px; border-radius: 8px;"'
                       )
 
                       return (
                         <div
                           className="flex justify-center items-center my-5"
-                          style={{ maxHeight: '420px', overflow: 'visible' }}
+                          style={{ maxHeight: '520px', overflow: 'visible' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
@@ -623,13 +647,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     // For other light themes, just constrain size
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto;"'
+                      '<svg style="max-width: 100%; max-height: 480px; height: auto; width: auto;"'
                     )
 
                     return (
                       <div
                         className="flex justify-center items-center my-5"
-                        style={{ maxHeight: '420px', overflow: 'visible' }}
+                        style={{ maxHeight: '520px', overflow: 'visible' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
