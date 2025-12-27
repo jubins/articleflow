@@ -20,6 +20,7 @@ import { Mermaid } from '@/components/Mermaid'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
+import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
 import TurndownService from 'turndown'
 
 interface Profile {
@@ -48,17 +49,30 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
+  const [displayContent, setDisplayContent] = useState('')
 
   useEffect(() => {
     loadArticle()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
+  // Process article content to replace mermaid diagrams with cached images
+  useEffect(() => {
+    if (article) {
+      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
+      setDisplayContent(processedContent)
+    }
+  }, [article])
+
   // Convert markdown to HTML when switching to rich text tab
   useEffect(() => {
     if (activeTab === 'richtext' && article && !isEditingRichText) {
-      // Use stored rich text content if available, otherwise convert from markdown
-      setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+      // Process content to use cached diagram images
+      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
+      // Use stored rich text content if available, otherwise convert from processed markdown
+      setRichTextHtml(article.rich_text_content || markdownToHtml(processedContent))
     }
   }, [activeTab, article, isEditingRichText])
 
@@ -136,7 +150,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     try {
-      await navigator.clipboard.writeText(article.content)
+      // Copy displayContent which has cached diagram images if available
+      await navigator.clipboard.writeText(displayContent || article.content)
       toast.success('Content copied to clipboard!')
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
@@ -437,7 +452,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     const language = match ? match[1] : ''
                     const code = String(children).replace(/\n$/, '')
 
-                    // Render Mermaid diagrams
+                    // Render Mermaid diagrams (only if not replaced by cached images)
+                    // If diagram_images exist, mermaid blocks will already be replaced with images
                     if (!inline && language === 'mermaid') {
                       return (
                         <Mermaid
@@ -481,7 +497,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   },
                 }}
               >
-                {article.content}
+                {displayContent}
               </ReactMarkdown>
 
               {/* Author Signature */}
@@ -623,7 +639,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     />
                   ) : (
                     <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
-                      {article.content}
+                      {displayContent}
                     </pre>
                   )}
                 </div>
