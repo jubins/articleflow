@@ -549,8 +549,23 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
         try {
           const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
 
-          // Store SVG and create placeholder
-          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}"></div>`
+          // Parse SVG to detect orientation
+          const parser = new DOMParser()
+          const svgDoc = parser.parseFromString(svg, 'image/svg+xml')
+          const svgElement = svgDoc.querySelector('svg')
+
+          let isPortrait = false
+          if (svgElement) {
+            const viewBox = svgElement.getAttribute('viewBox')
+            if (viewBox) {
+              const [, , width, height] = viewBox.split(' ').map(Number)
+              const aspectRatio = width / height
+              isPortrait = aspectRatio < 0.9 // Portrait if height > width (aspect ratio < 1)
+            }
+          }
+
+          // Store SVG and create placeholder with orientation data
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="${isPortrait}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -664,42 +679,47 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
                   const isDark = props['data-is-dark'] === 'true'
                   const needsWhiteBg = props['data-needs-white-bg'] === 'true'
+                  const isPortrait = props['data-is-portrait'] === 'true'
 
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
+                    // Portrait diagrams: smaller size for side-by-side layout potential
+                    // Landscape diagrams: can be wider since they're centered
+                    const maxWidth = isPortrait ? '60%' : '75%'
+                    const maxHeight = isPortrait ? '280px' : '220px'
+
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
-                      // Inject white background and constrain SVG size to fit within slide bounds
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 75%; max-height: 220px; height: auto; width: auto; background: white; padding: 10px; border-radius: 6px; display: block; margin: 0 auto;"'
+                        `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; background: white; padding: 10px; border-radius: 6px; display: block; margin: 0 auto;"`
                       )
 
                       return (
                         <div
                           className="flex justify-center items-center my-2"
-                          style={{ maxHeight: '240px' }}
+                          style={{ maxHeight: isPortrait ? '300px' : '240px' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For other light themes, just constrain size to fit within slide bounds
+                    // For other light themes
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 75%; max-height: 220px; height: auto; width: auto; display: block; margin: 0 auto;"'
+                      `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; display: block; margin: 0 auto;"`
                     )
 
                     return (
                       <div
                         className="flex justify-center items-center my-2"
-                        style={{ maxHeight: '240px' }}
+                        style={{ maxHeight: isPortrait ? '300px' : '240px' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
