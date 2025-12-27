@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         // @ts-ignore
         await supabase.from('user_settings').insert({
           user_id: user.id,
-          default_ai_provider: 'claude',
+          default_ai_provider: 'gemini',
           default_word_count: 2000,
         })
       }
