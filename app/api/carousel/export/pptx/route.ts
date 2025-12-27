@@ -176,10 +176,7 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
               // Render Mermaid diagram to SVG server-side
               const { svg } = await mermaid.render(
                 `pptx-diagram-${slideIndex}-${diagramIndex}`,
-                diagramCode,
-                {
-                  fontFamily: 'Arial, sans-serif',
-                }
+                diagramCode
               )
 
               // Convert SVG string to buffer

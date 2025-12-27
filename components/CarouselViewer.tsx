@@ -254,7 +254,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId, cach
     styleTags.forEach(styleTag => {
       const cssText = styleTag.textContent || ''
       // Parse CSS rules (basic parser for simple selectors)
-      const ruleMatches = cssText.matchAll(/([^{]+)\{([^}]+)\}/g)
+      const ruleMatches = Array.from(cssText.matchAll(/([^{]+)\{([^}]+)\}/g))
       for (const match of ruleMatches) {
         const selector = match[1].trim()
         const rules = match[2].trim()
@@ -1022,7 +1022,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
     }
 
     processSlide()
-  }, [slide, slideNumber, theme])
+  }, [slide, slideNumber, theme, cachedDiagrams])
 
   if (isProcessing) {
     return (
@@ -1140,6 +1140,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
 
                     return (
                       <div className="flex justify-center items-center my-2" style={{ maxHeight: isPortrait ? '260px' : '220px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={url}
                           alt="Diagram"

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
+import { Json } from '@/lib/types/database'
 
 /**
  * Generate a unique cache key for a diagram based on its mermaid code
@@ -24,14 +25,14 @@ export async function getCachedDiagramUrl(
       .from('articles')
       .select('diagram_images')
       .eq('id', articleId)
-      .single()
+      .single<{ diagram_images: Record<string, string> | null }>()
 
     if (error || !data) {
       console.error('Error fetching cached diagrams:', error)
       return null
     }
 
-    const diagramImages = data.diagram_images as Record<string, string> | null
+    const diagramImages = data.diagram_images
     if (!diagramImages) return null
 
     const cachedUrl = diagramImages[cacheKey]
@@ -63,7 +64,7 @@ export async function saveDiagramToCache(
       .from('articles')
       .select('diagram_images')
       .eq('id', articleId)
-      .single()
+      .single<{ diagram_images: Record<string, string> | null }>()
 
     if (fetchError) {
       console.error('Error fetching current diagram_images:', fetchError)
@@ -71,7 +72,7 @@ export async function saveDiagramToCache(
     }
 
     // Merge with existing diagram_images
-    const currentImages = (currentData?.diagram_images as Record<string, string>) || {}
+    const currentImages = currentData?.diagram_images || {}
     const updatedImages = {
       ...currentImages,
       [cacheKey]: url,
@@ -80,7 +81,8 @@ export async function saveDiagramToCache(
     // Update articles table with new diagram URL
     const { error: updateError } = await supabase
       .from('articles')
-      .update({ diagram_images: updatedImages })
+      // @ts-expect-error: Supabase type inference limitation with JSONB fields
+      .update({ diagram_images: updatedImages as Json })
       .eq('id', articleId)
 
     if (updateError) {
@@ -109,14 +111,14 @@ export async function getAllCachedDiagrams(
       .from('articles')
       .select('diagram_images')
       .eq('id', articleId)
-      .single()
+      .single<{ diagram_images: Record<string, string> | null }>()
 
     if (error || !data) {
       console.error('Error fetching all cached diagrams:', error)
       return {}
     }
 
-    return (data.diagram_images as Record<string, string>) || {}
+    return data.diagram_images || {}
   } catch (error) {
     console.error('Error in getAllCachedDiagrams:', error)
     return {}
