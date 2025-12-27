@@ -266,6 +266,8 @@ export class PPTXGeneratorService {
         // Add first diagram (most slides have one diagram)
         const diagramUrl = diagrams[0]
 
+        console.log('Adding diagram to slide:', diagramUrl)
+
         // Convert URL to data URI for reliable embedding
         const dataUri = await this.urlToDataUri(diagramUrl)
 
@@ -282,6 +284,7 @@ export class PPTXGeneratorService {
             h: 3.5,
             sizing: { type: 'contain', w: '45%', h: 3.5 },
           })
+          console.log('Diagram added successfully (right side)')
         } else {
           // Center diagram if no text content
           slide.addImage({
@@ -292,20 +295,12 @@ export class PPTXGeneratorService {
             h: 3.8,
             sizing: { type: 'contain', w: '70%', h: 3.8 },
           })
+          console.log('Diagram added successfully (centered)')
         }
       } catch (error) {
-        console.error('Failed to add diagram to slide:', error)
-        // Add error message
-        slide.addText('⚠ Diagram failed to load', {
-          x: '50%',
-          y: 3,
-          w: '45%',
-          h: 0.5,
-          fontSize: 14,
-          color: 'CC0000',
-          align: 'center',
-          fontFace: 'Arial',
-        })
+        console.error('Failed to add diagram to slide - skipping diagram:', error)
+        // Don't show error message in PPTX - just skip the diagram silently
+        // The text content will fill the space instead
       }
     }
   }
@@ -490,23 +485,36 @@ export class PPTXGeneratorService {
 
   /**
    * Convert image URL to data URI for reliable embedding in PPTX
+   * This runs on the server side, so we fetch the image and convert to base64
    */
   private async urlToDataUri(url: string): Promise<string> {
     try {
-      const response = await fetch(url)
+      console.log('Fetching image from URL:', url)
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'ArticleFlow-PPTX-Generator/1.0',
+        },
+      })
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const blob = await response.blob()
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(blob)
-      })
+      const arrayBuffer = await response.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const contentType = response.headers.get('content-type') || 'image/webp'
+
+      // Convert to base64 data URI
+      const base64 = buffer.toString('base64')
+      const dataUri = `data:${contentType};base64,${base64}`
+
+      console.log(`Successfully converted image (${buffer.length} bytes) to data URI`)
+      return dataUri
     } catch (error) {
       console.error('Error converting URL to data URI:', error)
+      console.error('URL was:', url)
       throw error
     }
   }

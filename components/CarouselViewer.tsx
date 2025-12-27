@@ -343,18 +343,31 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 
         // Wait longer for DOM to settle and images to render properly
         console.log(`Waiting for ${svgReplacements.length} images to settle in DOM...`)
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Double-check all images are loaded and visible
+        svgReplacements.forEach(({ img }, index) => {
+          if (!img.complete || !img.naturalHeight) {
+            console.warn(`Image ${index + 1} may not be fully loaded:`, {
+              complete: img.complete,
+              naturalWidth: img.naturalWidth,
+              naturalHeight: img.naturalHeight,
+            })
+          } else {
+            console.log(`Image ${index + 1} confirmed loaded: ${img.naturalWidth}×${img.naturalHeight}`)
+          }
+        })
       }
 
       // Step 3: Capture slide with html2canvas
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
-        scale: 2, // Higher scale for better quality (results in 3840×2160 for 4K quality)
+        scale: 3, // Higher scale for better quality (3x native resolution)
         logging: false,
         useCORS: true,
         allowTaint: true,
-        windowWidth: 1920, // Full HD width (16:9 at 144 DPI)
-        windowHeight: 1080, // Full HD height (16:9 at 144 DPI)
+        // Don't use windowWidth/windowHeight - they cause zooming issues
+        // Let html2canvas capture the element at its natural size
         onclone: (clonedDoc) => {
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
@@ -370,6 +383,14 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               const htmlEl = el as HTMLElement
               htmlEl.style.letterSpacing = '0.01em'
               htmlEl.style.wordSpacing = '0.05em'
+            })
+
+            // Ensure all images are visible and have proper dimensions
+            const imgElements = clonedElement.querySelectorAll('img')
+            imgElements.forEach((img: HTMLImageElement) => {
+              img.style.visibility = 'visible'
+              img.style.display = 'block'
+              img.style.opacity = '1'
             })
           }
         }
