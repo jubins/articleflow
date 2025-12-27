@@ -12,12 +12,14 @@ import mermaid from 'mermaid'
 import { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastContainer } from './ui/Toast'
+import md5 from 'md5'
 
 interface CarouselViewerProps {
   content: string
   title?: string
   linkedinTeaser?: string
   articleId?: string
+  cachedDiagrams?: Record<string, string> // Map of diagram cache keys to URLs
 }
 
 // Theme definitions
@@ -91,7 +93,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
 // Initialize mermaid once
 let isMermaidInitialized = false
 
-export function CarouselViewer({ content, title, linkedinTeaser, articleId }: CarouselViewerProps) {
+export function CarouselViewer({ content, title, linkedinTeaser, articleId, cachedDiagrams = {} }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
@@ -911,6 +913,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId }: Ca
               slideNumber={index + 1}
               totalSlides={slides.length}
               theme={THEMES[selectedTheme]}
+              cachedDiagrams={cachedDiagrams}
             />
           </div>
         ))}
@@ -948,7 +951,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId }: Ca
 }
 
 // Separate component for slide content rendering
-function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle }) {
+function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams = {} }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle; cachedDiagrams?: Record<string, string> }) {
   const [processedContent, setProcessedContent] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(true)
 
@@ -972,6 +975,21 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
       for (let i = 0; i < matches.length; i++) {
         const diagramId = `diagram-${slideNumber}-${i}`
         const diagramCode = matches[i][1]
+
+        // Check if we have a cached diagram URL
+        // Use MD5 hash (matching server-side implementation)
+        const hash = md5(diagramCode).substring(0, 8)
+        const cacheKey = `mermaid-${hash}`
+        const cachedUrl = cachedDiagrams[cacheKey]
+
+        if (cachedUrl) {
+          console.log(`✓ Using cached diagram URL for ${cacheKey}:`, cachedUrl)
+          // Replace with cached image instead of rendering
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="" data-cached-url="${encodeURIComponent(cachedUrl)}" data-mermaid-code="${encodeURIComponent(diagramCode)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="false"></div>`
+          processed = processed.replace(matches[i][0], placeholder)
+          continue
+        }
+
         try {
           const { svg } = await mermaid.render(`mermaid-${diagramId}`, diagramCode)
 
@@ -1105,13 +1123,44 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-mermaid-code'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-cached-url'?: string; 'data-mermaid-code'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
+                  const cachedUrl = props['data-cached-url']
                   const mermaidCode = props['data-mermaid-code']
                   const isDark = props['data-is-dark'] === 'true'
                   const needsWhiteBg = props['data-needs-white-bg'] === 'true'
                   const isPortrait = props['data-is-portrait'] === 'true'
+
+                  // If we have a cached URL, render img tag instead of SVG
+                  if (cachedUrl) {
+                    const url = decodeURIComponent(cachedUrl)
+                    const maxWidth = isPortrait ? '55%' : '70%'
+                    const maxHeight = isPortrait ? '240px' : '200px'
+
+                    return (
+                      <div className="flex justify-center items-center my-2" style={{ maxHeight: isPortrait ? '260px' : '220px' }}>
+                        <img
+                          src={url}
+                          alt="Diagram"
+                          data-mermaid-code={mermaidCode}
+                          style={{
+                            maxWidth,
+                            maxHeight,
+                            height: 'auto',
+                            width: 'auto',
+                            display: 'block',
+                            margin: '0 auto',
+                            ...(isDark || needsWhiteBg ? {
+                              background: 'white',
+                              padding: '8px',
+                              borderRadius: '6px',
+                            } : {})
+                          }}
+                        />
+                      </div>
+                    )
+                  }
 
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)

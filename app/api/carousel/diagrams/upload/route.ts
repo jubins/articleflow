@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { R2StorageService } from '@/lib/services/r2-storage'
 import sharp from 'sharp'
 import crypto from 'crypto'
+import { saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,6 +90,18 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('Uploaded diagram to R2:', uploadResult.url)
+
+    // Save diagram URL to cache if mermaidCode is provided
+    if (mermaidCode) {
+      const cached = await saveDiagramToCache(articleId, mermaidCode, uploadResult.url)
+      if (cached) {
+        console.log('✓ Diagram URL saved to articles.diagram_images cache')
+      } else {
+        console.warn('⚠ Failed to save diagram URL to cache, but upload succeeded')
+      }
+    } else {
+      console.log('ℹ No mermaid code provided, skipping cache save')
+    }
 
     return NextResponse.json({
       success: true,

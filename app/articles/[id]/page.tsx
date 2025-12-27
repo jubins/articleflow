@@ -774,6 +774,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     title={article.title}
                     linkedinTeaser={article.linkedin_teaser || undefined}
                     articleId={params.id}
+                    cachedDiagrams={(article.diagram_images as Record<string, string>) || {}}
                   />
                 </div>
               )}

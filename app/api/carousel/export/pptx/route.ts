@@ -5,6 +5,7 @@ import { R2StorageService } from '@/lib/services/r2-storage'
 import sharp from 'sharp'
 import crypto from 'crypto'
 import mermaid from 'mermaid'
+import { getCachedDiagramUrl, saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -126,7 +127,19 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
           try {
             const diagramCode = matches[diagramIndex][1]
 
-            // Generate hash and expected R2 URL
+            // Step 1: Check database cache first
+            console.log(`Checking database cache for diagram ${diagramIndex + 1} on slide ${slideIndex + 1}...`)
+            const cachedUrl = await getCachedDiagramUrl(articleId, diagramCode)
+
+            if (cachedUrl) {
+              console.log(`✓ Found diagram in database cache, reusing it`)
+              urls.push(cachedUrl)
+              continue // Skip to next diagram
+            }
+
+            console.log(`✗ Diagram not in database cache, checking R2...`)
+
+            // Step 2: Check R2 storage
             const hash = crypto.createHash('md5').update(diagramCode).digest('hex').substring(0, 8)
             const fileName = `carousel-diagram-${slideIndex}-${hash}.webp`
 
@@ -134,7 +147,7 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
             const r2AccountId = process.env.R2_ACCOUNT_ID
             const expectedUrl = `https://pub-${r2AccountId}.r2.dev/articles/${articleId}/diagrams/${fileName}`
 
-            console.log(`Checking if diagram already exists in R2: ${expectedUrl}`)
+            console.log(`Checking if diagram exists in R2: ${expectedUrl}`)
 
             // Try to fetch existing diagram from R2
             let diagramUrl = expectedUrl
@@ -143,8 +156,10 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
             try {
               const headResponse = await fetch(expectedUrl, { method: 'HEAD' })
               if (headResponse.ok) {
-                console.log(`✓ Diagram ${diagramIndex + 1} for slide ${slideIndex + 1} already exists in R2, reusing it`)
+                console.log(`✓ Diagram found in R2, reusing it`)
                 diagramUrl = expectedUrl
+                // Save to cache for future use
+                await saveDiagramToCache(articleId, diagramCode, diagramUrl)
               } else {
                 console.log(`✗ Diagram not found in R2 (${headResponse.status}), will render and upload`)
                 shouldUpload = true
@@ -187,6 +202,9 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
 
               console.log(`Uploaded new diagram to R2: ${uploadResult.url}`)
               diagramUrl = uploadResult.url
+
+              // Save to cache for future use
+              await saveDiagramToCache(articleId, diagramCode, diagramUrl)
             }
 
             urls.push(diagramUrl)
