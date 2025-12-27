@@ -195,6 +195,39 @@ export async function POST(request: NextRequest) {
       // Convert markdown to rich text HTML for storage
       const richTextHtml = markdownToHtml(generatedArticle.content)
 
+      // Helper function to generate hashtags
+      const generateHashtags = (title: string, tags: string[]): string => {
+        const hashtagSet = new Set<string>()
+
+        // Add hashtags from tags (limit to 3-4 most relevant)
+        const tagHashtags = tags
+          .slice(0, 4)
+          .map(tag => '#' + tag.replace(/[^a-zA-Z0-9]/g, '').replace(/\s+/g, ''))
+          .filter(tag => tag.length > 2) // Skip very short tags
+
+        tagHashtags.forEach(tag => hashtagSet.add(tag))
+
+        // Extract keywords from title
+        const titleWords = title
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(word => word.length > 3 && !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'what', 'how', 'why'].includes(word))
+          .map(word => '#' + word.charAt(0).toUpperCase() + word.slice(1))
+
+        // Add 2-3 title keywords if we need more
+        titleWords.slice(0, 3).forEach(tag => hashtagSet.add(tag))
+
+        // Add common professional hashtags
+        const commonTags = ['#LearnOnLinkedIn', '#TechTips', '#CareerGrowth', '#ProfessionalDevelopment']
+        const randomCommon = commonTags[Math.floor(Math.random() * commonTags.length)]
+        hashtagSet.add(randomCommon)
+
+        // Convert to array and ensure we have 4-6 hashtags
+        const finalHashtags = Array.from(hashtagSet).slice(0, 6)
+
+        return finalHashtags.join(' ')
+      }
+
       // Generate LinkedIn teaser for carousel articles
       let linkedinTeaser: string | null = null
       if (validatedData.articleType === 'carousel') {
@@ -205,7 +238,13 @@ export async function POST(request: NextRequest) {
           `Everything you need to know about ${generatedArticle.title} 🚀`,
           `Quick guide to ${generatedArticle.title}! Save this for later 🔖`,
         ]
-        linkedinTeaser = teasers[Math.floor(Math.random() * teasers.length)]
+        const baseTeaserText = teasers[Math.floor(Math.random() * teasers.length)]
+
+        // Generate relevant hashtags based on title and tags
+        const hashtags = generateHashtags(generatedArticle.title, generatedArticle.tags)
+
+        // Combine teaser with hashtags
+        linkedinTeaser = `${baseTeaserText}\n\n${hashtags}`
       }
 
       // Update article with generated content (store both markdown and rich text in database)

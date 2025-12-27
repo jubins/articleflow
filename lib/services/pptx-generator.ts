@@ -44,7 +44,7 @@ export class PPTXGeneratorService {
 
     // Add title slide if title provided
     if (options.title) {
-      this.addTitleSlide(options.title, options.linkedinTeaser)
+      this.addTitleSlide(options.title)
     }
 
     // Add content slides
@@ -94,7 +94,7 @@ export class PPTXGeneratorService {
   /**
    * Add title slide
    */
-  private addTitleSlide(title: string, subtitle?: string) {
+  private addTitleSlide(title: string) {
     const slide = this.pptx.addSlide()
     const colors = this.getThemeColors()
 
@@ -104,7 +104,7 @@ export class PPTXGeneratorService {
     // Add title
     slide.addText(title, {
       x: 0.5,
-      y: '35%',
+      y: '40%',
       w: '90%',
       h: 1.5,
       fontSize: 44,
@@ -114,21 +114,8 @@ export class PPTXGeneratorService {
       fontFace: 'Arial',
     })
 
-    // Add subtitle if provided
-    if (subtitle) {
-      slide.addText(subtitle, {
-        x: 0.5,
-        y: '55%',
-        w: '90%',
-        h: 1,
-        fontSize: 20,
-        color: colors.subtitle,
-        align: 'center',
-        fontFace: 'Arial',
-      })
-    }
-
-    // Add footer
+    // Don't add LinkedIn teaser to slides - it's for social media only
+    // Add footer instead
     slide.addText('Created with ArticleFlow', {
       x: 0.5,
       y: '90%',
@@ -212,9 +199,10 @@ export class PPTXGeneratorService {
         })
         yPosition += 0.6
       } else if (section.type === 'paragraph') {
-        // Add paragraph
-        const textHeight = Math.min(section.content.length / 100, 1.2)
-        slide.addText(section.content, {
+        // Add paragraph (strip markdown formatting)
+        const cleanText = this.stripMarkdown(section.content)
+        const textHeight = Math.min(cleanText.length / 100, 1.2)
+        slide.addText(cleanText, {
           x: hasDiagram ? 0.5 : 0.5,
           y: yPosition,
           w: hasDiagram ? '45%' : '90%',
@@ -226,12 +214,16 @@ export class PPTXGeneratorService {
         })
         yPosition += textHeight + 0.2
       } else if (section.type === 'list') {
-        // Add bullet points
+        // Add bullet points (properly formatted)
         const bullets = section.content.split('\n').filter(line => line.trim())
-        const bulletTexts = bullets.map(bullet => ({
-          text: bullet.replace(/^[-*+]\s+/, ''),
-          options: { bullet: true }
-        }))
+        const bulletTexts = bullets.map(bullet => {
+          // Strip markdown and list markers
+          const cleanText = this.stripMarkdown(bullet.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, ''))
+          return {
+            text: cleanText,
+            options: { bullet: true }
+          }
+        })
 
         slide.addText(bulletTexts, {
           x: hasDiagram ? 0.5 : 0.5,
@@ -274,13 +266,16 @@ export class PPTXGeneratorService {
         // Add first diagram (most slides have one diagram)
         const diagramUrl = diagrams[0]
 
+        // Convert URL to data URI for reliable embedding
+        const dataUri = await this.urlToDataUri(diagramUrl)
+
         // Determine diagram position based on content
         const hasContent = sections.length > 0
 
         if (hasContent) {
           // Place diagram on the right side
           slide.addImage({
-            path: diagramUrl,
+            data: dataUri,
             x: '50%',
             y: 1.8,
             w: '45%',
@@ -290,7 +285,7 @@ export class PPTXGeneratorService {
         } else {
           // Center diagram if no text content
           slide.addImage({
-            path: diagramUrl,
+            data: dataUri,
             x: '15%',
             y: 1.8,
             w: '70%',
@@ -469,6 +464,50 @@ export class PPTXGeneratorService {
       })
     } catch (error) {
       console.error('Failed to add table:', error)
+    }
+  }
+
+  /**
+   * Strip markdown formatting from text
+   */
+  private stripMarkdown(text: string): string {
+    return text
+      // Remove bold/italic markers
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1') // bold + italic
+      .replace(/\*\*(.+?)\*\*/g, '$1')     // bold
+      .replace(/\*(.+?)\*/g, '$1')         // italic
+      .replace(/__(.+?)__/g, '$1')         // bold (underscores)
+      .replace(/_(.+?)_/g, '$1')           // italic (underscores)
+      // Remove inline code markers
+      .replace(/`(.+?)`/g, '$1')
+      // Remove links [text](url) -> text
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      // Remove images ![alt](url)
+      .replace(/!\[.+?\]\(.+?\)/g, '')
+      // Trim whitespace
+      .trim()
+  }
+
+  /**
+   * Convert image URL to data URI for reliable embedding in PPTX
+   */
+  private async urlToDataUri(url: string): Promise<string> {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+    } catch (error) {
+      console.error('Error converting URL to data URI:', error)
+      throw error
     }
   }
 

@@ -280,24 +280,43 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
             // Create img element to replace SVG
             const img = document.createElement('img')
             img.src = url
-            img.style.maxWidth = svg.style.maxWidth || '70%'
-            img.style.maxHeight = svg.style.maxHeight || '200px'
+
+            // Get computed dimensions from SVG
+            const computedMaxWidth = svg.style.maxWidth || '70%'
+            const computedMaxHeight = svg.style.maxHeight || '200px'
+
+            // Set dimensions explicitly for better rendering
+            img.style.maxWidth = computedMaxWidth
+            img.style.maxHeight = computedMaxHeight
             img.style.width = 'auto'
             img.style.height = 'auto'
             img.style.display = 'block'
             img.style.margin = '0 auto'
+            img.style.objectFit = 'contain'
 
             // Copy other styles if present
             if (svg.style.background) img.style.background = svg.style.background
             if (svg.style.padding) img.style.padding = svg.style.padding
             if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
 
-            // Wait for image to load
-            await new Promise((resolve, reject) => {
-              img.onload = resolve
-              img.onerror = reject
-              // Timeout after 5 seconds
-              setTimeout(reject, 5000)
+            // Wait for image to load with proper timeout handling
+            await new Promise<void>((resolve, reject) => {
+              const timeoutId = setTimeout(() => {
+                console.error(`Image ${svgIndex + 1} load timeout`)
+                reject(new Error('Image load timeout'))
+              }, 10000)
+
+              img.onload = () => {
+                clearTimeout(timeoutId)
+                console.log(`Image ${svgIndex + 1} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`)
+                resolve()
+              }
+
+              img.onerror = (err) => {
+                clearTimeout(timeoutId)
+                console.error(`Image ${svgIndex + 1} failed to load:`, err)
+                reject(new Error('Image load failed'))
+              }
             })
 
             return { svg, img, url }
@@ -317,12 +336,14 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
             if (container) {
               container.replaceChild(img, svg)
               svgReplacements.push({ container, originalSvg: svg, img, url })
+              console.log(`Replaced SVG ${svgReplacements.length} with image from R2`)
             }
           }
         })
 
-        // Wait a bit for DOM to settle
-        await new Promise(resolve => setTimeout(resolve, 200))
+        // Wait longer for DOM to settle and images to render properly
+        console.log(`Waiting for ${svgReplacements.length} images to settle in DOM...`)
+        await new Promise(resolve => setTimeout(resolve, 800))
       }
 
       // Step 3: Capture slide with html2canvas
@@ -540,77 +561,84 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       )}
 
       {/* Slide Navigation */}
-      <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={prevSlide}
-            disabled={currentSlide === 0}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Previous
-          </Button>
+      <div className="bg-gray-100 p-4 rounded-lg">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={prevSlide}
+              disabled={currentSlide === 0}
+              className="w-10 h-10 p-0 flex items-center justify-center"
+              title="Previous slide (← key)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Button>
 
-          <div className="flex flex-col items-center">
-            <span className="text-sm font-medium text-gray-700">
-              Slide {currentSlide + 1} of {slides.length}
-            </span>
-            <span className="text-xs text-gray-500 mt-0.5">
-              Use ← → arrow keys to navigate
-            </span>
+            <div className="flex flex-col items-center px-4">
+              <span className="text-sm font-medium text-gray-700">
+                Slide {currentSlide + 1} of {slides.length}
+              </span>
+              <span className="text-xs text-gray-500">
+                Use ← → keys
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={nextSlide}
+              disabled={currentSlide === slides.length - 1}
+              className="w-10 h-10 p-0 flex items-center justify-center"
+              title="Next slide (→ key)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-          >
-            Next
-            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Button>
-        </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadCurrent}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download current slide as image"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {downloadingCurrent ? 'Saving...' : 'Current'}
+            </Button>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadCurrent}
-            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            {downloadingCurrent ? 'Downloading...' : 'Download Current'}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadAll}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download all slides as images"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              {downloadingAll ? 'Saving...' : 'All Slides'}
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadAll}
-            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
-            {downloadingAll ? 'Downloading All...' : 'Download All Slides'}
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={handleDownloadPPTX}
-            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            {downloadingPPTX ? 'Generating PPTX...' : 'Download as PPTX'}
-          </Button>
+            <Button
+              size="sm"
+              onClick={handleDownloadPPTX}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download as PowerPoint presentation"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              {downloadingPPTX ? 'Generating...' : 'PowerPoint'}
+            </Button>
+          </div>
         </div>
       </div>
 
