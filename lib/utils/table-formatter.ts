@@ -26,17 +26,32 @@ export function formatTablesInMarkdown(markdown: string): string {
         if (nextLine.startsWith('|') || nextLine.startsWith('#') || nextLine.startsWith('```')) {
           break
         }
+        // Skip JSON-like structures
+        if (nextLine.startsWith('{') || nextLine.startsWith('[') ||
+            nextLine.startsWith('}') || nextLine.startsWith(']') ||
+            nextLine.includes('":') || nextLine.includes(': {') ||
+            nextLine.includes(': [')) {
+          break
+        }
         potentialTableLines.push(nextLine)
         j++
       }
 
       // Check if this looks like a table (at least 3 rows with consistent structure)
       if (potentialTableLines.length >= 3) {
-        const tableCandidate = tryConvertToTable(potentialTableLines)
-        if (tableCandidate) {
-          result.push(tableCandidate)
-          i = j
-          continue
+        // Additional check: skip if it looks like JSON or code
+        const hasJsonPattern = potentialTableLines.some(line =>
+          line.includes('":') || line.includes(': {') || line.includes(': [') ||
+          line.match(/^\s*[\{\[\]\}]/) || line.includes('": ')
+        )
+
+        if (!hasJsonPattern) {
+          const tableCandidate = tryConvertToTable(potentialTableLines)
+          if (tableCandidate) {
+            result.push(tableCandidate)
+            i = j
+            continue
+          }
         }
       }
     }
