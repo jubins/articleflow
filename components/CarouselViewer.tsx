@@ -94,6 +94,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadingPPTX, setDownloadingPPTX] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState<CarouselTheme>('classic')
   const [savingTheme, setSavingTheme] = useState(false)
   const [displayTeaser, setDisplayTeaser] = useState('')
@@ -238,11 +239,93 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     const wasHidden = slideElement.classList.contains('hidden')
     if (wasHidden && showSlide) {
       slideElement.classList.remove('hidden')
-      // Wait longer for render, font loading, and SVG rendering
-      await new Promise(resolve => setTimeout(resolve, 800))
+      // Wait for render and font loading
+      await new Promise(resolve => setTimeout(resolve, 300))
     }
 
+    // Store original SVGs to restore later
+    const svgReplacements: Array<{ container: HTMLElement; originalSvg: SVGElement; img: HTMLImageElement; url: string }> = []
+
     try {
+      // Step 1: Find all SVG diagrams and upload to R2
+      const svgElements = slideElement.querySelectorAll('svg')
+
+      if (svgElements.length > 0) {
+        console.log(`Found ${svgElements.length} diagrams to upload to R2`)
+
+        // Upload all diagrams to R2 in parallel
+        const uploadPromises = Array.from(svgElements).map(async (svg, svgIndex) => {
+          try {
+            // Serialize SVG to string
+            const serializer = new XMLSerializer()
+            const svgString = serializer.serializeToString(svg)
+
+            // Upload to R2
+            const response = await fetch('/api/carousel/diagrams/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                svg: svgString,
+                slideIndex: index,
+              }),
+            })
+
+            if (!response.ok) {
+              throw new Error(`Failed to upload diagram: ${response.statusText}`)
+            }
+
+            const { url } = await response.json()
+            console.log(`Uploaded diagram ${svgIndex + 1} to R2:`, url)
+
+            // Create img element to replace SVG
+            const img = document.createElement('img')
+            img.src = url
+            img.style.maxWidth = svg.style.maxWidth || '70%'
+            img.style.maxHeight = svg.style.maxHeight || '200px'
+            img.style.width = 'auto'
+            img.style.height = 'auto'
+            img.style.display = 'block'
+            img.style.margin = '0 auto'
+
+            // Copy other styles if present
+            if (svg.style.background) img.style.background = svg.style.background
+            if (svg.style.padding) img.style.padding = svg.style.padding
+            if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
+
+            // Wait for image to load
+            await new Promise((resolve, reject) => {
+              img.onload = resolve
+              img.onerror = reject
+              // Timeout after 5 seconds
+              setTimeout(reject, 5000)
+            })
+
+            return { svg, img, url }
+          } catch (error) {
+            console.error(`Failed to upload diagram ${svgIndex + 1}:`, error)
+            return null
+          }
+        })
+
+        const results = await Promise.all(uploadPromises)
+
+        // Step 2: Replace SVGs with img tags
+        results.forEach(result => {
+          if (result) {
+            const { svg, img, url } = result
+            const container = svg.parentElement
+            if (container) {
+              container.replaceChild(img, svg)
+              svgReplacements.push({ container, originalSvg: svg, img, url })
+            }
+          }
+        })
+
+        // Wait a bit for DOM to settle
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+
+      // Step 3: Capture slide with html2canvas
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher scale for better quality (results in 3840×2160 for 4K quality)
@@ -251,7 +334,6 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         allowTaint: true,
         windowWidth: 1920, // Full HD width (16:9 at 144 DPI)
         windowHeight: 1080, // Full HD height (16:9 at 144 DPI)
-        foreignObjectRendering: false, // Better SVG handling
         onclone: (clonedDoc) => {
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
@@ -268,30 +350,13 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               htmlEl.style.letterSpacing = '0.01em'
               htmlEl.style.wordSpacing = '0.05em'
             })
-
-            // Ensure SVGs are visible and properly sized
-            const svgElements = clonedElement.querySelectorAll('svg')
-            svgElements.forEach((svg: SVGElement) => {
-              // Force visibility
-              svg.style.visibility = 'visible'
-              svg.style.display = 'block'
-              svg.style.opacity = '1'
-
-              // Ensure proper dimensions
-              const width = svg.getAttribute('width')
-              const height = svg.getAttribute('height')
-              if (width) svg.style.width = width
-              if (height) svg.style.height = height
-            })
-
-            // Fix diagram containers to prevent cutoff
-            const diagramContainers = clonedElement.querySelectorAll('.flex.justify-center.items-center')
-            diagramContainers.forEach((container: Element) => {
-              const htmlContainer = container as HTMLElement
-              htmlContainer.style.overflow = 'visible'
-            })
           }
         }
+      })
+
+      // Step 4: Restore original SVGs
+      svgReplacements.forEach(({ container, originalSvg, img }) => {
+        container.replaceChild(originalSvg, img)
       })
 
       // Hide the slide again if it was hidden
@@ -314,6 +379,16 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       }
     } catch (error) {
       console.error('Error downloading slide:', error)
+
+      // Restore SVGs in case of error
+      svgReplacements.forEach(({ container, originalSvg, img }) => {
+        try {
+          container.replaceChild(originalSvg, img)
+        } catch (e) {
+          console.error('Failed to restore SVG:', e)
+        }
+      })
+
       // Make sure to unhide if there was an error
       if (wasHidden && showSlide) {
         slideElement.classList.add('hidden')
@@ -347,6 +422,47 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       alert('Failed to download all slides. Some slides may not have been downloaded.')
     } finally {
       setDownloadingAll(false)
+    }
+  }
+
+  const handleDownloadPPTX = async () => {
+    setDownloadingPPTX(true)
+    try {
+      console.log('Exporting carousel to PPTX...')
+
+      const response = await fetch('/api/carousel/export/pptx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          theme: selectedTheme,
+          title: title || 'LinkedIn Carousel',
+          linkedinTeaser: displayTeaser,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.details || 'Failed to generate PPTX')
+      }
+
+      // Download the PPTX file
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = title
+        ? `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pptx`
+        : 'carousel-presentation.pptx'
+      link.click()
+      URL.revokeObjectURL(url)
+
+      showSuccessToast('PowerPoint presentation downloaded successfully!', 3000)
+    } catch (error) {
+      console.error('Error downloading PPTX:', error)
+      alert(error instanceof Error ? error.message : 'Failed to download PPTX. Please try again.')
+    } finally {
+      setDownloadingPPTX(false)
     }
   }
 
@@ -465,7 +581,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
             variant="outline"
             size="sm"
             onClick={handleDownloadCurrent}
-            disabled={downloadingCurrent || downloadingAll}
+            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -474,14 +590,26 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
           </Button>
 
           <Button
+            variant="outline"
             size="sm"
             onClick={handleDownloadAll}
-            disabled={downloadingCurrent || downloadingAll}
+            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
             {downloadingAll ? 'Downloading All...' : 'Download All Slides'}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleDownloadPPTX}
+            disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            {downloadingPPTX ? 'Generating PPTX...' : 'Download as PPTX'}
           </Button>
         </div>
       </div>
