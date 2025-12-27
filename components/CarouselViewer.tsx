@@ -66,7 +66,7 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
       radial-gradient(ellipse at 90% 70%, rgba(147, 197, 253, 0.15) 0%, transparent 40%),
       radial-gradient(ellipse at 30% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 35%),
       radial-gradient(ellipse at 70% 20%, rgba(191, 219, 254, 0.12) 0%, transparent 35%),
-      radial-gradient(circle, rgba(59, 130, 246, 0.35) 1.5px, transparent 1.5px),
+      radial-gradient(circle, rgba(59, 130, 246, 0.5) 2px, transparent 2px),
       linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)
     `,
     className: 'bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200',
@@ -478,7 +478,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               maxWidth: '1280px',
               aspectRatio: '16/9', // Enforce 16:9 landscape ratio
               background: THEMES[selectedTheme].background,
-              backgroundSize: '15px 15px, 100%',
+              backgroundSize: '100%, 100%, 100%, 100%, 20px 20px, 100%',
             }}
           >
             <SlideContent
@@ -598,19 +598,19 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-[1.65rem] leading-tight font-bold ${theme.textColor} mb-3 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
+                <h2 className={`text-[1.5rem] leading-tight font-bold ${theme.textColor} mb-2.5 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-[1.25rem] leading-snug font-semibold ${theme.textColor} mb-2 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
+                <h3 className={`text-[1.15rem] leading-snug font-semibold ${theme.textColor} mb-2 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-[1rem] leading-relaxed ${theme.textColor} mb-2`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.5' }}>{children}</p>
+                <p className={`text-[0.95rem] leading-relaxed ${theme.textColor} mb-2`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.45' }}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-[1rem] ${theme.textColor} space-y-1.5 mb-3 list-disc pl-6`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
+                <ul className={`text-[0.95rem] ${theme.textColor} space-y-1.5 mb-2.5 list-disc pl-6`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
-                <li className="leading-relaxed" style={{ lineHeight: '1.5' }}>{children}</li>
+                <li className="leading-relaxed" style={{ lineHeight: '1.45' }}>{children}</li>
               ),
               table: ({ children }: { children?: ReactNode }) => (
                 <div className="my-3 overflow-x-auto">
@@ -618,7 +618,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     className="w-full border-collapse"
                     style={{
                       maxWidth: '100%',
-                      border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                      border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
                     }}
                   >
                     {children}
@@ -632,7 +632,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 <tbody>{children}</tbody>
               ),
               tr: ({ children }: { children?: ReactNode }) => (
-                <tr style={{ borderBottom: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}` }}>{children}</tr>
+                <tr style={{ borderBottom: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}` }}>{children}</tr>
               ),
               th: ({ children }: { children?: ReactNode }) => (
                 <th
@@ -640,7 +640,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                   style={{
                     letterSpacing: '0.01em',
                     wordSpacing: '0.05em',
-                    border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                    border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
                   }}
                 >
                   {children}
@@ -652,7 +652,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                   style={{
                     letterSpacing: '0.01em',
                     wordSpacing: '0.05em',
-                    border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                    border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
                   }}
                 >
                   {children}
@@ -689,22 +689,22 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
-                    // Portrait diagrams: smaller size for side-by-side layout potential
-                    // Landscape diagrams: can be wider since they're centered
-                    const maxWidth = isPortrait ? '60%' : '75%'
-                    const maxHeight = isPortrait ? '280px' : '220px'
+                    // Portrait diagrams: smaller size for text balance
+                    // Landscape diagrams: wider but shorter for better fit
+                    const maxWidth = isPortrait ? '55%' : '70%'
+                    const maxHeight = isPortrait ? '240px' : '200px'
 
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
                       svg = svg.replace(
                         '<svg',
-                        `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; background: white; padding: 10px; border-radius: 6px; display: block; margin: 0 auto;"`
+                        `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; background: white; padding: 8px; border-radius: 6px; display: block; margin: 0 auto;"`
                       )
 
                       return (
                         <div
                           className="flex justify-center items-center my-2"
-                          style={{ maxHeight: isPortrait ? '300px' : '240px' }}
+                          style={{ maxHeight: isPortrait ? '260px' : '220px' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
@@ -719,7 +719,7 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                     return (
                       <div
                         className="flex justify-center items-center my-2"
-                        style={{ maxHeight: isPortrait ? '300px' : '240px' }}
+                        style={{ maxHeight: isPortrait ? '260px' : '220px' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
