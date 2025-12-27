@@ -268,7 +268,7 @@ export default function GeneratePage() {
                         )}
                         {formData.articleType === 'carousel' && (
                           <>
-                            <li>• 4-5 engaging slides with visual diagrams</li>
+                            <li>• 4-10 engaging slides with visual diagrams</li>
                             <li>• Progressive learning from basic to advanced</li>
                             <li>• Mermaid diagrams or text-based slides</li>
                             <li>• Ends with enlightening insights or key takeaways</li>
