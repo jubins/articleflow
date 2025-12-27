@@ -46,11 +46,23 @@ export async function GET(
 
     const fileName = typedArticle.file_id || typedArticle.id
 
-    // Convert Mermaid diagrams to images
-    const { content: processedContent } = await convertMermaidDiagramsToImages(
+    // Convert Mermaid diagrams to images (with caching)
+    const cachedDiagrams = typedArticle.diagram_images as Record<string, string> | null
+    const { content: processedContent, images, needsUpdate } = await convertMermaidDiagramsToImages(
       typedArticle.content,
-      typedArticle.id
+      typedArticle.id,
+      cachedDiagrams
     )
+
+    // Update cached diagrams in database if new diagrams were generated
+    if (needsUpdate && images.size > 0) {
+      const diagramsObject = Object.fromEntries(images)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('articles')
+        .update({ diagram_images: diagramsObject })
+        .eq('id', typedArticle.id)
+    }
 
     if (format === 'md') {
       // Return markdown file with image URLs
@@ -90,9 +102,11 @@ export async function GET(
 
 async function convertMermaidDiagramsToImages(
   markdown: string,
-  articleId: string
-): Promise<{ content: string; images: Map<string, string> }> {
+  articleId: string,
+  cachedDiagrams: Record<string, string> | null = null
+): Promise<{ content: string; images: Map<string, string>; needsUpdate: boolean }> {
   const images = new Map<string, string>()
+  let needsUpdate = false
 
   // Extract all Mermaid diagrams
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
@@ -108,7 +122,7 @@ async function convertMermaidDiagramsToImages(
   }
 
   if (diagrams.length === 0) {
-    return { content: markdown, images }
+    return { content: markdown, images, needsUpdate: false }
   }
 
   try {
@@ -124,6 +138,18 @@ async function convertMermaidDiagramsToImages(
     // Convert each diagram to an image
     for (const diagram of diagrams) {
       try {
+        const diagramKey = `diagram-${diagram.index}`
+
+        // Check if diagram is already cached
+        if (cachedDiagrams && cachedDiagrams[diagramKey]) {
+          console.log(`Using cached diagram ${diagram.index}:`, cachedDiagrams[diagramKey])
+          images.set(diagramKey, cachedDiagrams[diagramKey])
+          continue
+        }
+
+        // Diagram not cached, generate new image
+        needsUpdate = true
+
         // Encode the Mermaid code as base64 for mermaid.ink API
         const base64Code = Buffer.from(diagram.code).toString('base64')
         const mermaidInkUrl = `https://mermaid.ink/img/${base64Code}`
@@ -142,7 +168,7 @@ async function convertMermaidDiagramsToImages(
           console.log(`Using mermaid.ink URL for diagram ${diagram.index}:`, mermaidInkUrl)
         }
 
-        images.set(`diagram-${diagram.index}`, imageUrl)
+        images.set(diagramKey, imageUrl)
       } catch (err) {
         console.error(`Failed to process diagram ${diagram.index}:`, err)
         // If conversion fails, keep the original Mermaid code
@@ -165,11 +191,11 @@ async function convertMermaidDiagramsToImages(
       }
     )
 
-    return { content: processedContent, images }
+    return { content: processedContent, images, needsUpdate }
   } catch (error) {
     console.error('Error converting Mermaid diagrams:', error)
     // Return original content if processing fails
-    return { content: markdown, images }
+    return { content: markdown, images, needsUpdate: false }
   }
 }
 

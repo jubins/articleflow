@@ -124,6 +124,7 @@ export interface Database {
           file_id: string | null
           linkedin_teaser: string | null
           generation_metadata: Json
+          diagram_images: Json | null
           error_message: string | null
           generated_at: string | null
           created_at: string
@@ -147,6 +148,7 @@ export interface Database {
           file_id?: string | null
           linkedin_teaser?: string | null
           generation_metadata?: Json
+          diagram_images?: Json | null
           error_message?: string | null
           generated_at?: string | null
           created_at?: string
@@ -170,6 +172,7 @@ export interface Database {
           file_id?: string | null
           linkedin_teaser?: string | null
           generation_metadata?: Json
+          diagram_images?: Json | null
           error_message?: string | null
           generated_at?: string | null
           created_at?: string
