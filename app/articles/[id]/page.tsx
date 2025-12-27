@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { ToastContainer, useToast } from '@/components/ui/Toast'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
@@ -31,6 +33,7 @@ interface Profile {
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const toast = useToast()
   const [article, setArticle] = useState<Article | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,6 +46,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false)
+  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
 
   useEffect(() => {
     loadArticle()
@@ -101,6 +106,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
     setDownloading(format)
     try {
+      toast.info(`Preparing ${format.toUpperCase()} download...`)
       const response = await fetch(`/api/articles/${article.id}/download?format=${format}`)
 
       if (!response.ok) {
@@ -116,9 +122,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`)
     } catch (err) {
       console.error('Download error:', err)
       setError('Failed to download file')
+      toast.error('Failed to download file')
     } finally {
       setDownloading(null)
     }
@@ -129,10 +137,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
     try {
       await navigator.clipboard.writeText(article.content)
+      toast.success('Content copied to clipboard!')
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (err) {
       console.error('Copy error:', err)
+      toast.error('Failed to copy content')
       setError('Failed to copy content')
     }
   }
@@ -169,9 +179,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       setIsEditingRichText(false)
       setHasUnsavedChanges(false)
       setError('')
+      toast.success('Changes saved successfully!')
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
+      toast.error('Failed to save changes')
     }
   }
 
@@ -212,27 +224,34 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       setIsEditingRichText(false)
       setHasUnsavedChanges(false)
       setError('')
+      toast.success('Changes saved successfully!')
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
+      toast.error('Failed to save changes')
     }
   }
 
   const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
     if (hasUnsavedChanges && (isEditingMarkdown || isEditingRichText)) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave this tab? Your changes will be lost.'
-      )
-      if (!confirmed) {
-        return
-      }
-      // Reset editing states if user confirms
-      setIsEditingMarkdown(false)
-      setIsEditingRichText(false)
-      setHasUnsavedChanges(false)
-      setEditedContent('')
+      setPendingTab(newTab)
+      setShowUnsavedModal(true)
+      return
     }
     setActiveTab(newTab)
+  }
+
+  const confirmTabChange = () => {
+    // Reset editing states if user confirms
+    setIsEditingMarkdown(false)
+    setIsEditingRichText(false)
+    setHasUnsavedChanges(false)
+    setEditedContent('')
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+    }
+    setShowUnsavedModal(false)
+    setPendingTab(null)
   }
 
   if (loading) {
@@ -262,6 +281,20 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   return (
     <AuthLayout>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        onClose={() => {
+          setShowUnsavedModal(false)
+          setPendingTab(null)
+        }}
+        onConfirm={confirmTabChange}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave this tab? Your changes will be lost."
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+      />
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">

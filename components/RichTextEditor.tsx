@@ -17,6 +17,7 @@ import { Highlight } from '@tiptap/extension-highlight'
 import { FontFamily } from '@tiptap/extension-text-style/font-family'
 import { FontSize } from '@tiptap/extension-text-style/font-size'
 import { useEffect, useState, useRef } from 'react'
+import { InputModal } from '@/components/ui/Modal'
 
 interface RichTextEditorProps {
   content: string
@@ -37,6 +38,7 @@ const FONT_FAMILIES = [
 export function RichTextEditor({ content, onChange, editable = true }: RichTextEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showHighlightPicker, setShowHighlightPicker] = useState(false)
+  const [showLinkModal, setShowLinkModal] = useState(false)
   const colorPickerRef = useRef<HTMLDivElement>(null)
   const highlightPickerRef = useRef<HTMLDivElement>(null)
 
@@ -278,12 +280,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
             {/* Link */}
             <button
-              onClick={() => {
-                const url = window.prompt('Enter URL:')
-                if (url) {
-                  editor.chain().focus().setLink({ href: url }).run()
-                }
-              }}
+              onClick={() => setShowLinkModal(true)}
               className={`p-2 rounded hover:bg-gray-200 transition-colors ${
                 editor.isActive('link') ? 'bg-gray-300' : ''
               }`}
@@ -379,6 +376,19 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
       <div className="max-h-[600px] overflow-auto">
         <EditorContent editor={editor} />
       </div>
+
+      <InputModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        onConfirm={(url) => {
+          editor.chain().focus().setLink({ href: url }).run()
+        }}
+        title="Insert Link"
+        message="Enter the URL for the link:"
+        placeholder="https://example.com"
+        confirmText="Insert"
+        cancelText="Cancel"
+      />
     </div>
   )
 }
