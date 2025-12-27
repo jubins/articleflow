@@ -2,6 +2,7 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import crypto from 'crypto'
+import sharp from 'sharp'
 
 export interface R2UploadOptions {
   buffer: Buffer
@@ -87,7 +88,7 @@ export class R2StorageService {
   /**
    * Upload an image from a URL
    */
-  async uploadFromUrl(imageUrl: string, options: { folder?: string; fileName?: string }): Promise<R2UploadResult> {
+  async uploadFromUrl(imageUrl: string, options: { folder?: string; fileName?: string; convertToWebP?: boolean }): Promise<R2UploadResult> {
     try {
       // Fetch the image
       const response = await fetch(imageUrl)
@@ -97,12 +98,32 @@ export class R2StorageService {
 
       const arrayBuffer = await response.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
-      const contentType = response.headers.get('content-type') || 'image/png'
+      let contentType = response.headers.get('content-type') || 'image/png'
+      let fileName = options.fileName
+
+      // Convert to WebP if requested
+      if (options.convertToWebP) {
+        const webpBuffer = await sharp(buffer)
+          .webp({ quality: 90 })
+          .toBuffer()
+        contentType = 'image/webp'
+        // Update file extension to .webp
+        if (fileName) {
+          fileName = fileName.replace(/\.(png|jpg|jpeg)$/i, '.webp')
+        }
+
+        return await this.upload({
+          buffer: webpBuffer,
+          contentType,
+          fileName,
+          folder: options.folder,
+        })
+      }
 
       return await this.upload({
         buffer,
         contentType,
-        fileName: options.fileName,
+        fileName,
         folder: options.folder,
       })
     } catch (error) {

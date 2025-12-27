@@ -71,8 +71,14 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       // Process content to use cached diagram images
       const cachedDiagrams = article.diagram_images as Record<string, string> | null
       const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
-      // Use stored rich text content if available, otherwise convert from processed markdown
-      setRichTextHtml(article.rich_text_content || markdownToHtml(processedContent))
+
+      // If we have cached diagrams, always use processed content to show images
+      // Otherwise, use stored rich text content if available
+      if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
+        setRichTextHtml(markdownToHtml(processedContent))
+      } else {
+        setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+      }
     }
   }, [activeTab, article, isEditingRichText])
 
@@ -150,9 +156,24 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     try {
-      // Copy displayContent which has cached diagram images if available
-      await navigator.clipboard.writeText(displayContent || article.content)
-      toast.success('Content copied to clipboard!')
+      // If on rich text tab, copy HTML format; otherwise copy markdown
+      if (activeTab === 'richtext' && richTextHtml) {
+        // Copy as HTML using clipboard API with multiple formats
+        const htmlBlob = new Blob([richTextHtml], { type: 'text/html' })
+        const textBlob = new Blob([displayContent || article.content], { type: 'text/plain' })
+
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob,
+          })
+        ])
+        toast.success('Rich text copied to clipboard!')
+      } else {
+        // Copy displayContent which has cached diagram images if available
+        await navigator.clipboard.writeText(displayContent || article.content)
+        toast.success('Content copied to clipboard!')
+      }
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (err) {

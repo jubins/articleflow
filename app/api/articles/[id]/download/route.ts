@@ -160,10 +160,11 @@ async function convertMermaidDiagramsToImages(
         if (r2) {
           const result = await r2.uploadFromUrl(mermaidInkUrl, {
             folder: `articles/${articleId}/diagrams`,
-            fileName: `diagram-${diagram.index}.png`,
+            fileName: `diagram-${diagram.index}.webp`,
+            convertToWebP: true,
           })
           imageUrl = result.url
-          console.log(`Successfully uploaded diagram ${diagram.index} to R2:`, result.url)
+          console.log(`Successfully uploaded diagram ${diagram.index} to R2 as WebP:`, result.url)
         } else {
           console.log(`Using mermaid.ink URL for diagram ${diagram.index}:`, mermaidInkUrl)
         }
