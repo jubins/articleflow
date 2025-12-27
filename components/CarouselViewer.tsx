@@ -231,6 +231,45 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [nextSlide, prevSlide])
 
+  // Helper function to inline all computed styles for SVG elements
+  const inlineSvgStyles = (svg: SVGElement): SVGElement => {
+    const clone = svg.cloneNode(true) as SVGElement
+
+    // Get all elements in the SVG
+    const allElements = clone.querySelectorAll('*')
+
+    // Inline computed styles for all elements
+    const sourceElements = svg.querySelectorAll('*')
+    allElements.forEach((element, index) => {
+      const sourceElement = sourceElements[index]
+      if (sourceElement) {
+        const computedStyle = window.getComputedStyle(sourceElement)
+
+        // Important style properties to preserve
+        const importantStyles = [
+          'fill', 'stroke', 'stroke-width', 'font-family', 'font-size',
+          'font-weight', 'font-style', 'text-anchor', 'dominant-baseline',
+          'color', 'opacity', 'visibility', 'display'
+        ]
+
+        let styleString = ''
+        importantStyles.forEach(prop => {
+          const value = computedStyle.getPropertyValue(prop)
+          if (value && value !== 'none' && value !== 'normal') {
+            styleString += `${prop}:${value};`
+          }
+        })
+
+        if (styleString) {
+          (element as HTMLElement).setAttribute('style',
+            ((element as HTMLElement).getAttribute('style') || '') + styleString)
+        }
+      }
+    })
+
+    return clone
+  }
+
   const downloadSlideAsWebP = async (index: number, showSlide = false) => {
     const slideElement = slideRefs.current[index]
     if (!slideElement) return
@@ -256,9 +295,12 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         // Upload all diagrams to R2 in parallel
         const uploadPromises = Array.from(svgElements).map(async (svg, svgIndex) => {
           try {
+            // Clone SVG and inline all computed styles
+            const styledSvg = inlineSvgStyles(svg)
+
             // Serialize SVG to string
             const serializer = new XMLSerializer()
-            const svgString = serializer.serializeToString(svg)
+            const svgString = serializer.serializeToString(styledSvg)
 
             // Upload to R2
             const response = await fetch('/api/carousel/diagrams/upload', {
@@ -359,16 +401,34 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         })
       }
 
-      // Step 3: Capture slide with html2canvas
+      // Step 3: Get the element's actual dimensions for consistent capture
+      const rect = slideElement.getBoundingClientRect()
+      const targetWidth = 1280 // Standard width for 16:9 carousel slides
+      const targetHeight = 720 // Standard height for 16:9 carousel slides (1280 / 16 * 9)
+
+      // Step 4: Capture slide with html2canvas using consistent dimensions
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
         scale: 3, // Higher scale for better quality (3x native resolution)
         logging: false,
         useCORS: true,
         allowTaint: true,
-        // Don't use windowWidth/windowHeight - they cause zooming issues
-        // Let html2canvas capture the element at its natural size
+        width: targetWidth,
+        height: targetHeight,
+        windowWidth: targetWidth,
+        windowHeight: targetHeight,
         onclone: (clonedDoc) => {
+          // Find the cloned slide element
+          const clonedSlide = clonedDoc.querySelector('[data-slide-content]')?.parentElement as HTMLElement
+          if (clonedSlide) {
+            // Force consistent dimensions on the cloned slide
+            clonedSlide.style.width = `${targetWidth}px`
+            clonedSlide.style.height = `${targetHeight}px`
+            clonedSlide.style.maxWidth = `${targetWidth}px`
+            clonedSlide.style.minWidth = `${targetWidth}px`
+            clonedSlide.style.minHeight = `${targetHeight}px`
+          }
+
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
           if (clonedElement) {
@@ -392,11 +452,27 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               img.style.display = 'block'
               img.style.opacity = '1'
             })
+
+            // Ensure tables are visible with proper styling
+            const tableElements = clonedElement.querySelectorAll('table')
+            tableElements.forEach((table: HTMLTableElement) => {
+              table.style.visibility = 'visible'
+              table.style.display = 'table'
+              table.style.opacity = '1'
+            })
+
+            // Ensure SVG diagrams (if any remain) are visible
+            const svgElements = clonedElement.querySelectorAll('svg')
+            svgElements.forEach((svg: SVGElement) => {
+              svg.style.visibility = 'visible'
+              svg.style.display = 'block'
+              svg.style.opacity = '1'
+            })
           }
         }
       })
 
-      // Step 4: Restore original SVGs
+      // Step 5: Restore original SVGs
       svgReplacements.forEach(({ container, originalSvg, img }) => {
         container.replaceChild(originalSvg, img)
       })
