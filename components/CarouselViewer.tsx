@@ -1022,7 +1022,10 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
     }
 
     processSlide()
-  }, [slide, slideNumber, theme, cachedDiagrams])
+    // Note: cachedDiagrams is intentionally NOT in dependencies to avoid infinite re-renders
+    // It's only used as a lookup during processing, not as a render trigger
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slide, slideNumber, theme])
 
   if (isProcessing) {
     return (
