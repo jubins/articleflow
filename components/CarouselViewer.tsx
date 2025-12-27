@@ -599,7 +599,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
               ),
               table: ({ children }: { children?: ReactNode }) => (
                 <div className="my-4 overflow-x-auto">
-                  <table className={`w-full border-collapse ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`} style={{ maxWidth: '100%' }}>
+                  <table
+                    className="w-full border-collapse"
+                    style={{
+                      maxWidth: '100%',
+                      border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                    }}
+                  >
                     {children}
                   </table>
                 </div>
@@ -611,13 +617,31 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 <tbody>{children}</tbody>
               ),
               tr: ({ children }: { children?: ReactNode }) => (
-                <tr className={`border-b ${theme.isDark ? 'border-gray-700' : 'border-gray-200'}`}>{children}</tr>
+                <tr style={{ borderBottom: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}` }}>{children}</tr>
               ),
               th: ({ children }: { children?: ReactNode }) => (
-                <th className={`px-4 py-2 text-left text-[0.95rem] font-semibold ${theme.textColor}`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</th>
+                <th
+                  className={`px-4 py-2 text-left text-[0.95rem] font-semibold ${theme.textColor}`}
+                  style={{
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.05em',
+                    border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                  }}
+                >
+                  {children}
+                </th>
               ),
               td: ({ children }: { children?: ReactNode }) => (
-                <td className={`px-4 py-2 text-[0.95rem] ${theme.textColor}`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</td>
+                <td
+                  className={`px-4 py-2 text-[0.95rem] ${theme.textColor}`}
+                  style={{
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.05em',
+                    border: `1px solid ${theme.isDark ? '#4b5563' : '#d1d5db'}`,
+                  }}
+                >
+                  {children}
+                </td>
               ),
               code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
                 const match = /language-(\w+)/.exec(className || '')
@@ -651,31 +675,31 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
 
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
-                      // Inject white background and constrain SVG size flexibly
+                      // Inject white background and constrain SVG size to prevent cutoff
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 90%; max-height: 320px; height: auto; width: auto; background: white; padding: 16px; border-radius: 8px; display: block; margin: 0 auto;"'
+                        '<svg style="max-width: 85%; max-height: 280px; height: auto; width: auto; background: white; padding: 12px; border-radius: 8px; display: block; margin: 0 auto;"'
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-4"
-                          style={{ maxHeight: '360px', overflow: 'visible' }}
+                          className="flex justify-center items-center my-3"
+                          style={{ maxHeight: '300px', minHeight: '200px' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For other light themes, just constrain size flexibly
+                    // For other light themes, just constrain size to prevent cutoff
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 90%; max-height: 320px; height: auto; width: auto; display: block; margin: 0 auto;"'
+                      '<svg style="max-width: 85%; max-height: 280px; height: auto; width: auto; display: block; margin: 0 auto;"'
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-4"
-                        style={{ maxHeight: '360px', overflow: 'visible' }}
+                        className="flex justify-center items-center my-3"
+                        style={{ maxHeight: '300px', minHeight: '200px' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
