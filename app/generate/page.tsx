@@ -49,7 +49,7 @@ const ARTICLE_TYPES = [
   {
     value: 'carousel',
     label: 'LinkedIn Carousel',
-    description: 'Engaging 4-5 slide carousel starting with basics and ending with advanced insights',
+    description: 'Engaging 4-10 slide carousel starting with basics and ending with advanced insights',
   },
 ]
 

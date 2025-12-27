@@ -273,25 +273,31 @@ Format your response as JSON:
 Topic: {{topic}}
 
 Requirements:
-- Create 4-5 engaging slides perfect for LinkedIn
+- Create EXACTLY between 4-10 engaging slides (randomly choose a number between 4 and 10 based on topic complexity)
 - Start with basic concepts and progress to advanced insights
 - Each slide should have a clear focus and key message
-- Include Mermaid diagrams OR text-based content for each slide
+- Include Mermaid diagrams, comparison tables, or text-based content for slides
+- Include at least 1-2 comparison tables when comparing features, approaches, or technologies
 - End with enlightening insights or key takeaways
 - Make it visually engaging and easy to follow
 
+CRITICAL - Slide Count:
+- Topic complexity determines slide count: simple topics (4-6 slides), complex topics (7-10 slides)
+- Never create fewer than 4 or more than 10 slides
+- Distribute content evenly across slides
+
 CRITICAL - Slide Structure:
 - Slide 1: Hook/Introduction - Grab attention with the problem or opportunity
-- Slides 2-3: Core Content - Build understanding from basic to intermediate
-- Slide 4: Advanced Insights - Share deeper knowledge or best practices
-- Slide 5: Key Takeaways/CTA - Summarize and provide actionable next steps
+- Slides 2-N-2: Core Content - Build understanding from basic to intermediate to advanced
+- Slide N-1: Advanced Insights - Share deeper knowledge or best practices
+- Slide N: Key Takeaways/CTA - Summarize and provide actionable next steps
 
 CRITICAL - Mermaid Diagrams for Slides:
 - Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
 - DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
 - Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
 - Keep diagrams simple and focused on one concept per slide
-- Each slide can have either a diagram OR text content (not both)
+- 2-4 slides should have diagrams showing concepts visually
 
 Example Mermaid diagram for a slide (VALID SYNTAX ONLY):
 \`\`\`mermaid
@@ -302,24 +308,35 @@ graph LR
 
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
+CRITICAL - Comparison Tables:
+- Include 1-2 markdown tables when comparing features, tools, approaches, or technologies
+- Tables should be clean and concise (2-4 columns, 3-5 rows max)
+- Use tables to show comparisons, feature matrices, or pros/cons
+- Example table format:
+| Feature | Option A | Option B |
+|---------|----------|----------|
+| Speed   | Fast     | Moderate |
+| Cost    | High     | Low      |
+
 CRITICAL - Content Guidelines:
-- Each slide should be concise and focused (2-4 bullet points max)
-- Use clear headings for each slide
+- Each slide should be concise and focused (2-4 bullet points max for text slides)
+- Use clear headings for each slide starting with "## Slide N:"
 - Progressive difficulty: basic → intermediate → advanced
 - Final slide should inspire action or deeper thinking
+- Mix content types: some text slides, some diagram slides, some table slides
 
 Generate a complete LinkedIn carousel in Markdown format with:
 1. A compelling title for the carousel
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full carousel content in Markdown (4-5 slides with clear headings)
+4. The full carousel content in Markdown (4-10 slides with clear headings "## Slide N:")
 
 Format your response as JSON:
 {
   "title": "Carousel Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full carousel content with 4-5 slides..."
+  "content": "Full carousel content with 4-10 slides..."
 }`
 }
 

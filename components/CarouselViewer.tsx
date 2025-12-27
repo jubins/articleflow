@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown, { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -11,6 +11,7 @@ import html2canvas from 'html2canvas'
 import mermaid from 'mermaid'
 import { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast, ToastContainer } from './ui/Toast'
 
 interface CarouselViewerProps {
   content: string
@@ -59,23 +60,28 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
   },
   elegant: {
     name: 'Elegant Pattern',
-    description: 'White with subtle dots',
+    description: 'Wavy blue dot pattern',
     background: `
-      radial-gradient(circle, rgba(0,0,0,0.15) 1px, transparent 1px),
-      #ffffff
+      radial-gradient(ellipse at 10% 30%, rgba(96, 165, 250, 0.15) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 70%, rgba(147, 197, 253, 0.15) 0%, transparent 40%),
+      radial-gradient(ellipse at 30% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 35%),
+      radial-gradient(ellipse at 70% 20%, rgba(191, 219, 254, 0.12) 0%, transparent 35%),
+      radial-gradient(circle, rgba(59, 130, 246, 0.5) 2px, transparent 2px),
+      linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)
     `,
-    className: 'bg-white',
+    className: 'bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200',
     textColor: 'text-gray-900',
     isDark: false,
+    needsWhiteDiagramBg: true,
   },
   professional: {
     name: 'Professional Dark',
-    description: 'Dark gradient with pattern',
+    description: 'Deep dark gradient',
     background: `
-      radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px),
-      linear-gradient(135deg, #1e293b 0%, #0f172a 100%)
+      radial-gradient(circle, rgba(100, 80, 200, 0.12) 1px, transparent 1px),
+      linear-gradient(135deg, #0a0a1a 0%, #0f0f23 25%, #0c1220 75%, #020617 100%)
     `,
-    className: 'bg-gradient-to-br from-slate-800 to-slate-900',
+    className: 'bg-gradient-to-br from-gray-950 via-slate-950 to-black',
     textColor: 'text-white',
     isDark: true,
   },
@@ -88,10 +94,12 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadingPPTX, setDownloadingPPTX] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState<CarouselTheme>('classic')
   const [savingTheme, setSavingTheme] = useState(false)
   const [displayTeaser, setDisplayTeaser] = useState('')
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
+  const { toasts, success: showSuccessToast, closeToast } = useToast()
 
   // Initialize mermaid
   useEffect(() => {
@@ -189,17 +197,39 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 
   const slides = parseSlides(content)
 
-  const nextSlide = () => {
-    if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1)
-    }
-  }
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((current) => {
+      if (current < slides.length - 1) {
+        return current + 1
+      }
+      return current
+    })
+  }, [slides.length])
 
-  const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1)
+  const prevSlide = useCallback(() => {
+    setCurrentSlide((current) => {
+      if (current > 0) {
+        return current - 1
+      }
+      return current
+    })
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        prevSlide()
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        nextSlide()
+      }
     }
-  }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [nextSlide, prevSlide])
 
   const downloadSlideAsWebP = async (index: number, showSlide = false) => {
     const slideElement = slideRefs.current[index]
@@ -209,19 +239,166 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     const wasHidden = slideElement.classList.contains('hidden')
     if (wasHidden && showSlide) {
       slideElement.classList.remove('hidden')
-      // Wait for render
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for render and font loading
+      await new Promise(resolve => setTimeout(resolve, 300))
     }
 
+    // Store original SVGs to restore later
+    const svgReplacements: Array<{ container: HTMLElement; originalSvg: SVGElement; img: HTMLImageElement; url: string }> = []
+
     try {
+      // Step 1: Find all SVG diagrams and upload to R2
+      const svgElements = slideElement.querySelectorAll('svg')
+
+      if (svgElements.length > 0) {
+        console.log(`Found ${svgElements.length} diagrams to upload to R2`)
+
+        // Upload all diagrams to R2 in parallel
+        const uploadPromises = Array.from(svgElements).map(async (svg, svgIndex) => {
+          try {
+            // Serialize SVG to string
+            const serializer = new XMLSerializer()
+            const svgString = serializer.serializeToString(svg)
+
+            // Upload to R2
+            const response = await fetch('/api/carousel/diagrams/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                svg: svgString,
+                slideIndex: index,
+              }),
+            })
+
+            if (!response.ok) {
+              throw new Error(`Failed to upload diagram: ${response.statusText}`)
+            }
+
+            const { url } = await response.json()
+            console.log(`Uploaded diagram ${svgIndex + 1} to R2:`, url)
+
+            // Create img element to replace SVG
+            const img = document.createElement('img')
+            img.src = url
+
+            // Get computed dimensions from SVG
+            const computedMaxWidth = svg.style.maxWidth || '70%'
+            const computedMaxHeight = svg.style.maxHeight || '200px'
+
+            // Set dimensions explicitly for better rendering
+            img.style.maxWidth = computedMaxWidth
+            img.style.maxHeight = computedMaxHeight
+            img.style.width = 'auto'
+            img.style.height = 'auto'
+            img.style.display = 'block'
+            img.style.margin = '0 auto'
+            img.style.objectFit = 'contain'
+
+            // Copy other styles if present
+            if (svg.style.background) img.style.background = svg.style.background
+            if (svg.style.padding) img.style.padding = svg.style.padding
+            if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
+
+            // Wait for image to load with proper timeout handling
+            await new Promise<void>((resolve, reject) => {
+              const timeoutId = setTimeout(() => {
+                console.error(`Image ${svgIndex + 1} load timeout`)
+                reject(new Error('Image load timeout'))
+              }, 10000)
+
+              img.onload = () => {
+                clearTimeout(timeoutId)
+                console.log(`Image ${svgIndex + 1} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`)
+                resolve()
+              }
+
+              img.onerror = (err) => {
+                clearTimeout(timeoutId)
+                console.error(`Image ${svgIndex + 1} failed to load:`, err)
+                reject(new Error('Image load failed'))
+              }
+            })
+
+            return { svg, img, url }
+          } catch (error) {
+            console.error(`Failed to upload diagram ${svgIndex + 1}:`, error)
+            return null
+          }
+        })
+
+        const results = await Promise.all(uploadPromises)
+
+        // Step 2: Replace SVGs with img tags
+        results.forEach(result => {
+          if (result) {
+            const { svg, img, url } = result
+            const container = svg.parentElement
+            if (container) {
+              container.replaceChild(img, svg)
+              svgReplacements.push({ container, originalSvg: svg, img, url })
+              console.log(`Replaced SVG ${svgReplacements.length} with image from R2`)
+            }
+          }
+        })
+
+        // Wait longer for DOM to settle and images to render properly
+        console.log(`Waiting for ${svgReplacements.length} images to settle in DOM...`)
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Double-check all images are loaded and visible
+        svgReplacements.forEach(({ img }, index) => {
+          if (!img.complete || !img.naturalHeight) {
+            console.warn(`Image ${index + 1} may not be fully loaded:`, {
+              complete: img.complete,
+              naturalWidth: img.naturalWidth,
+              naturalHeight: img.naturalHeight,
+            })
+          } else {
+            console.log(`Image ${index + 1} confirmed loaded: ${img.naturalWidth}×${img.naturalHeight}`)
+          }
+        })
+      }
+
+      // Step 3: Capture slide with html2canvas
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
-        scale: 2, // Good balance between quality and file size for 1280x720
+        scale: 3, // Higher scale for better quality (3x native resolution)
         logging: false,
         useCORS: true,
         allowTaint: true,
-        windowWidth: 1280,
-        windowHeight: 720,
+        // Don't use windowWidth/windowHeight - they cause zooming issues
+        // Let html2canvas capture the element at its natural size
+        onclone: (clonedDoc) => {
+          // Ensure fonts are loaded in cloned document
+          const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
+          if (clonedElement) {
+            // Force font rendering and spacing
+            clonedElement.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            clonedElement.style.letterSpacing = '0.01em'
+            clonedElement.style.wordSpacing = '0.05em'
+
+            // Fix all text elements
+            const textElements = clonedElement.querySelectorAll('h2, h3, p, li, th, td, span')
+            textElements.forEach((el: Element) => {
+              const htmlEl = el as HTMLElement
+              htmlEl.style.letterSpacing = '0.01em'
+              htmlEl.style.wordSpacing = '0.05em'
+            })
+
+            // Ensure all images are visible and have proper dimensions
+            const imgElements = clonedElement.querySelectorAll('img')
+            imgElements.forEach((img: HTMLImageElement) => {
+              img.style.visibility = 'visible'
+              img.style.display = 'block'
+              img.style.opacity = '1'
+            })
+          }
+        }
+      })
+
+      // Step 4: Restore original SVGs
+      svgReplacements.forEach(({ container, originalSvg, img }) => {
+        container.replaceChild(originalSvg, img)
       })
 
       // Hide the slide again if it was hidden
@@ -244,6 +421,16 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       }
     } catch (error) {
       console.error('Error downloading slide:', error)
+
+      // Restore SVGs in case of error
+      svgReplacements.forEach(({ container, originalSvg, img }) => {
+        try {
+          container.replaceChild(originalSvg, img)
+        } catch (e) {
+          console.error('Failed to restore SVG:', e)
+        }
+      })
+
       // Make sure to unhide if there was an error
       if (wasHidden && showSlide) {
         slideElement.classList.add('hidden')
@@ -280,16 +467,59 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     }
   }
 
+  const handleDownloadPPTX = async () => {
+    setDownloadingPPTX(true)
+    try {
+      console.log('Exporting carousel to PPTX...')
+
+      const response = await fetch('/api/carousel/export/pptx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          theme: selectedTheme,
+          title: title || 'LinkedIn Carousel',
+          linkedinTeaser: displayTeaser,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.details || 'Failed to generate PPTX')
+      }
+
+      // Download the PPTX file
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = title
+        ? `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pptx`
+        : 'carousel-presentation.pptx'
+      link.click()
+      URL.revokeObjectURL(url)
+
+      showSuccessToast('PowerPoint presentation downloaded successfully!', 3000)
+    } catch (error) {
+      console.error('Error downloading PPTX:', error)
+      alert(error instanceof Error ? error.message : 'Failed to download PPTX. Please try again.')
+    } finally {
+      setDownloadingPPTX(false)
+    }
+  }
+
   const copyTeaserText = () => {
     if (displayTeaser) {
       navigator.clipboard.writeText(displayTeaser)
-      alert('Teaser text copied to clipboard!')
+      showSuccessToast('Teaser text copied to clipboard!', 3000)
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Theme Selector */}
+    <>
+      <ToastContainer toasts={toasts} onClose={closeToast} />
+      <div className="space-y-6">
+        {/* Theme Selector */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Slide Theme</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -352,65 +582,89 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       )}
 
       {/* Slide Navigation */}
-      <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={prevSlide}
-            disabled={currentSlide === 0}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Previous
-          </Button>
+      <div className="bg-gray-100 p-4 rounded-lg">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={prevSlide}
+              disabled={currentSlide === 0}
+              className="w-10 h-10 p-0 flex items-center justify-center"
+              title="Previous slide (← key)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Button>
 
-          <span className="text-sm font-medium text-gray-700">
-            Slide {currentSlide + 1} of {slides.length}
-          </span>
+            <div className="flex flex-col items-center px-4">
+              <span className="text-sm font-medium text-gray-700">
+                Slide {currentSlide + 1} of {slides.length}
+              </span>
+              <span className="text-xs text-gray-500">
+                Use ← → keys
+              </span>
+            </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-          >
-            Next
-            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Button>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={nextSlide}
+              disabled={currentSlide === slides.length - 1}
+              className="w-10 h-10 p-0 flex items-center justify-center"
+              title="Next slide (→ key)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadCurrent}
-            disabled={downloadingCurrent || downloadingAll}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            {downloadingCurrent ? 'Downloading...' : 'Download Current'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadCurrent}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download current slide as image"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {downloadingCurrent ? 'Saving...' : 'Current'}
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={handleDownloadAll}
-            disabled={downloadingCurrent || downloadingAll}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
-            {downloadingAll ? 'Downloading All...' : 'Download All Slides'}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadAll}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download all slides as images"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              {downloadingAll ? 'Saving...' : 'All Slides'}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handleDownloadPPTX}
+              disabled={downloadingCurrent || downloadingAll || downloadingPPTX}
+              title="Download as PowerPoint presentation"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              {downloadingPPTX ? 'Generating...' : 'PowerPoint'}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Slide Content */}
-      <div className="relative flex justify-center">
+      <div className="relative flex justify-center w-full">
         {slides.map((slide, index) => (
           <div
             key={index}
@@ -420,11 +674,11 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               ${index === currentSlide ? 'block' : 'hidden'}
             `}
             style={{
-              width: '1280px',
-              height: '720px', // 16:9 aspect ratio (standard HD presentation)
-              maxWidth: '100%',
+              width: '100%',
+              maxWidth: '1280px',
+              aspectRatio: '16/9', // Enforce 16:9 landscape ratio
               background: THEMES[selectedTheme].background,
-              backgroundSize: '15px 15px, 100%',
+              backgroundSize: '100%, 100%, 100%, 100%, 20px 20px, 100%',
             }}
           >
             <SlideContent
@@ -464,6 +718,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         </div>
       </div>
     </div>
+    </>
   )
 }
 
@@ -494,8 +749,23 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
         try {
           const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
 
-          // Store SVG and create placeholder
-          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}"></div>`
+          // Parse SVG to detect orientation
+          const parser = new DOMParser()
+          const svgDoc = parser.parseFromString(svg, 'image/svg+xml')
+          const svgElement = svgDoc.querySelector('svg')
+
+          let isPortrait = false
+          if (svgElement) {
+            const viewBox = svgElement.getAttribute('viewBox')
+            if (viewBox) {
+              const [, , width, height] = viewBox.split(' ').map(Number)
+              const aspectRatio = width / height
+              isPortrait = aspectRatio < 0.9 // Portrait if height > width (aspect ratio < 1)
+            }
+          }
+
+          // Store SVG and create placeholder with orientation data
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="${isPortrait}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -519,28 +789,74 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-14">
+    <div className="h-full flex flex-col p-8" data-slide-content>
       {/* Content area with constrained height */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
         <div className="h-full overflow-hidden">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-4xl font-bold ${theme.textColor} mb-5`}>{children}</h2>
+                <h2 className={`text-[1.5rem] leading-tight font-bold ${theme.textColor} mb-2.5 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-2xl font-semibold ${theme.textColor} mb-4`}>{children}</h3>
+                <h3 className={`text-[1.15rem] leading-snug font-semibold ${theme.textColor} mb-2 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-xl ${theme.textColor} mb-4 leading-relaxed`}>{children}</p>
+                <p className={`text-[0.95rem] leading-relaxed ${theme.textColor} mb-2`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.45' }}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-xl ${theme.textColor} space-y-2 mb-5 list-disc pl-6`}>{children}</ul>
+                <ul className={`text-[0.95rem] ${theme.textColor} space-y-1.5 mb-2.5 list-disc pl-6`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
-                <li className="leading-relaxed">{children}</li>
+                <li className="leading-relaxed" style={{ lineHeight: '1.45' }}>{children}</li>
+              ),
+              table: ({ children }: { children?: ReactNode }) => (
+                <div className="my-3 overflow-x-auto">
+                  <table
+                    className="w-full border-collapse"
+                    style={{
+                      maxWidth: '100%',
+                      border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
+                    }}
+                  >
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }: { children?: ReactNode }) => (
+                <thead className={`${theme.isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>{children}</thead>
+              ),
+              tbody: ({ children }: { children?: ReactNode }) => (
+                <tbody>{children}</tbody>
+              ),
+              tr: ({ children }: { children?: ReactNode }) => (
+                <tr style={{ borderBottom: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}` }}>{children}</tr>
+              ),
+              th: ({ children }: { children?: ReactNode }) => (
+                <th
+                  className={`px-3 py-1.5 text-left text-[0.9rem] font-semibold ${theme.textColor}`}
+                  style={{
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.05em',
+                    border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
+                  }}
+                >
+                  {children}
+                </th>
+              ),
+              td: ({ children }: { children?: ReactNode }) => (
+                <td
+                  className={`px-3 py-1.5 text-[0.9rem] ${theme.textColor}`}
+                  style={{
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.05em',
+                    border: `1px solid ${theme.isDark ? '#9ca3af' : '#6b7280'}`,
+                  }}
+                >
+                  {children}
+                </td>
               ),
               code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
                 const match = /language-(\w+)/.exec(className || '')
@@ -563,42 +879,47 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
                   const isDark = props['data-is-dark'] === 'true'
                   const needsWhiteBg = props['data-needs-white-bg'] === 'true'
+                  const isPortrait = props['data-is-portrait'] === 'true'
 
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
 
+                    // Portrait diagrams: smaller size for text balance
+                    // Landscape diagrams: wider but shorter for better fit
+                    const maxWidth = isPortrait ? '55%' : '70%'
+                    const maxHeight = isPortrait ? '240px' : '200px'
+
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
-                      // Inject white background and constrain SVG size
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto; background: white; padding: 18px; border-radius: 8px;"'
+                        `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; background: white; padding: 8px; border-radius: 6px; display: block; margin: 0 auto;"`
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-5"
-                          style={{ maxHeight: '420px', overflow: 'visible' }}
+                          className="flex justify-center items-center my-2"
+                          style={{ maxHeight: isPortrait ? '260px' : '220px' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For other light themes, just constrain size
+                    // For other light themes
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 100%; max-height: 380px; height: auto; width: auto;"'
+                      `<svg style="max-width: ${maxWidth}; max-height: ${maxHeight}; height: auto; width: auto; display: block; margin: 0 auto;"`
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-5"
-                        style={{ maxHeight: '420px', overflow: 'visible' }}
+                        className="flex justify-center items-center my-2"
+                        style={{ maxHeight: isPortrait ? '260px' : '220px' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
