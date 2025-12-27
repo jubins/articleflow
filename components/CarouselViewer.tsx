@@ -238,8 +238,8 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     const wasHidden = slideElement.classList.contains('hidden')
     if (wasHidden && showSlide) {
       slideElement.classList.remove('hidden')
-      // Wait for render and font loading
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Wait longer for render, font loading, and SVG rendering
+      await new Promise(resolve => setTimeout(resolve, 800))
     }
 
     try {
@@ -251,6 +251,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         allowTaint: true,
         windowWidth: 1920, // Full HD width (16:9 at 144 DPI)
         windowHeight: 1080, // Full HD height (16:9 at 144 DPI)
+        foreignObjectRendering: false, // Better SVG handling
         onclone: (clonedDoc) => {
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
@@ -266,6 +267,28 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               const htmlEl = el as HTMLElement
               htmlEl.style.letterSpacing = '0.01em'
               htmlEl.style.wordSpacing = '0.05em'
+            })
+
+            // Ensure SVGs are visible and properly sized
+            const svgElements = clonedElement.querySelectorAll('svg')
+            svgElements.forEach((svg: SVGElement) => {
+              // Force visibility
+              svg.style.visibility = 'visible'
+              svg.style.display = 'block'
+              svg.style.opacity = '1'
+
+              // Ensure proper dimensions
+              const width = svg.getAttribute('width')
+              const height = svg.getAttribute('height')
+              if (width) svg.style.width = width
+              if (height) svg.style.height = height
+            })
+
+            // Fix diagram containers to prevent cutoff
+            const diagramContainers = clonedElement.querySelectorAll('.flex.justify-center.items-center')
+            diagramContainers.forEach((container: Element) => {
+              const htmlContainer = container as HTMLElement
+              htmlContainer.style.overflow = 'visible'
             })
           }
         }
