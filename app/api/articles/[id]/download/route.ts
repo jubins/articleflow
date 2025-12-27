@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Article } from '@/lib/types/database'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } from 'docx'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx'
 import { R2StorageService } from '@/lib/services/r2-storage'
 
 interface MermaidDiagram {
@@ -217,9 +217,45 @@ async function convertMarkdownToDocx(
 
   let inCodeBlock = false
   let codeBlockContent: string[] = []
+  let inTable = false
+  let tableRows: string[][] = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
+
+    // Detect table rows (lines with | separator)
+    const isTableRow = line.trim().startsWith('|') && line.trim().endsWith('|')
+    const isTableSeparator = /^\|[\s\-:]+\|/.test(line.trim())
+
+    if (isTableRow && !isTableSeparator) {
+      // Parse table row
+      const cells = line
+        .split('|')
+        .slice(1, -1) // Remove first and last empty elements
+        .map(cell => cell.trim())
+
+      if (!inTable) {
+        inTable = true
+        tableRows = []
+      }
+
+      tableRows.push(cells)
+      continue
+    } else if (isTableSeparator) {
+      // Skip separator row
+      continue
+    } else if (inTable) {
+      // End of table - convert to DOCX table
+      if (tableRows.length > 0) {
+        const docxTable = convertToDocxTable(tableRows)
+        children.push(...docxTable)
+      }
+      inTable = false
+      tableRows = []
+    }
+
+    // Skip if we're in a table
+    if (inTable) continue
 
     // Handle images
     const imageMatch = line.match(/!\[.*?\]\((.*?)\)/)
@@ -401,4 +437,68 @@ function parseMarkdownLine(line: string): TextRun[] {
   }
 
   return textRuns
+}
+
+function convertToDocxTable(tableRows: string[][]): Paragraph[] {
+  if (tableRows.length === 0) {
+    return []
+  }
+
+  const numCols = tableRows[0].length
+  const columnWidths = Array(numCols).fill(Math.floor(9000 / numCols))
+
+  const rows = tableRows.map((rowCells, rowIndex) => {
+    const isHeader = rowIndex === 0
+
+    return new TableRow({
+      children: rowCells.map((cellText, cellIndex) => {
+        return new TableCell({
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cellText,
+                  bold: isHeader,
+                  size: isHeader ? 22 : 20,
+                }),
+              ],
+            }),
+          ],
+          width: {
+            size: columnWidths[cellIndex],
+            type: WidthType.DXA,
+          },
+          shading: isHeader ? {
+            fill: '4472C4',
+            color: 'FFFFFF',
+          } : undefined,
+          margins: {
+            top: 100,
+            bottom: 100,
+            left: 100,
+            right: 100,
+          },
+        })
+      }),
+    })
+  })
+
+  const table = new Table({
+    rows,
+    width: {
+      size: 100,
+      type: WidthType.PERCENTAGE,
+    },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+    },
+  })
+
+  // Return the table wrapped in a paragraph container
+  return [table as unknown as Paragraph]
 }
