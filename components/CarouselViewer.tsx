@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown, { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -58,24 +58,27 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
     needsWhiteDiagramBg: true,
   },
   elegant: {
-    name: 'Elegant Pattern',
-    description: 'White with subtle dots',
+    name: 'Edge Pattern',
+    description: 'Wavy blue dot pattern',
     background: `
-      radial-gradient(circle, rgba(0,0,0,0.15) 1px, transparent 1px),
-      #ffffff
+      radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 50%, rgba(147, 197, 253, 0.08) 0%, transparent 50%),
+      radial-gradient(circle, rgba(59, 130, 246, 0.4) 1px, transparent 1px),
+      linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)
     `,
-    className: 'bg-white',
+    className: 'bg-gradient-to-br from-blue-50 to-blue-100',
     textColor: 'text-gray-900',
     isDark: false,
+    needsWhiteDiagramBg: true,
   },
   professional: {
     name: 'Professional Dark',
     description: 'Dark gradient with pattern',
     background: `
-      radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px),
-      linear-gradient(135deg, #1e293b 0%, #0f172a 100%)
+      radial-gradient(circle, rgba(139, 92, 246, 0.15) 1px, transparent 1px),
+      linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #1e293b 75%, #0f172a 100%)
     `,
-    className: 'bg-gradient-to-br from-slate-800 to-slate-900',
+    className: 'bg-gradient-to-br from-indigo-950 via-violet-900 to-slate-900',
     textColor: 'text-white',
     isDark: true,
   },
@@ -189,17 +192,39 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 
   const slides = parseSlides(content)
 
-  const nextSlide = () => {
-    if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1)
-    }
-  }
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((current) => {
+      if (current < slides.length - 1) {
+        return current + 1
+      }
+      return current
+    })
+  }, [slides.length])
 
-  const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1)
+  const prevSlide = useCallback(() => {
+    setCurrentSlide((current) => {
+      if (current > 0) {
+        return current - 1
+      }
+      return current
+    })
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        prevSlide()
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        nextSlide()
+      }
     }
-  }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [nextSlide, prevSlide])
 
   const downloadSlideAsWebP = async (index: number, showSlide = false) => {
     const slideElement = slideRefs.current[index]
@@ -366,9 +391,14 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
             Previous
           </Button>
 
-          <span className="text-sm font-medium text-gray-700">
-            Slide {currentSlide + 1} of {slides.length}
-          </span>
+          <div className="flex flex-col items-center">
+            <span className="text-sm font-medium text-gray-700">
+              Slide {currentSlide + 1} of {slides.length}
+            </span>
+            <span className="text-xs text-gray-500 mt-0.5">
+              Use ← → arrow keys to navigate
+            </span>
+          </div>
 
           <Button
             variant="outline"
@@ -410,7 +440,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       </div>
 
       {/* Slide Content */}
-      <div className="relative flex justify-center">
+      <div className="relative flex justify-center w-full overflow-x-auto">
         {slides.map((slide, index) => (
           <div
             key={index}
@@ -423,6 +453,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               width: '1280px',
               height: '720px', // 16:9 aspect ratio (standard HD presentation)
               maxWidth: '100%',
+              aspectRatio: '16/9',
               background: THEMES[selectedTheme].background,
               backgroundSize: '15px 15px, 100%',
             }}
