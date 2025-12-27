@@ -141,7 +141,6 @@ export async function POST(request: NextRequest) {
         article_type: validatedData.articleType,
         status: 'draft',
         ai_provider: validatedData.aiProvider,
-        file_id: validatedData.fileId || null,
       })
       .select()
       .single()

@@ -44,7 +44,7 @@ export async function GET(
       )
     }
 
-    const fileName = typedArticle.file_id || typedArticle.id
+    const fileName = typedArticle.id
 
     // Convert Mermaid diagrams to images (with caching)
     const cachedDiagrams = typedArticle.diagram_images as Record<string, string> | null

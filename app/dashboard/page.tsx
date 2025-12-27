@@ -10,13 +10,18 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { ToastContainer, useToast } from '@/components/ui/Toast'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 
 export default function DashboardPage() {
+  const toast = useToast()
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [articleToDelete, setArticleToDelete] = useState<string | null>(null)
   const [stats, setStats] = useState({
     total: 0,
     generated: 0,
@@ -61,17 +66,21 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDelete = async (articleId: string, event: React.MouseEvent) => {
+  const handleDeleteClick = (articleId: string, event: React.MouseEvent) => {
     event.preventDefault()
     event.stopPropagation()
+    setArticleToDelete(articleId)
+    setShowDeleteModal(true)
+  }
 
-    if (!confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
-      return
-    }
+  const confirmDelete = async () => {
+    if (!articleToDelete) return
 
-    setDeleting(articleId)
+    setDeleting(articleToDelete)
+    setShowDeleteModal(false)
+
     try {
-      const response = await fetch(`/api/articles/${articleId}/delete`, {
+      const response = await fetch(`/api/articles/${articleToDelete}/delete`, {
         method: 'DELETE',
       })
 
@@ -80,20 +89,23 @@ export default function DashboardPage() {
       }
 
       // Remove from local state
-      setArticles(articles.filter(a => a.id !== articleId))
+      setArticles(articles.filter(a => a.id !== articleToDelete))
 
       // Recalculate stats
-      const newArticles = articles.filter(a => a.id !== articleId)
+      const newArticles = articles.filter(a => a.id !== articleToDelete)
       const total = newArticles.length
       const generated = newArticles.filter(a => a.status === 'generated').length
       const failed = newArticles.filter(a => a.status === 'failed').length
       const draft = newArticles.filter(a => a.status === 'draft').length
       setStats({ total, generated, failed, draft })
+
+      toast.success('Article deleted successfully!')
     } catch (error) {
       console.error('Error deleting article:', error)
-      alert('Failed to delete article. Please try again.')
+      toast.error('Failed to delete article. Please try again.')
     } finally {
       setDeleting(null)
+      setArticleToDelete(null)
     }
   }
 
@@ -107,6 +119,20 @@ export default function DashboardPage() {
 
   return (
     <AuthLayout>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false)
+          setArticleToDelete(null)
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Article"
+        message="Are you sure you want to delete this article? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
       <div className="px-4 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -300,7 +326,7 @@ export default function DashboardPage() {
                               </a>
                             )}
                             <button
-                              onClick={(e) => handleDelete(article.id, e)}
+                              onClick={(e) => handleDeleteClick(article.id, e)}
                               disabled={deleting === article.id}
                               className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               title="Delete article"

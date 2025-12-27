@@ -125,8 +125,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     setDownloading(format)
+
+    // Show info toast with long duration so it doesn't auto-close during download
+    toast.showToast(`Preparing ${format.toUpperCase()} download...`, 'info', 30000)
+
     try {
-      toast.info(`Preparing ${format.toUpperCase()} download...`)
       const response = await fetch(`/api/articles/${article.id}/download?format=${format}`)
 
       if (!response.ok) {
@@ -137,15 +140,20 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${article.file_id || article.id}.${format}`
+      a.download = `${article.id}.${format}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      // Close all current toasts before showing success
+      toast.toasts.forEach(t => toast.closeToast(t.id))
       toast.success(`${format.toUpperCase()} file downloaded successfully!`)
     } catch (err) {
       console.error('Download error:', err)
       setError('Failed to download file')
+      // Close all current toasts before showing error
+      toast.toasts.forEach(t => toast.closeToast(t.id))
       toast.error('Failed to download file')
     } finally {
       setDownloading(null)
