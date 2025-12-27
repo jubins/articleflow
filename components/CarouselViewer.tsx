@@ -464,7 +464,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
       </div>
 
       {/* Slide Content */}
-      <div className="relative flex justify-center w-full overflow-x-auto">
+      <div className="relative flex justify-center w-full">
         {slides.map((slide, index) => (
           <div
             key={index}
@@ -474,10 +474,9 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               ${index === currentSlide ? 'block' : 'hidden'}
             `}
             style={{
-              width: '1280px',
-              height: '720px', // 16:9 aspect ratio (standard HD presentation)
-              maxWidth: '100%',
-              aspectRatio: '16/9',
+              width: '100%',
+              maxWidth: '1280px',
+              aspectRatio: '16/9', // Enforce 16:9 landscape ratio
               background: THEMES[selectedTheme].background,
               backgroundSize: '15px 15px, 100%',
             }}
