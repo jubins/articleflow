@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { ToastContainer, useToast } from '@/components/ui/Toast'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
@@ -18,6 +20,7 @@ import { Mermaid } from '@/components/Mermaid'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
+import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
 import TurndownService from 'turndown'
 
 interface Profile {
@@ -31,6 +34,7 @@ interface Profile {
 
 export default function ArticleViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const toast = useToast()
   const [article, setArticle] = useState<Article | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,16 +46,39 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false)
+  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
+  const [displayContent, setDisplayContent] = useState('')
 
   useEffect(() => {
     loadArticle()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
+  // Process article content to replace mermaid diagrams with cached images
+  useEffect(() => {
+    if (article) {
+      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
+      setDisplayContent(processedContent)
+    }
+  }, [article])
+
   // Convert markdown to HTML when switching to rich text tab
   useEffect(() => {
     if (activeTab === 'richtext' && article && !isEditingRichText) {
-      setRichTextHtml(markdownToHtml(article.content))
+      // Process content to use cached diagram images
+      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
+
+      // If we have cached diagrams, always use processed content to show images
+      // Otherwise, use stored rich text content if available
+      if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
+        setRichTextHtml(markdownToHtml(processedContent))
+      } else {
+        setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+      }
     }
   }, [activeTab, article, isEditingRichText])
 
@@ -98,6 +125,10 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     setDownloading(format)
+
+    // Show info toast with long duration so it doesn't auto-close during download
+    toast.showToast(`Preparing ${format.toUpperCase()} download...`, 'info', 30000)
+
     try {
       const response = await fetch(`/api/articles/${article.id}/download?format=${format}`)
 
@@ -109,14 +140,21 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${article.file_id || article.id}.${format}`
+      a.download = `${article.id}.${format}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      // Close all current toasts before showing success
+      toast.toasts.forEach(t => toast.closeToast(t.id))
+      toast.success(`${format.toUpperCase()} file downloaded successfully!`)
     } catch (err) {
       console.error('Download error:', err)
       setError('Failed to download file')
+      // Close all current toasts before showing error
+      toast.toasts.forEach(t => toast.closeToast(t.id))
+      toast.error('Failed to download file')
     } finally {
       setDownloading(null)
     }
@@ -126,11 +164,29 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     try {
-      await navigator.clipboard.writeText(article.content)
+      // If on rich text tab, copy HTML format; otherwise copy markdown
+      if (activeTab === 'richtext' && richTextHtml) {
+        // Copy as HTML using clipboard API with multiple formats
+        const htmlBlob = new Blob([richTextHtml], { type: 'text/html' })
+        const textBlob = new Blob([displayContent || article.content], { type: 'text/plain' })
+
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob,
+          })
+        ])
+        toast.success('Rich text copied to clipboard!')
+      } else {
+        // Copy displayContent which has cached diagram images if available
+        await navigator.clipboard.writeText(displayContent || article.content)
+        toast.success('Content copied to clipboard!')
+      }
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (err) {
       console.error('Copy error:', err)
+      toast.error('Failed to copy content')
       setError('Failed to copy content')
     }
   }
@@ -139,6 +195,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
     setEditedContent(article.content)
     setIsEditingMarkdown(true)
+    setHasUnsavedChanges(false)
   }
 
   const handleSaveEdit = async () => {
@@ -161,13 +218,16 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       if (error) throw error
 
-      setArticle({ ...article, content: editedContent })
+      setArticle({ ...article, content: editedContent, rich_text_content: richTextHtml })
       setIsEditingMarkdown(false)
       setIsEditingRichText(false)
+      setHasUnsavedChanges(false)
       setError('')
+      toast.success('Changes saved successfully!')
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
+      toast.error('Failed to save changes')
     }
   }
 
@@ -175,7 +235,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setIsEditingMarkdown(false)
     setIsEditingRichText(false)
     setEditedContent('')
-    setRichTextHtml('')
+    setHasUnsavedChanges(false)
+    // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
   const handleSaveRichText = async () => {
@@ -203,14 +264,38 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       if (error) throw error
 
-      setArticle({ ...article, content: markdown })
+      setArticle({ ...article, content: markdown, rich_text_content: richTextHtml })
       setIsEditingRichText(false)
-      setRichTextHtml('')
+      setHasUnsavedChanges(false)
       setError('')
+      toast.success('Changes saved successfully!')
     } catch (err) {
       console.error('Save error:', err)
       setError('Failed to save changes')
+      toast.error('Failed to save changes')
     }
+  }
+
+  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
+    if (hasUnsavedChanges && (isEditingMarkdown || isEditingRichText)) {
+      setPendingTab(newTab)
+      setShowUnsavedModal(true)
+      return
+    }
+    setActiveTab(newTab)
+  }
+
+  const confirmTabChange = () => {
+    // Reset editing states if user confirms
+    setIsEditingMarkdown(false)
+    setIsEditingRichText(false)
+    setHasUnsavedChanges(false)
+    setEditedContent('')
+    if (pendingTab) {
+      setActiveTab(pendingTab)
+    }
+    setShowUnsavedModal(false)
+    setPendingTab(null)
   }
 
   if (loading) {
@@ -240,6 +325,20 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   return (
     <AuthLayout>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <ConfirmModal
+        isOpen={showUnsavedModal}
+        onClose={() => {
+          setShowUnsavedModal(false)
+          setPendingTab(null)
+        }}
+        onConfirm={confirmTabChange}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave this tab? Your changes will be lost."
+        confirmText="Leave"
+        cancelText="Stay"
+        variant="warning"
+      />
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -288,7 +387,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
             <div className="border-b border-gray-200">
               <div className="flex">
                 <button
-                  onClick={() => setActiveTab('preview')}
+                  onClick={() => handleTabChange('preview')}
                   className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                     activeTab === 'preview'
                       ? 'border-blue-600 text-blue-600'
@@ -300,7 +399,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 {article.article_type !== 'carousel' && (
                   <>
                     <button
-                      onClick={() => setActiveTab('markdown')}
+                      onClick={() => handleTabChange('markdown')}
                       className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                         activeTab === 'markdown'
                           ? 'border-blue-600 text-blue-600'
@@ -310,7 +409,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                       Markdown
                     </button>
                     <button
-                      onClick={() => setActiveTab('richtext')}
+                      onClick={() => handleTabChange('richtext')}
                       className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                         activeTab === 'richtext'
                           ? 'border-blue-600 text-blue-600'
@@ -323,7 +422,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 )}
                 {article.article_type === 'carousel' && (
                   <button
-                    onClick={() => setActiveTab('carousel')}
+                    onClick={() => handleTabChange('carousel')}
                     className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                       activeTab === 'carousel'
                         ? 'border-blue-600 text-blue-600'
@@ -382,7 +481,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     const language = match ? match[1] : ''
                     const code = String(children).replace(/\n$/, '')
 
-                    // Render Mermaid diagrams
+                    // Render Mermaid diagrams (only if not replaced by cached images)
+                    // If diagram_images exist, mermaid blocks will already be replaced with images
                     if (!inline && language === 'mermaid') {
                       return (
                         <Mermaid
@@ -426,7 +526,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   },
                 }}
               >
-                {article.content}
+                {displayContent}
               </ReactMarkdown>
 
               {/* Author Signature */}
@@ -559,13 +659,16 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   {isEditingMarkdown ? (
                     <textarea
                       value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
+                      onChange={(e) => {
+                        setEditedContent(e.target.value)
+                        setHasUnsavedChanges(true)
+                      }}
                       className="w-full bg-gray-50 p-6 rounded-lg text-sm font-mono text-gray-900 leading-relaxed border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
                       rows={20}
                     />
                   ) : (
                     <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
-                      {article.content}
+                      {displayContent}
                     </pre>
                   )}
                 </div>
@@ -581,7 +684,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                         <button
                           onClick={() => {
                             setIsEditingRichText(true)
-                            setRichTextHtml(markdownToHtml(article.content))
+                            setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+                            setHasUnsavedChanges(false)
                           }}
                           className="p-2 hover:bg-gray-100 rounded-md transition-colors"
                           title="Edit content"
@@ -650,7 +754,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   <div>
                     <RichTextEditor
                       content={richTextHtml}
-                      onChange={setRichTextHtml}
+                      onChange={(html) => {
+                        setRichTextHtml(html)
+                        if (isEditingRichText) {
+                          setHasUnsavedChanges(true)
+                        }
+                      }}
                       editable={isEditingRichText}
                     />
                   </div>

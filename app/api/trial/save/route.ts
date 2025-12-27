@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const { data: article, error: articleError } = await supabase
       .from('articles')
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
+      // @ts-ignore - Supabase type inference issue
       .insert({
         user_id: user.id,
         title,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (articleError) {
+    if (articleError || !article) {
       console.error('Failed to save trial article:', articleError)
       return NextResponse.json(
         { error: 'Failed to save article' },
@@ -93,9 +93,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const typedArticle = article as { id: string }
+
     return NextResponse.json({
       success: true,
-      articleId: article.id
+      articleId: typedArticle.id
     })
   } catch (error) {
     console.error('Error saving trial article:', error)
