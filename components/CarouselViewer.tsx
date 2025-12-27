@@ -238,19 +238,37 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
     const wasHidden = slideElement.classList.contains('hidden')
     if (wasHidden && showSlide) {
       slideElement.classList.remove('hidden')
-      // Wait for render
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for render and font loading
+      await new Promise(resolve => setTimeout(resolve, 300))
     }
 
     try {
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
-        scale: 2, // Good balance between quality and file size for 1280x720
+        scale: 2, // Higher scale for better quality (results in 3840×2160 for 4K quality)
         logging: false,
         useCORS: true,
         allowTaint: true,
-        windowWidth: 1280,
-        windowHeight: 720,
+        windowWidth: 1920, // Full HD width (16:9 at 144 DPI)
+        windowHeight: 1080, // Full HD height (16:9 at 144 DPI)
+        onclone: (clonedDoc) => {
+          // Ensure fonts are loaded in cloned document
+          const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
+          if (clonedElement) {
+            // Force font rendering and spacing
+            clonedElement.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            clonedElement.style.letterSpacing = '0.01em'
+            clonedElement.style.wordSpacing = '0.05em'
+
+            // Fix all text elements
+            const textElements = clonedElement.querySelectorAll('h2, h3, p, li, th, td, span')
+            textElements.forEach((el: Element) => {
+              const htmlEl = el as HTMLElement
+              htmlEl.style.letterSpacing = '0.01em'
+              htmlEl.style.wordSpacing = '0.05em'
+            })
+          }
+        }
       })
 
       // Hide the slide again if it was hidden
@@ -557,32 +575,32 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-14">
+    <div className="h-full flex flex-col p-14" data-slide-content>
       {/* Content area with constrained height */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-hidden">
+        <div className="h-full overflow-y-auto overflow-x-hidden">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
             components={{
               h2: ({ children }: { children?: ReactNode }) => (
-                <h2 className={`text-4xl font-bold ${theme.textColor} mb-5`}>{children}</h2>
+                <h2 className={`text-[2.5rem] leading-tight font-bold ${theme.textColor} mb-6 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h2>
               ),
               h3: ({ children }: { children?: ReactNode }) => (
-                <h3 className={`text-2xl font-semibold ${theme.textColor} mb-4`}>{children}</h3>
+                <h3 className={`text-[1.75rem] leading-snug font-semibold ${theme.textColor} mb-4 tracking-tight`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</h3>
               ),
               p: ({ children }: { children?: ReactNode }) => (
-                <p className={`text-xl ${theme.textColor} mb-4 leading-relaxed`}>{children}</p>
+                <p className={`text-[1.25rem] leading-relaxed ${theme.textColor} mb-4`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em', lineHeight: '1.8' }}>{children}</p>
               ),
               ul: ({ children }: { children?: ReactNode }) => (
-                <ul className={`text-xl ${theme.textColor} space-y-2 mb-5 list-disc pl-6`}>{children}</ul>
+                <ul className={`text-[1.25rem] ${theme.textColor} space-y-3 mb-5 list-disc pl-8`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</ul>
               ),
               li: ({ children }: { children?: ReactNode }) => (
-                <li className="leading-relaxed">{children}</li>
+                <li className="leading-relaxed" style={{ lineHeight: '1.8' }}>{children}</li>
               ),
               table: ({ children }: { children?: ReactNode }) => (
-                <div className="my-5 overflow-x-auto">
-                  <table className={`min-w-full border-collapse ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}>
+                <div className="my-6 overflow-x-auto">
+                  <table className={`w-full border-collapse ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`} style={{ maxWidth: '100%' }}>
                     {children}
                   </table>
                 </div>
@@ -597,10 +615,10 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 <tr className={`border-b ${theme.isDark ? 'border-gray-700' : 'border-gray-200'}`}>{children}</tr>
               ),
               th: ({ children }: { children?: ReactNode }) => (
-                <th className={`px-4 py-3 text-left text-base font-semibold ${theme.textColor}`}>{children}</th>
+                <th className={`px-5 py-3 text-left text-[1.125rem] font-semibold ${theme.textColor}`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</th>
               ),
               td: ({ children }: { children?: ReactNode }) => (
-                <td className={`px-4 py-3 text-base ${theme.textColor}`}>{children}</td>
+                <td className={`px-5 py-3 text-[1.125rem] ${theme.textColor}`} style={{ letterSpacing: '0.01em', wordSpacing: '0.05em' }}>{children}</td>
               ),
               code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
                 const match = /language-(\w+)/.exec(className || '')
@@ -634,31 +652,31 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
 
                     // Wrap in white background for dark themes or themes that need white diagram backgrounds
                     if (isDark || needsWhiteBg) {
-                      // Inject white background and constrain SVG size
+                      // Inject white background and constrain SVG size with fixed dimensions
                       svg = svg.replace(
                         '<svg',
-                        '<svg style="max-width: 100%; max-height: 480px; height: auto; width: auto; background: white; padding: 20px; border-radius: 8px;"'
+                        '<svg style="max-width: 95%; max-height: 400px; min-height: 250px; height: auto; width: auto; background: white; padding: 24px; border-radius: 8px; display: block; margin: 0 auto;"'
                       )
 
                       return (
                         <div
-                          className="flex justify-center items-center my-5"
-                          style={{ maxHeight: '520px', overflow: 'visible' }}
+                          className="flex justify-center items-center my-6"
+                          style={{ maxHeight: '450px', minHeight: '300px', overflow: 'hidden' }}
                           dangerouslySetInnerHTML={{ __html: svg }}
                         />
                       )
                     }
 
-                    // For other light themes, just constrain size
+                    // For other light themes, just constrain size with fixed dimensions
                     svg = svg.replace(
                       '<svg',
-                      '<svg style="max-width: 100%; max-height: 480px; height: auto; width: auto;"'
+                      '<svg style="max-width: 95%; max-height: 400px; min-height: 250px; height: auto; width: auto; display: block; margin: 0 auto;"'
                     )
 
                     return (
                       <div
-                        className="flex justify-center items-center my-5"
-                        style={{ maxHeight: '520px', overflow: 'visible' }}
+                        className="flex justify-center items-center my-6"
+                        style={{ maxHeight: '450px', minHeight: '300px', overflow: 'hidden' }}
                         dangerouslySetInnerHTML={{ __html: svg }}
                       />
                     )
