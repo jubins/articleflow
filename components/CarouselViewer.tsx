@@ -11,6 +11,7 @@ import html2canvas from 'html2canvas'
 import mermaid from 'mermaid'
 import { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast, ToastContainer } from './ui/Toast'
 
 interface CarouselViewerProps {
   content: string
@@ -97,6 +98,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const [savingTheme, setSavingTheme] = useState(false)
   const [displayTeaser, setDisplayTeaser] = useState('')
   const slideRefs = useRef<(HTMLDivElement | null)[]>([])
+  const { toasts, success: showSuccessToast, closeToast } = useToast()
 
   // Initialize mermaid
   useEffect(() => {
@@ -310,13 +312,15 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
   const copyTeaserText = () => {
     if (displayTeaser) {
       navigator.clipboard.writeText(displayTeaser)
-      alert('Teaser text copied to clipboard!')
+      showSuccessToast('Teaser text copied to clipboard!', 3000)
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Theme Selector */}
+    <>
+      <ToastContainer toasts={toasts} onClose={closeToast} />
+      <div className="space-y-6">
+        {/* Theme Selector */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Slide Theme</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -497,6 +501,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         </div>
       </div>
     </div>
+    </>
   )
 }
 
