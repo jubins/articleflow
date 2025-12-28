@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PPTXGeneratorService } from '@/lib/services/pptx-generator'
-import { R2StorageService } from '@/lib/services/r2-storage'
-import sharp from 'sharp'
 import crypto from 'crypto'
-import mermaid from 'mermaid'
 import { getCachedDiagramUrl, saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
@@ -103,16 +100,6 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
       slides = altSlides.length > 1 ? altSlides : [content]
     }
 
-    // Initialize mermaid
-    if (typeof mermaid !== 'undefined') {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose',
-      })
-    }
-
-    const r2Service = new R2StorageService()
 
     // Extract and upload diagrams from each slide
     for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
@@ -150,61 +137,21 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
             console.log(`Checking if diagram exists in R2: ${expectedUrl}`)
 
             // Try to fetch existing diagram from R2
-            let diagramUrl = expectedUrl
-            let shouldUpload = false
-
             try {
               const headResponse = await fetch(expectedUrl, { method: 'HEAD' })
               if (headResponse.ok) {
                 console.log(`✓ Diagram found in R2, reusing it`)
-                diagramUrl = expectedUrl
                 // Save to cache for future use
-                await saveDiagramToCache(articleId, diagramCode, diagramUrl)
+                await saveDiagramToCache(articleId, diagramCode, expectedUrl)
+                urls.push(expectedUrl)
               } else {
-                console.log(`✗ Diagram not found in R2 (${headResponse.status}), will render and upload`)
-                shouldUpload = true
+                console.warn(`⚠ Diagram not found in R2 (${headResponse.status}). Please view the carousel first to generate diagrams.`)
+                // Skip this diagram - it needs to be generated client-side first
               }
             } catch (error) {
-              console.log('✗ Error checking R2, will render and upload:', error)
-              shouldUpload = true
+              console.warn(`⚠ Error checking R2 for diagram ${diagramIndex + 1} on slide ${slideIndex + 1}:`, error)
+              // Skip this diagram
             }
-
-            // If diagram doesn't exist in R2, render and upload it
-            if (shouldUpload) {
-              console.log(`Rendering diagram ${diagramIndex + 1} for slide ${slideIndex + 1} server-side...`)
-
-              // Render Mermaid diagram to SVG server-side
-              const { svg } = await mermaid.render(
-                `pptx-diagram-${slideIndex}-${diagramIndex}`,
-                diagramCode
-              )
-
-              // Convert SVG string to buffer
-              const svgBuffer = Buffer.from(svg, 'utf-8')
-
-              // Convert SVG to WebP using sharp with proper density for quality
-              const webpBuffer = await sharp(svgBuffer, {
-                density: 150 // Higher DPI for better quality
-              })
-                .webp({ quality: 90 })
-                .toBuffer()
-
-              // Upload to R2
-              const uploadResult = await r2Service.upload({
-                buffer: webpBuffer,
-                contentType: 'image/webp',
-                fileName,
-                folder: `articles/${articleId}/diagrams`,
-              })
-
-              console.log(`Uploaded new diagram to R2: ${uploadResult.url}`)
-              diagramUrl = uploadResult.url
-
-              // Save to cache for future use
-              await saveDiagramToCache(articleId, diagramCode, diagramUrl)
-            }
-
-            urls.push(diagramUrl)
           } catch (error) {
             console.error(`Failed to process diagram ${diagramIndex + 1} for slide ${slideIndex + 1}:`, error)
           }
