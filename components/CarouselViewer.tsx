@@ -97,9 +97,14 @@ let isMermaidInitialized = false
 function inlineSvgStyles(svg: SVGElement): { svg: SVGElement; hasContent: boolean } {
   const clone = svg.cloneNode(true) as SVGElement
 
-  // Check if SVG has any text content
+  // Check if SVG has any text content (SVG text elements OR foreignObject HTML content)
   const textElements = clone.querySelectorAll('text, tspan')
-  const hasTextContent = Array.from(textElements).some(el => el.textContent?.trim())
+  const foreignObjects = clone.querySelectorAll('foreignObject')
+
+  const hasSvgText = Array.from(textElements).some(el => el.textContent?.trim())
+  const hasForeignObjectText = Array.from(foreignObjects).some(el => el.textContent?.trim())
+
+  const hasTextContent = hasSvgText || hasForeignObjectText
 
   if (!hasTextContent) {
     console.warn('SVG has no text content - may be incomplete')
