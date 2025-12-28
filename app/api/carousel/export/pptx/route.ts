@@ -130,9 +130,13 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
             const hash = crypto.createHash('md5').update(diagramCode).digest('hex').substring(0, 8)
             const fileName = `carousel-diagram-${slideIndex}-${hash}.webp`
 
-            // Construct expected R2 URL
-            const r2AccountId = process.env.R2_ACCOUNT_ID
-            const expectedUrl = `https://pub-${r2AccountId}.r2.dev/articles/${articleId}/diagrams/${fileName}`
+            // Construct expected R2 URL using R2_PUBLIC_URL
+            const r2PublicUrl = process.env.R2_PUBLIC_URL
+            if (!r2PublicUrl) {
+              console.error('R2_PUBLIC_URL environment variable not set')
+              continue
+            }
+            const expectedUrl = `${r2PublicUrl}/articles/${articleId}/diagrams/${fileName}`
 
             console.log(`Checking if diagram exists in R2: ${expectedUrl}`)
 
