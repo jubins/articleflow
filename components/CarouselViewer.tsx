@@ -93,6 +93,118 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
 // Initialize mermaid once
 let isMermaidInitialized = false
 
+// Helper function to inline all computed styles for SVG elements
+function inlineSvgStyles(svg: SVGElement): { svg: SVGElement; hasContent: boolean } {
+  const clone = svg.cloneNode(true) as SVGElement
+
+  // Check if SVG has any text content
+  const textElements = clone.querySelectorAll('text, tspan')
+  const hasTextContent = Array.from(textElements).some(el => el.textContent?.trim())
+
+  if (!hasTextContent) {
+    console.warn('SVG has no text content - may be incomplete')
+    return { svg: clone, hasContent: false }
+  }
+
+  // Process all style tags and apply inline
+  const styleTags = clone.querySelectorAll('style')
+  const cssRules: { selector: string; rules: string }[] = []
+
+  styleTags.forEach(styleTag => {
+    const cssText = styleTag.textContent || ''
+    // Parse CSS rules (basic parser for simple selectors)
+    const ruleMatches = Array.from(cssText.matchAll(/([^{]+)\{([^}]+)\}/g))
+    for (const match of ruleMatches) {
+      const selector = match[1].trim()
+      const rules = match[2].trim()
+      cssRules.push({ selector, rules })
+    }
+  })
+
+  // Get all elements and inline their computed styles
+  const allElements = clone.querySelectorAll('*')
+  const sourceElements = svg.querySelectorAll('*')
+
+  allElements.forEach((element, index) => {
+    const sourceElement = sourceElements[index]
+    if (!sourceElement) return
+
+    const computedStyle = window.getComputedStyle(sourceElement)
+    const tagName = element.tagName.toLowerCase()
+
+    // Comprehensive list of SVG properties to preserve
+    const svgProperties = [
+      // Text properties
+      'font-family', 'font-size', 'font-weight', 'font-style',
+      'text-anchor', 'dominant-baseline', 'text-decoration',
+      'letter-spacing', 'word-spacing', 'line-height',
+      // Color and fill
+      'fill', 'stroke', 'color',
+      // Stroke properties
+      'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+      'stroke-dasharray', 'stroke-opacity',
+      // General properties
+      'opacity', 'visibility', 'display',
+      // Transform
+      'transform', 'transform-origin',
+    ]
+
+    const styles: Record<string, string> = {}
+
+    // Get computed styles
+    svgProperties.forEach(prop => {
+      const value = computedStyle.getPropertyValue(prop)
+      if (value && value !== '' && value !== 'none' && value !== 'normal') {
+        styles[prop] = value
+      }
+    })
+
+    // Apply CSS rules that match this element
+    cssRules.forEach(({ selector, rules }) => {
+      // Simple selector matching (handles .class, #id, tag)
+      if (
+        (selector.startsWith('.') && element.classList.contains(selector.slice(1))) ||
+        (selector.startsWith('#') && element.id === selector.slice(1)) ||
+        (selector === tagName)
+      ) {
+        const rulePairs = rules.split(';').filter(r => r.trim())
+        rulePairs.forEach(pair => {
+          const [prop, value] = pair.split(':').map(s => s.trim())
+          if (prop && value) {
+            styles[prop] = value
+          }
+        })
+      }
+    })
+
+    // Build style string
+    const existingStyle = (element as HTMLElement).getAttribute('style') || ''
+    const newStyles = Object.entries(styles)
+      .map(([prop, value]) => `${prop}:${value}`)
+      .join(';')
+
+    if (newStyles) {
+      (element as HTMLElement).setAttribute('style',
+        existingStyle ? `${existingStyle};${newStyles}` : newStyles
+      )
+    }
+
+    // Ensure text elements have explicit fill color
+    if (tagName === 'text' || tagName === 'tspan') {
+      const currentStyle = (element as HTMLElement).getAttribute('style') || ''
+      if (!currentStyle.includes('fill:')) {
+        const fillColor = computedStyle.fill || computedStyle.color || '#000000'
+        ;(element as HTMLElement).setAttribute('style', `${currentStyle};fill:${fillColor}`)
+      }
+    }
+  })
+
+  // Remove style tags as they're now inlined
+  styleTags.forEach(tag => tag.remove())
+
+  return { svg: clone, hasContent: true }
+}
+
 export function CarouselViewer({ content, title, linkedinTeaser, articleId, cachedDiagrams = {} }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
@@ -233,118 +345,6 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId, cach
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [nextSlide, prevSlide])
-
-  // Helper function to inline all computed styles for SVG elements
-  const inlineSvgStyles = (svg: SVGElement): { svg: SVGElement; hasContent: boolean } => {
-    const clone = svg.cloneNode(true) as SVGElement
-
-    // Check if SVG has any text content
-    const textElements = clone.querySelectorAll('text, tspan')
-    const hasTextContent = Array.from(textElements).some(el => el.textContent?.trim())
-
-    if (!hasTextContent) {
-      console.warn('SVG has no text content - may be incomplete')
-      return { svg: clone, hasContent: false }
-    }
-
-    // Process all style tags and apply inline
-    const styleTags = clone.querySelectorAll('style')
-    const cssRules: { selector: string; rules: string }[] = []
-
-    styleTags.forEach(styleTag => {
-      const cssText = styleTag.textContent || ''
-      // Parse CSS rules (basic parser for simple selectors)
-      const ruleMatches = Array.from(cssText.matchAll(/([^{]+)\{([^}]+)\}/g))
-      for (const match of ruleMatches) {
-        const selector = match[1].trim()
-        const rules = match[2].trim()
-        cssRules.push({ selector, rules })
-      }
-    })
-
-    // Get all elements and inline their computed styles
-    const allElements = clone.querySelectorAll('*')
-    const sourceElements = svg.querySelectorAll('*')
-
-    allElements.forEach((element, index) => {
-      const sourceElement = sourceElements[index]
-      if (!sourceElement) return
-
-      const computedStyle = window.getComputedStyle(sourceElement)
-      const tagName = element.tagName.toLowerCase()
-
-      // Comprehensive list of SVG properties to preserve
-      const svgProperties = [
-        // Text properties
-        'font-family', 'font-size', 'font-weight', 'font-style',
-        'text-anchor', 'dominant-baseline', 'text-decoration',
-        'letter-spacing', 'word-spacing', 'line-height',
-        // Color and fill
-        'fill', 'stroke', 'color',
-        // Stroke properties
-        'stroke-width', 'stroke-linecap', 'stroke-linejoin',
-        'stroke-dasharray', 'stroke-opacity',
-        // General properties
-        'opacity', 'visibility', 'display',
-        // Transform
-        'transform', 'transform-origin',
-      ]
-
-      const styles: Record<string, string> = {}
-
-      // Get computed styles
-      svgProperties.forEach(prop => {
-        const value = computedStyle.getPropertyValue(prop)
-        if (value && value !== '' && value !== 'none' && value !== 'normal') {
-          styles[prop] = value
-        }
-      })
-
-      // Apply CSS rules that match this element
-      cssRules.forEach(({ selector, rules }) => {
-        // Simple selector matching (handles .class, #id, tag)
-        if (
-          (selector.startsWith('.') && element.classList.contains(selector.slice(1))) ||
-          (selector.startsWith('#') && element.id === selector.slice(1)) ||
-          (selector === tagName)
-        ) {
-          const rulePairs = rules.split(';').filter(r => r.trim())
-          rulePairs.forEach(pair => {
-            const [prop, value] = pair.split(':').map(s => s.trim())
-            if (prop && value) {
-              styles[prop] = value
-            }
-          })
-        }
-      })
-
-      // Build style string
-      const existingStyle = (element as HTMLElement).getAttribute('style') || ''
-      const newStyles = Object.entries(styles)
-        .map(([prop, value]) => `${prop}:${value}`)
-        .join(';')
-
-      if (newStyles) {
-        (element as HTMLElement).setAttribute('style',
-          existingStyle ? `${existingStyle};${newStyles}` : newStyles
-        )
-      }
-
-      // Ensure text elements have explicit fill color
-      if (tagName === 'text' || tagName === 'tspan') {
-        const currentStyle = (element as HTMLElement).getAttribute('style') || ''
-        if (!currentStyle.includes('fill:')) {
-          const fillColor = computedStyle.fill || computedStyle.color || '#000000'
-          ;(element as HTMLElement).setAttribute('style', `${currentStyle};fill:${fillColor}`)
-        }
-      }
-    })
-
-    // Remove style tags as they're now inlined
-    styleTags.forEach(tag => tag.remove())
-
-    return { svg: clone, hasContent: true }
-  }
 
   const downloadSlideAsWebP = async (index: number, showSlide = false) => {
     const slideElement = slideRefs.current[index]
@@ -914,6 +914,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId, cach
               totalSlides={slides.length}
               theme={THEMES[selectedTheme]}
               cachedDiagrams={cachedDiagrams}
+              articleId={articleId}
             />
           </div>
         ))}
@@ -951,7 +952,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId, cach
 }
 
 // Separate component for slide content rendering
-function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams = {} }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle; cachedDiagrams?: Record<string, string> }) {
+function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams = {}, articleId }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle; cachedDiagrams?: Record<string, string>; articleId?: string }) {
   const [processedContent, setProcessedContent] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(true)
 
@@ -1026,6 +1027,73 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
     // It's only used as a lookup during processing, not as a render trigger
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide, slideNumber, theme])
+
+  // Auto-upload diagrams to R2 after rendering (for PPTX export)
+  useEffect(() => {
+    if (!processedContent || !articleId) return
+
+    const uploadDiagramsInBackground = async () => {
+      // Wait for DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Find all rendered SVG diagrams with mermaid code
+      const svgElements = document.querySelectorAll(`[data-slide-content] svg[data-mermaid-code]`)
+
+      if (svgElements.length === 0) return
+
+      console.log(`[Auto-upload] Found ${svgElements.length} diagrams to upload in background`)
+
+      // Upload each diagram
+      for (let i = 0; i < svgElements.length; i++) {
+        const svg = svgElements[i] as SVGElement
+        const mermaidCode = svg.getAttribute('data-mermaid-code')
+
+        if (!mermaidCode) continue
+
+        try {
+          const decodedCode = decodeURIComponent(mermaidCode)
+
+          // Inline styles and serialize
+          const { svg: styledSvg, hasContent } = inlineSvgStyles(svg)
+
+          if (!hasContent) {
+            console.warn(`[Auto-upload] Skipping diagram ${i + 1} - no content`)
+            continue
+          }
+
+          const serializer = new XMLSerializer()
+          const svgString = serializer.serializeToString(styledSvg)
+
+          // Upload to R2
+          console.log(`[Auto-upload] Uploading diagram ${i + 1}/${svgElements.length}`)
+
+          const response = await fetch('/api/carousel/diagrams/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              svg: svgString,
+              slideIndex: slideNumber - 1,
+              articleId,
+              mermaidCode: decodedCode,
+            }),
+          })
+
+          if (response.ok) {
+            const { url } = await response.json()
+            console.log(`[Auto-upload] ✓ Diagram ${i + 1} uploaded:`, url)
+          } else {
+            console.warn(`[Auto-upload] Failed to upload diagram ${i + 1}:`, response.statusText)
+          }
+        } catch (error) {
+          console.error(`[Auto-upload] Error uploading diagram ${i + 1}:`, error)
+        }
+      }
+
+      console.log(`[Auto-upload] Finished uploading ${svgElements.length} diagrams`)
+    }
+
+    uploadDiagramsInBackground()
+  }, [processedContent, articleId, slideNumber])
 
   if (isProcessing) {
     return (
