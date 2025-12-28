@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { R2StorageService } from '@/lib/services/r2-storage'
-import sharp from 'sharp'
 import crypto from 'crypto'
 import { saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
@@ -57,19 +56,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Converting carousel diagram to WebP. SVG length:', cleanSvg.length)
+    console.log('Uploading carousel diagram as SVG. Length:', cleanSvg.length)
 
     // Convert SVG string to buffer with UTF-8 encoding
     const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
 
-    // Convert SVG to WebP using sharp with proper density for better quality
-    const webpBuffer = await sharp(svgBuffer, {
-      density: 150 // Higher DPI for better quality
-    })
-      .webp({ quality: 90 })
-      .toBuffer()
-
-    console.log('Successfully converted to WebP. Size:', webpBuffer.length, 'bytes')
+    console.log('SVG buffer size:', svgBuffer.length, 'bytes')
 
     // Upload to R2
     const r2Service = new R2StorageService()
@@ -78,13 +70,13 @@ export async function POST(request: NextRequest) {
     // This ensures consistent naming with PPTX export
     const hashSource = mermaidCode || cleanSvg
     const hash = crypto.createHash('md5').update(hashSource).digest('hex').substring(0, 8)
-    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.webp`
+    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.svg`
 
     console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using SVG hash)'}`)
 
     const uploadResult = await r2Service.upload({
-      buffer: webpBuffer,
-      contentType: 'image/webp',
+      buffer: svgBuffer,
+      contentType: 'image/svg+xml',
       fileName,
       folder: `articles/${articleId}/diagrams`,
     })
