@@ -205,6 +205,66 @@ function inlineSvgStyles(svg: SVGElement): { svg: SVGElement; hasContent: boolea
   return { svg: clone, hasContent: true }
 }
 
+// Helper function to upload diagram to R2 immediately after rendering
+async function uploadDiagramToR2(
+  svgString: string,
+  mermaidCode: string,
+  slideIndex: number,
+  articleId: string
+): Promise<void> {
+  try {
+    console.log(`[Diagram Upload] Starting upload for slide ${slideIndex + 1}`)
+
+    // Parse SVG and inline styles
+    const parser = new DOMParser()
+    const svgDoc = parser.parseFromString(svgString, 'image/svg+xml')
+    const svgElement = svgDoc.querySelector('svg')
+
+    if (!svgElement) {
+      console.error('[Diagram Upload] Failed to parse SVG element')
+      return
+    }
+
+    // Inline styles and validate content
+    const { svg: styledSvg, hasContent } = inlineSvgStyles(svgElement)
+
+    if (!hasContent) {
+      console.warn('[Diagram Upload] Skipping - SVG has no text content')
+      return
+    }
+
+    // Serialize SVG
+    const serializer = new XMLSerializer()
+    const styledSvgString = serializer.serializeToString(styledSvg)
+
+    console.log(`[Diagram Upload] Serialized SVG length: ${styledSvgString.length} bytes`)
+
+    // Upload to R2
+    const response = await fetch('/api/carousel/diagrams/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        svg: styledSvgString,
+        slideIndex,
+        articleId,
+        mermaidCode,
+      }),
+    })
+
+    if (response.ok) {
+      const { url, key } = await response.json()
+      console.log(`[Diagram Upload] ✓ Successfully uploaded to R2`)
+      console.log(`[Diagram Upload]   URL: ${url}`)
+      console.log(`[Diagram Upload]   Key: ${key}`)
+    } else {
+      const errorText = await response.text()
+      console.error(`[Diagram Upload] ✗ Upload failed (${response.status}): ${errorText}`)
+    }
+  } catch (error) {
+    console.error('[Diagram Upload] ✗ Error:', error)
+  }
+}
+
 export function CarouselViewer({ content, title, linkedinTeaser, articleId, cachedDiagrams = {} }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
@@ -1009,6 +1069,13 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
             }
           }
 
+          // Upload diagram to R2 immediately after rendering (when we have full SVG with text)
+          if (articleId && svgElement) {
+            uploadDiagramToR2(svg, diagramCode, slideNumber - 1, articleId).catch(error => {
+              console.error('[Diagram Upload] Failed to upload:', error)
+            })
+          }
+
           // Store SVG and create placeholder with orientation data and original mermaid code
           const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-mermaid-code="${encodeURIComponent(diagramCode)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="${isPortrait}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
@@ -1027,100 +1094,6 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
     // It's only used as a lookup during processing, not as a render trigger
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide, slideNumber, theme])
-
-  // Auto-upload diagrams to R2 after rendering (for PPTX export)
-  useEffect(() => {
-    if (!processedContent || !articleId) {
-      console.log('[Auto-upload] Skipping - no content or articleId')
-      return
-    }
-
-    const uploadDiagramsInBackground = async () => {
-      // Wait for DOM to be ready
-      console.log('[Auto-upload] Waiting for DOM to be ready...')
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Find all rendered SVG diagrams with mermaid code
-      const svgElements = document.querySelectorAll(`[data-slide-content] svg[data-mermaid-code]`)
-      console.log(`[Auto-upload] Found ${svgElements.length} SVG elements with data-mermaid-code attribute`)
-
-      if (svgElements.length === 0) {
-        // Debug: check what's actually in the DOM
-        const slideContent = document.querySelector('[data-slide-content]')
-        if (slideContent) {
-          const allSvgs = slideContent.querySelectorAll('svg')
-          console.log(`[Auto-upload] Found ${allSvgs.length} total SVG elements in slide content`)
-          if (allSvgs.length > 0) {
-            console.log('[Auto-upload] SVG found but missing data-mermaid-code attribute')
-            console.log('[Auto-upload] First SVG attributes:', Array.from(allSvgs[0].attributes).map(a => `${a.name}="${a.value}"`))
-          }
-        } else {
-          console.log('[Auto-upload] No [data-slide-content] element found')
-        }
-        return
-      }
-
-      console.log(`[Auto-upload] Starting upload of ${svgElements.length} diagrams for slide ${slideNumber}`)
-
-      // Upload each diagram
-      for (let i = 0; i < svgElements.length; i++) {
-        const svg = svgElements[i] as SVGElement
-        const mermaidCode = svg.getAttribute('data-mermaid-code')
-
-        if (!mermaidCode) {
-          console.warn(`[Auto-upload] Diagram ${i + 1} has no mermaid code attribute`)
-          continue
-        }
-
-        try {
-          const decodedCode = decodeURIComponent(mermaidCode)
-          console.log(`[Auto-upload] Processing diagram ${i + 1}/${svgElements.length} (${decodedCode.substring(0, 50)}...)`)
-
-          // Inline styles and serialize
-          const { svg: styledSvg, hasContent } = inlineSvgStyles(svg)
-
-          if (!hasContent) {
-            console.warn(`[Auto-upload] Skipping diagram ${i + 1} - no text content`)
-            continue
-          }
-
-          const serializer = new XMLSerializer()
-          const svgString = serializer.serializeToString(styledSvg)
-          console.log(`[Auto-upload] Serialized SVG length: ${svgString.length} bytes`)
-
-          // Upload to R2
-          console.log(`[Auto-upload] Uploading diagram ${i + 1} to articles/${articleId}/diagrams/...`)
-
-          const response = await fetch('/api/carousel/diagrams/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              svg: svgString,
-              slideIndex: slideNumber - 1,
-              articleId,
-              mermaidCode: decodedCode,
-            }),
-          })
-
-          if (response.ok) {
-            const { url, key } = await response.json()
-            console.log(`[Auto-upload] ✓ Diagram ${i + 1} uploaded successfully`)
-            console.log(`[Auto-upload]   URL: ${url}`)
-            console.log(`[Auto-upload]   Key: ${key}`)
-          } else {
-            const errorText = await response.text()
-            console.error(`[Auto-upload] ✗ Failed to upload diagram ${i + 1} (${response.status}): ${errorText}`)
-          }
-        } catch (error) {
-          console.error(`[Auto-upload] ✗ Error uploading diagram ${i + 1}:`, error)
-        }
-      }
-
-      console.log(`[Auto-upload] ✓ Finished processing ${svgElements.length} diagrams for slide ${slideNumber}`)
-    }
-
-    uploadDiagramsInBackground()
-  }, [processedContent, articleId, slideNumber])
 
   if (isProcessing) {
     return (
