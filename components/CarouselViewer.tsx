@@ -904,7 +904,7 @@ export function CarouselViewer({ content, title, linkedinTeaser, articleId, cach
               width: '100%',
               maxWidth: '1280px',
               aspectRatio: '16/9', // Enforce 16:9 landscape ratio
-              background: THEMES[selectedTheme].background,
+              backgroundImage: THEMES[selectedTheme].background,
               backgroundSize: '100%, 100%, 100%, 100%, 20px 20px, 100%',
             }}
           >
@@ -1030,42 +1030,66 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
 
   // Auto-upload diagrams to R2 after rendering (for PPTX export)
   useEffect(() => {
-    if (!processedContent || !articleId) return
+    if (!processedContent || !articleId) {
+      console.log('[Auto-upload] Skipping - no content or articleId')
+      return
+    }
 
     const uploadDiagramsInBackground = async () => {
       // Wait for DOM to be ready
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('[Auto-upload] Waiting for DOM to be ready...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Find all rendered SVG diagrams with mermaid code
       const svgElements = document.querySelectorAll(`[data-slide-content] svg[data-mermaid-code]`)
+      console.log(`[Auto-upload] Found ${svgElements.length} SVG elements with data-mermaid-code attribute`)
 
-      if (svgElements.length === 0) return
+      if (svgElements.length === 0) {
+        // Debug: check what's actually in the DOM
+        const slideContent = document.querySelector('[data-slide-content]')
+        if (slideContent) {
+          const allSvgs = slideContent.querySelectorAll('svg')
+          console.log(`[Auto-upload] Found ${allSvgs.length} total SVG elements in slide content`)
+          if (allSvgs.length > 0) {
+            console.log('[Auto-upload] SVG found but missing data-mermaid-code attribute')
+            console.log('[Auto-upload] First SVG attributes:', Array.from(allSvgs[0].attributes).map(a => `${a.name}="${a.value}"`))
+          }
+        } else {
+          console.log('[Auto-upload] No [data-slide-content] element found')
+        }
+        return
+      }
 
-      console.log(`[Auto-upload] Found ${svgElements.length} diagrams to upload in background`)
+      console.log(`[Auto-upload] Starting upload of ${svgElements.length} diagrams for slide ${slideNumber}`)
 
       // Upload each diagram
       for (let i = 0; i < svgElements.length; i++) {
         const svg = svgElements[i] as SVGElement
         const mermaidCode = svg.getAttribute('data-mermaid-code')
 
-        if (!mermaidCode) continue
+        if (!mermaidCode) {
+          console.warn(`[Auto-upload] Diagram ${i + 1} has no mermaid code attribute`)
+          continue
+        }
 
         try {
           const decodedCode = decodeURIComponent(mermaidCode)
+          console.log(`[Auto-upload] Processing diagram ${i + 1}/${svgElements.length} (${decodedCode.substring(0, 50)}...)`)
 
           // Inline styles and serialize
           const { svg: styledSvg, hasContent } = inlineSvgStyles(svg)
 
           if (!hasContent) {
-            console.warn(`[Auto-upload] Skipping diagram ${i + 1} - no content`)
+            console.warn(`[Auto-upload] Skipping diagram ${i + 1} - no text content`)
             continue
           }
 
           const serializer = new XMLSerializer()
           const svgString = serializer.serializeToString(styledSvg)
+          console.log(`[Auto-upload] Serialized SVG length: ${svgString.length} bytes`)
 
           // Upload to R2
-          console.log(`[Auto-upload] Uploading diagram ${i + 1}/${svgElements.length}`)
+          console.log(`[Auto-upload] Uploading diagram ${i + 1} to articles/${articleId}/diagrams/...`)
 
           const response = await fetch('/api/carousel/diagrams/upload', {
             method: 'POST',
@@ -1079,17 +1103,20 @@ function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams =
           })
 
           if (response.ok) {
-            const { url } = await response.json()
-            console.log(`[Auto-upload] ✓ Diagram ${i + 1} uploaded:`, url)
+            const { url, key } = await response.json()
+            console.log(`[Auto-upload] ✓ Diagram ${i + 1} uploaded successfully`)
+            console.log(`[Auto-upload]   URL: ${url}`)
+            console.log(`[Auto-upload]   Key: ${key}`)
           } else {
-            console.warn(`[Auto-upload] Failed to upload diagram ${i + 1}:`, response.statusText)
+            const errorText = await response.text()
+            console.error(`[Auto-upload] ✗ Failed to upload diagram ${i + 1} (${response.status}): ${errorText}`)
           }
         } catch (error) {
-          console.error(`[Auto-upload] Error uploading diagram ${i + 1}:`, error)
+          console.error(`[Auto-upload] ✗ Error uploading diagram ${i + 1}:`, error)
         }
       }
 
-      console.log(`[Auto-upload] Finished uploading ${svgElements.length} diagrams`)
+      console.log(`[Auto-upload] ✓ Finished processing ${svgElements.length} diagrams for slide ${slideNumber}`)
     }
 
     uploadDiagramsInBackground()
