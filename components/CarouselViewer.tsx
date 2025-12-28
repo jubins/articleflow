@@ -214,6 +214,8 @@ async function uploadDiagramToR2(
 ): Promise<void> {
   try {
     console.log(`[Diagram Upload] Starting upload for slide ${slideIndex + 1}`)
+    console.log(`[Diagram Upload] SVG string length: ${svgString.length}`)
+    console.log(`[Diagram Upload] SVG preview (first 500 chars):`, svgString.substring(0, 500))
 
     // Parse SVG and inline styles
     const parser = new DOMParser()
@@ -225,11 +227,25 @@ async function uploadDiagramToR2(
       return
     }
 
+    // Debug: Check what elements are in the SVG
+    const textElements = svgElement.querySelectorAll('text, tspan')
+    const foreignObjects = svgElement.querySelectorAll('foreignObject')
+    const divElements = svgElement.querySelectorAll('div')
+    console.log(`[Diagram Upload] Found ${textElements.length} text/tspan elements, ${foreignObjects.length} foreignObject elements, ${divElements.length} div elements`)
+
+    if (textElements.length > 0) {
+      console.log(`[Diagram Upload] First text element content:`, textElements[0].textContent)
+    }
+    if (foreignObjects.length > 0) {
+      console.log(`[Diagram Upload] First foreignObject innerHTML:`, foreignObjects[0].innerHTML.substring(0, 200))
+    }
+
     // Inline styles and validate content
     const { svg: styledSvg, hasContent } = inlineSvgStyles(svgElement)
 
     if (!hasContent) {
       console.warn('[Diagram Upload] Skipping - SVG has no text content')
+      console.warn('[Diagram Upload] This diagram may use foreignObject or other non-text elements')
       return
     }
 
