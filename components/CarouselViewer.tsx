@@ -224,10 +224,14 @@ async function uploadDiagramToR2(
 
     // Create a temporary off-screen container for rendering
     const tempContainer = document.createElement('div')
-    tempContainer.style.position = 'absolute'
+    tempContainer.style.position = 'fixed'
     tempContainer.style.left = '-9999px'
-    tempContainer.style.top = '-9999px'
-    tempContainer.style.visibility = 'hidden'
+    tempContainer.style.top = '0'
+    tempContainer.style.width = 'auto'
+    tempContainer.style.height = 'auto'
+    tempContainer.style.zIndex = '-9999'
+    tempContainer.style.opacity = '0'
+    tempContainer.style.pointerEvents = 'none'
     document.body.appendChild(tempContainer)
 
     // Insert the SVG
@@ -251,12 +255,25 @@ async function uploadDiagramToR2(
       return
     }
 
+    // Wait for the DOM to render and fonts to load
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Wait for fonts to load if available
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready
+    }
+
     console.log(`[Diagram Upload] Converting to PNG...`)
 
-    // Convert to PNG using html-to-image
+    // Convert to PNG using html-to-image with better settings
     const dataUrl = await toPng(svgElement as unknown as HTMLElement, {
       quality: 0.95,
       pixelRatio: 2, // Higher resolution for better quality
+      cacheBust: true, // Prevent caching issues
+      style: {
+        transform: 'scale(1)',
+        transformOrigin: 'top left',
+      }
     })
 
     // Remove temporary container
