@@ -254,7 +254,7 @@ async function uploadDiagramToR2(
     console.log(`[Diagram Upload] Converting to PNG...`)
 
     // Convert to PNG using html-to-image
-    const dataUrl = await toPng(svgElement, {
+    const dataUrl = await toPng(svgElement as unknown as HTMLElement, {
       quality: 0.95,
       pixelRatio: 2, // Higher resolution for better quality
     })
