@@ -17,11 +17,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, slideIndex, articleId, mermaidCode } = await request.json()
+    // Parse FormData
+    const formData = await request.formData()
+    const imageFile = formData.get('image') as File
+    const slideIndex = formData.get('slideIndex') as string
+    const articleId = formData.get('articleId') as string
+    const mermaidCode = formData.get('mermaidCode') as string
 
-    if (!svg) {
+    if (!imageFile) {
       return NextResponse.json(
-        { error: 'SVG data is required' },
+        { error: 'Image file is required' },
         { status: 400 }
       )
     }
@@ -33,50 +38,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Clean and prepare SVG
-    let cleanSvg = svg.trim()
+    console.log('Uploading carousel diagram as PNG. Size:', imageFile.size, 'bytes')
 
-    // Check if SVG has dimensions, if not add default ones
-    if (!cleanSvg.includes('width=') || !cleanSvg.includes('height=')) {
-      // Extract viewBox if present to determine dimensions
-      const viewBoxMatch = cleanSvg.match(/viewBox="([^"]+)"/)
-      let width = 800
-      let height = 600
+    // Convert File to Buffer
+    const arrayBuffer = await imageFile.arrayBuffer()
+    const pngBuffer = Buffer.from(arrayBuffer)
 
-      if (viewBoxMatch) {
-        const viewBox = viewBoxMatch[1].split(' ')
-        width = parseInt(viewBox[2]) || 800
-        height = parseInt(viewBox[3]) || 600
-      }
-
-      // Add dimensions to SVG
-      cleanSvg = cleanSvg.replace(
-        /<svg/,
-        `<svg width="${width}" height="${height}"`
-      )
-    }
-
-    console.log('Uploading carousel diagram as SVG. Length:', cleanSvg.length)
-
-    // Convert SVG string to buffer with UTF-8 encoding
-    const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
-
-    console.log('SVG buffer size:', svgBuffer.length, 'bytes')
+    console.log('PNG buffer size:', pngBuffer.length, 'bytes')
 
     // Upload to R2
     const r2Service = new R2StorageService()
 
-    // Generate unique filename using mermaidCode if available, otherwise use SVG
-    // This ensures consistent naming with PPTX export
-    const hashSource = mermaidCode || cleanSvg
-    const hash = crypto.createHash('md5').update(hashSource).digest('hex').substring(0, 8)
-    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.svg`
+    // Generate unique filename using mermaidCode if available
+    const hash = mermaidCode
+      ? crypto.createHash('md5').update(mermaidCode).digest('hex').substring(0, 8)
+      : crypto.createHash('md5').update(pngBuffer).digest('hex').substring(0, 8)
+    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.png`
 
-    console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using SVG hash)'}`)
+    console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using image hash)'}`)
 
     const uploadResult = await r2Service.upload({
-      buffer: svgBuffer,
-      contentType: 'image/svg+xml',
+      buffer: pngBuffer,
+      contentType: 'image/png',
       fileName,
       folder: `articles/${articleId}/diagrams`,
     })

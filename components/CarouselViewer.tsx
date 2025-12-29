@@ -14,6 +14,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastContainer } from './ui/Toast'
 import md5 from 'md5'
 
+import { toPng } from 'html-to-image'
+
 interface CarouselViewerProps {
   content: string
   title?: string
@@ -218,68 +220,75 @@ async function uploadDiagramToR2(
   articleId: string
 ): Promise<void> {
   try {
-    console.log(`[Diagram Upload] Starting upload for slide ${slideIndex + 1}`)
-    console.log(`[Diagram Upload] SVG string length: ${svgString.length}`)
-    console.log(`[Diagram Upload] SVG preview (first 500 chars):`, svgString.substring(0, 500))
+    console.log(`[Diagram Upload] Starting PNG conversion for slide ${slideIndex + 1}`)
 
-    // Parse SVG and inline styles
-    const parser = new DOMParser()
-    const svgDoc = parser.parseFromString(svgString, 'image/svg+xml')
-    const svgElement = svgDoc.querySelector('svg')
+    // Create a temporary off-screen container for rendering
+    const tempContainer = document.createElement('div')
+    tempContainer.style.position = 'absolute'
+    tempContainer.style.left = '-9999px'
+    tempContainer.style.top = '-9999px'
+    tempContainer.style.visibility = 'hidden'
+    document.body.appendChild(tempContainer)
 
+    // Insert the SVG
+    tempContainer.innerHTML = svgString
+
+    const svgElement = tempContainer.querySelector('svg')
     if (!svgElement) {
-      console.error('[Diagram Upload] Failed to parse SVG element')
+      console.error('[Diagram Upload] Failed to find SVG element')
+      document.body.removeChild(tempContainer)
       return
     }
 
-    // Debug: Check what elements are in the SVG
+    // Check for content
     const textElements = svgElement.querySelectorAll('text, tspan')
     const foreignObjects = svgElement.querySelectorAll('foreignObject')
-    const divElements = svgElement.querySelectorAll('div')
-    console.log(`[Diagram Upload] Found ${textElements.length} text/tspan elements, ${foreignObjects.length} foreignObject elements, ${divElements.length} div elements`)
-
-    if (textElements.length > 0) {
-      console.log(`[Diagram Upload] First text element content:`, textElements[0].textContent)
-    }
-    if (foreignObjects.length > 0) {
-      console.log(`[Diagram Upload] First foreignObject innerHTML:`, foreignObjects[0].innerHTML.substring(0, 200))
-    }
-
-    // Inline styles and validate content
-    const { svg: styledSvg, hasContent } = inlineSvgStyles(svgElement)
+    const hasContent = textElements.length > 0 || foreignObjects.length > 0
 
     if (!hasContent) {
-      console.warn('[Diagram Upload] Skipping - SVG has no text content')
-      console.warn('[Diagram Upload] This diagram may use foreignObject or other non-text elements')
+      console.warn('[Diagram Upload] Skipping - no text content found')
+      document.body.removeChild(tempContainer)
       return
     }
 
-    // Serialize SVG
-    const serializer = new XMLSerializer()
-    const styledSvgString = serializer.serializeToString(styledSvg)
+    console.log(`[Diagram Upload] Converting to PNG...`)
 
-    console.log(`[Diagram Upload] Serialized SVG length: ${styledSvgString.length} bytes`)
-
-    // Upload to R2
-    const response = await fetch('/api/carousel/diagrams/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        svg: styledSvgString,
-        slideIndex,
-        articleId,
-        mermaidCode,
-      }),
+    // Convert to PNG using html-to-image
+    const dataUrl = await toPng(svgElement, {
+      quality: 0.95,
+      pixelRatio: 2, // Higher resolution for better quality
     })
 
-    if (response.ok) {
-      const { url, key } = await response.json()
-      console.log(`[Diagram Upload] ✓ Successfully uploaded to R2`)
+    // Remove temporary container
+    document.body.removeChild(tempContainer)
+
+    // Convert data URL to blob
+    const response = await fetch(dataUrl)
+    const blob = await response.blob()
+
+    console.log(`[Diagram Upload] PNG size: ${blob.size} bytes`)
+
+    // Create FormData for upload
+    const formData = new FormData()
+    formData.append('image', blob, 'diagram.png')
+    formData.append('slideIndex', slideIndex.toString())
+    formData.append('articleId', articleId)
+    formData.append('mermaidCode', mermaidCode)
+
+    // Upload to R2
+    const uploadResponse = await fetch('/api/carousel/diagrams/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (uploadResponse.ok) {
+      const { url, key } = await uploadResponse.json()
+      console.log(`[Diagram Upload] ✓ Successfully uploaded PNG to R2`)
       console.log(`[Diagram Upload]   URL: ${url}`)
       console.log(`[Diagram Upload]   Key: ${key}`)
     } else {
-      const errorText = await response.text()
-      console.error(`[Diagram Upload] ✗ Upload failed (${response.status}): ${errorText}`)
+      const errorText = await uploadResponse.text()
+      console.error(`[Diagram Upload] ✗ Upload failed (${uploadResponse.status}): ${errorText}`)
     }
   } catch (error) {
     console.error('[Diagram Upload] ✗ Error:', error)

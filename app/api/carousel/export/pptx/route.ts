@@ -128,7 +128,7 @@ async function extractAndUploadDiagrams(content: string, articleId: string): Pro
 
             // Step 2: Check R2 storage
             const hash = crypto.createHash('md5').update(diagramCode).digest('hex').substring(0, 8)
-            const fileName = `carousel-diagram-${slideIndex}-${hash}.svg`
+            const fileName = `carousel-diagram-${slideIndex}-${hash}.png`
 
             // Construct expected R2 URL using R2_PUBLIC_URL
             const r2PublicUrl = process.env.R2_PUBLIC_URL
