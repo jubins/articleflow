@@ -222,7 +222,7 @@ async function uploadDiagramToR2(
   try {
     console.log(`[Diagram Upload] Starting PNG conversion for slide ${slideIndex + 1}`)
 
-    // Create a temporary off-screen container for rendering
+    // Create a temporary VISIBLE container for rendering (needed for computed styles)
     const tempContainer = document.createElement('div')
     tempContainer.style.position = 'fixed'
     tempContainer.style.left = '-9999px'
@@ -230,27 +230,16 @@ async function uploadDiagramToR2(
     tempContainer.style.width = 'auto'
     tempContainer.style.height = 'auto'
     tempContainer.style.zIndex = '-9999'
-    tempContainer.style.opacity = '0'
     tempContainer.style.pointerEvents = 'none'
+    // NOTE: NOT setting opacity or visibility so styles can be computed
     document.body.appendChild(tempContainer)
 
-    // Insert the SVG
+    // Insert the SVG so it gets styled by the page
     tempContainer.innerHTML = svgString
 
     const svgElement = tempContainer.querySelector('svg')
     if (!svgElement) {
       console.error('[Diagram Upload] Failed to find SVG element')
-      document.body.removeChild(tempContainer)
-      return
-    }
-
-    // Check for content
-    const textElements = svgElement.querySelectorAll('text, tspan')
-    const foreignObjects = svgElement.querySelectorAll('foreignObject')
-    const hasContent = textElements.length > 0 || foreignObjects.length > 0
-
-    if (!hasContent) {
-      console.warn('[Diagram Upload] Skipping - no text content found')
       document.body.removeChild(tempContainer)
       return
     }
@@ -263,21 +252,43 @@ async function uploadDiagramToR2(
       await document.fonts.ready
     }
 
+    console.log(`[Diagram Upload] Cleaning up SVG and inlining styles...`)
+
+    // Use the existing cleanupSvgForExport function to inline all styles
+    const { svg: cleanedSvg, hasContent } = cleanupSvgForExport(svgElement)
+
+    if (!hasContent) {
+      console.warn('[Diagram Upload] Skipping - no text content found')
+      document.body.removeChild(tempContainer)
+      return
+    }
+
+    // Create a new container for the cleaned SVG
+    const cleanContainer = document.createElement('div')
+    cleanContainer.style.position = 'fixed'
+    cleanContainer.style.left = '-9999px'
+    cleanContainer.style.top = '0'
+    cleanContainer.appendChild(cleanedSvg)
+    document.body.appendChild(cleanContainer)
+
+    // Remove original container
+    document.body.removeChild(tempContainer)
+
+    // Give it a moment to ensure the cleaned SVG is in the DOM
+    await new Promise(resolve => setTimeout(resolve, 100))
+
     console.log(`[Diagram Upload] Converting to PNG...`)
 
     // Convert to PNG using html-to-image with better settings
-    const dataUrl = await toPng(svgElement as unknown as HTMLElement, {
+    const dataUrl = await toPng(cleanedSvg as unknown as HTMLElement, {
       quality: 0.95,
       pixelRatio: 2, // Higher resolution for better quality
       cacheBust: true, // Prevent caching issues
-      style: {
-        transform: 'scale(1)',
-        transformOrigin: 'top left',
-      }
+      backgroundColor: '#ffffff', // Ensure white background
     })
 
-    // Remove temporary container
-    document.body.removeChild(tempContainer)
+    // Remove clean container
+    document.body.removeChild(cleanContainer)
 
     // Convert data URL to blob
     const response = await fetch(dataUrl)
