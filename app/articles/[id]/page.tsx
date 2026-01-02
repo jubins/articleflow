@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import mermaid from 'mermaid'
+import { renderMermaidToSvg } from '@/lib/utils/mermaid-client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -78,13 +78,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       setProcessingDiagrams(true)
       try {
-        // Initialize mermaid if not already done
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: 'default',
-          securityLevel: 'loose',
-        })
-
         let content = article.content
         const mermaidBlocks: Array<{ code: string; fullMatch: string }> = []
         const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
@@ -124,7 +117,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
             try {
               console.log(`Rendering diagram ${i}...`)
               // Render mermaid to SVG
-              const { svg } = await mermaid.render(`mermaid-richtext-${article.id}-${i}`, mermaidCode)
+              const svg = await renderMermaidToSvg(mermaidCode, `mermaid-richtext-${article.id}-${i}`)
               console.log(`Rendered SVG length:`, svg.length)
 
               // Upload SVG to R2
