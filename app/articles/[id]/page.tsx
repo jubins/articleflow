@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import mermaid from 'mermaid'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -40,14 +41,15 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
-  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium' | null>(null)
+  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
+  const [processingDiagrams, setProcessingDiagrams] = useState(false)
   const [displayContent, setDisplayContent] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -66,21 +68,79 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     }
   }, [article])
 
-  // Convert markdown to HTML when switching to rich text tab
+  // Process mermaid diagrams and upload to R2 when switching to rich text tab
   useEffect(() => {
-    if (activeTab === 'richtext' && article) {
-      // Process content to use cached diagram images
-      const cachedDiagrams = article.diagram_images as Record<string, string> | null
-      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
+    const processMermaidDiagrams = async () => {
+      if (activeTab !== 'richtext' || !article) return
 
-      // If we have cached diagrams, always use processed content to show images
-      // Otherwise, use stored rich text content if available
-      if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
+      setProcessingDiagrams(true)
+      try {
+        // Initialize mermaid if not already done
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'default',
+          securityLevel: 'loose',
+        })
+
+        let content = article.content
+        const mermaidBlocks: string[] = []
+        const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
+        let match
+
+        // Extract all mermaid blocks
+        while ((match = mermaidRegex.exec(content)) !== null) {
+          mermaidBlocks.push(match[1])
+        }
+
+        // Process each mermaid block
+        const imageUrls: Record<string, string> = {}
+        for (let i = 0; i < mermaidBlocks.length; i++) {
+          const mermaidCode = mermaidBlocks[i]
+          try {
+            // Render mermaid to SVG
+            const { svg } = await mermaid.render(`mermaid-richtext-${i}`, mermaidCode)
+
+            // Upload SVG to R2
+            const response = await fetch('/api/diagrams/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                svg,
+                diagramId: `${article.id}-${i}`,
+              }),
+            })
+
+            if (response.ok) {
+              const { url } = await response.json()
+              imageUrls[mermaidCode] = url
+            }
+          } catch (err) {
+            console.error('Error processing mermaid diagram:', err)
+          }
+        }
+
+        // Replace mermaid blocks with image tags
+        let processedContent = content
+        for (const [mermaidCode, imageUrl] of Object.entries(imageUrls)) {
+          const escapedCode = mermaidCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          processedContent = processedContent.replace(
+            new RegExp(`\`\`\`mermaid\\n${escapedCode}\`\`\``, 'g'),
+            `![Diagram](${imageUrl})`
+          )
+        }
+
+        // Convert to HTML
         setRichTextHtml(markdownToHtml(processedContent))
-      } else {
+      } catch (err) {
+        console.error('Error processing diagrams:', err)
+        // Fallback to original content
         setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+      } finally {
+        setProcessingDiagrams(false)
       }
     }
+
+    processMermaidDiagrams()
   }, [activeTab, article])
 
   const loadArticle = async () => {
@@ -237,7 +297,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setHasUnsavedChanges(false)
   }
 
-  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium') => {
+  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
     if (hasUnsavedChanges && isEditingMarkdown) {
       setPendingTab(newTab)
       setShowUnsavedModal(true)
@@ -282,59 +342,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       setIsDeleting(false)
       setShowDeleteModal(false)
     }
-  }
-
-  const generateDzoneContent = () => {
-    if (!article) return ''
-
-    // Generate TL;DR from first paragraph or description
-    const tldr = article.description || article.content.split('\n\n')[0].substring(0, 200) + '...'
-
-    // Meta description (same as article description or excerpt)
-    const metaDescription = article.description || article.content.split('\n\n')[0].substring(0, 160)
-
-    // Extract references section if it exists
-    const referencesMatch = article.content.match(/##\s+References\s*\n([\s\S]*?)(?=\n##|\n$|$)/i)
-    const references = referencesMatch ? referencesMatch[0] : ''
-
-    return `# DZone Article Details
-
-## TL;DR
-${tldr}
-
-## Meta Description
-${metaDescription}
-
-## Tags
-${article.tags?.join(', ') || 'No tags'}
-
-## Article Content
-${displayContent}
-
-${references ? `\n${references}` : ''}
-
----
-**Platform:** DZone
-**Word Count:** ${article.word_count} words
-**Type:** ${article.article_type || 'technical'}
-`
-  }
-
-  const generateMediumContent = () => {
-    if (!article) return ''
-
-    // Medium uses a cleaner format with subtitle (description)
-    return `# ${article.title}
-
-## ${article.description || ''}
-
-${displayContent}
-
----
-
-${article.tags && article.tags.length > 0 ? `**Tags:** ${article.tags.join(', ')}` : ''}
-${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
-`
   }
 
   if (loading) {
@@ -473,26 +480,6 @@ ${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
                       }`}
                     >
                       Rich Text
-                    </button>
-                    <button
-                      onClick={() => handleTabChange('dzone')}
-                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'dzone'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      DZone
-                    </button>
-                    <button
-                      onClick={() => handleTabChange('medium')}
-                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'medium'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      Medium
                     </button>
                   </>
                 )}
@@ -753,12 +740,26 @@ ${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
               {/* Rich Text Tab */}
               {activeTab === 'richtext' && (
                 <div className="relative">
+                  {processingDiagrams && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-sm text-blue-700 font-medium">
+                          Processing diagrams and uploading images to Cloudflare R2...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Icons */}
                   <div className="flex justify-end gap-2 mb-4">
                     <button
                       onClick={handleCopy}
                       className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                      title="Copy content"
+                      title="Copy content with embedded images"
+                      disabled={processingDiagrams}
                     >
                       {copySuccess ? (
                         <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -772,9 +773,9 @@ ${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
                     </button>
                     <button
                       onClick={() => handleDownload('docx')}
-                      disabled={downloading === 'docx'}
+                      disabled={downloading === 'docx' || processingDiagrams}
                       className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-                      title="Download Word document"
+                      title="Download Word document with embedded images"
                     >
                       {downloading === 'docx' ? (
                         <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,84 +797,6 @@ ${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
                       editable={false}
                     />
                   </div>
-                </div>
-              )}
-
-              {/* DZone Tab */}
-              {activeTab === 'dzone' && (
-                <div className="relative">
-                  {/* Action Icons */}
-                  <div className="absolute top-0 right-0 flex gap-2 z-10">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(generateDzoneContent())
-                          toast.success('DZone content copied to clipboard!')
-                          setCopySuccess(true)
-                          setTimeout(() => setCopySuccess(false), 2000)
-                        } catch (err) {
-                          console.error('Copy error:', err)
-                          toast.error('Failed to copy content')
-                        }
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                      title="Copy DZone content"
-                    >
-                      {copySuccess ? (
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* DZone Content */}
-                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
-                    {generateDzoneContent()}
-                  </pre>
-                </div>
-              )}
-
-              {/* Medium Tab */}
-              {activeTab === 'medium' && (
-                <div className="relative">
-                  {/* Action Icons */}
-                  <div className="absolute top-0 right-0 flex gap-2 z-10">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(generateMediumContent())
-                          toast.success('Medium content copied to clipboard!')
-                          setCopySuccess(true)
-                          setTimeout(() => setCopySuccess(false), 2000)
-                        } catch (err) {
-                          console.error('Copy error:', err)
-                          toast.error('Failed to copy content')
-                        }
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
-                      title="Copy Medium content"
-                    >
-                      {copySuccess ? (
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Medium Content */}
-                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
-                    {generateMediumContent()}
-                  </pre>
                 </div>
               )}
 
