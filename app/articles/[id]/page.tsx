@@ -143,30 +143,52 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               document.body.removeChild(tempContainer)
 
               // Convert canvas to PNG blob
-              const blob = await new Promise<Blob | null>((resolve) => {
+              console.log(`Converting canvas to PNG...`)
+              const pngBlob = await new Promise<Blob | null>((resolve) => {
                 canvas.toBlob(resolve, 'image/png', 1.0)
               })
 
-              if (!blob) {
-                throw new Error('Failed to convert canvas to blob')
+              if (!pngBlob) {
+                throw new Error('Failed to convert canvas to PNG blob')
               }
 
-              // Convert blob to base64 for upload
-              const reader = new FileReader()
-              const base64Promise = new Promise<string>((resolve, reject) => {
-                reader.onloadend = () => resolve(reader.result as string)
-                reader.onerror = reject
+              // Convert canvas to WebP blob (browser native, no Sharp needed!)
+              console.log(`Converting canvas to WebP...`)
+              const webpBlob = await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob(resolve, 'image/webp', 0.95)
               })
-              reader.readAsDataURL(blob)
-              const base64Data = await base64Promise
 
-              // Upload PNG to R2
-              console.log(`Uploading diagram ${i} to R2...`)
+              if (!webpBlob) {
+                throw new Error('Failed to convert canvas to WebP blob')
+              }
+
+              // Convert PNG blob to base64
+              const pngReader = new FileReader()
+              const pngBase64Promise = new Promise<string>((resolve, reject) => {
+                pngReader.onloadend = () => resolve(pngReader.result as string)
+                pngReader.onerror = reject
+              })
+              pngReader.readAsDataURL(pngBlob)
+              const pngBase64 = await pngBase64Promise
+
+              // Convert WebP blob to base64
+              const webpReader = new FileReader()
+              const webpBase64Promise = new Promise<string>((resolve, reject) => {
+                webpReader.onloadend = () => resolve(webpReader.result as string)
+                webpReader.onerror = reject
+              })
+              webpReader.readAsDataURL(webpBlob)
+              const webpBase64 = await webpBase64Promise
+
+              // Upload all formats (SVG, PNG, WebP) to R2
+              console.log(`Uploading diagram ${i} to R2 (SVG + PNG + WebP)...`)
               const response = await fetch('/api/diagrams/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  imageData: base64Data,
+                  svg,
+                  pngData: pngBase64,
+                  webpData: webpBase64,
                   diagramId: `${i}`,
                   articleId: article.id,
                 }),

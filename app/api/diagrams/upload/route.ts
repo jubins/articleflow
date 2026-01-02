@@ -15,11 +15,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { imageData, diagramId, articleId } = await request.json()
+    const { svg, pngData, webpData, diagramId, articleId } = await request.json()
 
-    if (!imageData) {
+    if (!svg || !pngData || !webpData) {
       return NextResponse.json(
-        { error: 'Image data is required' },
+        { error: 'SVG, PNG, and WebP data are required' },
         { status: 400 }
       )
     }
@@ -31,26 +31,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Convert base64 to buffer
-    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '')
-    const pngBuffer = Buffer.from(base64Data, 'base64')
-
-    console.log(`Received PNG buffer of size: ${pngBuffer.length} bytes`)
-
-    // Upload PNG to R2
     const r2 = new R2StorageService()
+
+    // 1. Upload SVG (original source for debugging)
+    const svgBuffer = Buffer.from(svg, 'utf-8')
+    const svgResult = await r2.upload({
+      buffer: svgBuffer,
+      contentType: 'image/svg+xml',
+      fileName: `diagram-${diagramId || Date.now()}.svg`,
+      folder: `articles/${articleId}/diagrams`,
+    })
+    console.log(`✓ Uploaded SVG (${svgBuffer.length} bytes): ${svgResult.url}`)
+
+    // 2. Upload PNG (client-rendered with fonts)
+    const pngBase64 = pngData.replace(/^data:image\/\w+;base64,/, '')
+    const pngBuffer = Buffer.from(pngBase64, 'base64')
     const pngResult = await r2.upload({
       buffer: pngBuffer,
       contentType: 'image/png',
       fileName: `diagram-${diagramId || Date.now()}.png`,
       folder: `articles/${articleId}/diagrams`,
     })
+    console.log(`✓ Uploaded PNG (${pngBuffer.length} bytes): ${pngResult.url}`)
 
-    console.log(`Uploaded PNG to: ${pngResult.url}`)
+    // 3. Upload WebP (client-rendered, smaller file size)
+    const webpBase64 = webpData.replace(/^data:image\/\w+;base64,/, '')
+    const webpBuffer = Buffer.from(webpBase64, 'base64')
+    const webpResult = await r2.upload({
+      buffer: webpBuffer,
+      contentType: 'image/webp',
+      fileName: `diagram-${diagramId || Date.now()}.webp`,
+      folder: `articles/${articleId}/diagrams`,
+    })
+    console.log(`✓ Uploaded WebP (${webpBuffer.length} bytes): ${webpResult.url}`)
 
     return NextResponse.json({
       success: true,
-      url: pngResult.url,
+      url: pngResult.url, // Return PNG as primary for now (debugging)
+      svgUrl: svgResult.url,
+      pngUrl: pngResult.url,
+      webpUrl: webpResult.url,
       key: pngResult.key,
     })
   } catch (error) {
