@@ -23,6 +23,7 @@ import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
 import TurndownService from 'turndown'
+import { renderMermaidToSvg } from '@/lib/utils/mermaid-converter'
 
 interface Profile {
   full_name?: string | null
@@ -124,7 +125,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
             try {
               console.log(`Rendering diagram ${i}...`)
               // Render mermaid to SVG
-              const { svg } = await mermaid.render(`mermaid-richtext-${article.id}-${i}`, mermaidCode)
+              const svg = await renderMermaidToSvg(mermaidCode, `mermaid-richtext-${article.id}-${i}`)
               console.log(`Rendered SVG length:`, svg.length)
 
               // Upload SVG to R2

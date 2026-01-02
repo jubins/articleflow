@@ -3,18 +3,13 @@ import sharp from 'sharp'
 import { uploadMermaidDiagram } from '@/lib/storage/r2'
 
 /**
- * Convert all Mermaid diagrams in markdown content to WebP images
+ * Mermaid initialization guard and config
  */
-export async function convertMermaidToImages(markdown: string): Promise<string> {
-  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
-  let updatedContent = markdown
-  const matches = Array.from(markdown.matchAll(mermaidRegex))
+let initialized = false
 
-  if (matches.length === 0) {
-    return markdown
-  }
+export function initMermaid() {
+  if (initialized) return
 
-  // Initialize mermaid for server-side rendering
   mermaid.initialize({
     startOnLoad: false,
     theme: 'default',
@@ -33,13 +28,31 @@ export async function convertMermaidToImages(markdown: string): Promise<string> 
     fontFamily: 'system-ui, sans-serif',
   })
 
-  // Process each mermaid diagram
+  initialized = true
+}
+
+/**
+ * Convert all Mermaid diagrams in markdown content to WebP images
+ */
+export async function convertMermaidToImages(markdown: string): Promise<string> {
+  initMermaid()
+
+  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
+  let updatedContent = markdown
+  const matches = Array.from(markdown.matchAll(mermaidRegex))
+
+  if (matches.length === 0) {
+    return markdown
+  }
+
+  // Process each Mermaid diagram
   for (const match of matches) {
     const mermaidCode = match[1]
 
     try {
-      // Render mermaid to SVG
-      const { svg } = await mermaid.render(`diagram-${Date.now()}-${Math.random()}`, mermaidCode)
+      // Render Mermaid to SVG
+      const renderId = `diagram-${Date.now()}-${Math.random()}`
+      const { svg } = await mermaid.render(renderId, mermaidCode)
 
       // Convert SVG to WebP
       const svgBuffer = Buffer.from(svg)
@@ -50,7 +63,7 @@ export async function convertMermaidToImages(markdown: string): Promise<string> 
       // Upload to R2
       const imageUrl = await uploadMermaidDiagram(webpBuffer)
 
-      // Replace mermaid code block with image markdown
+      // Replace Mermaid code block with image markdown
       updatedContent = updatedContent.replace(match[0], `![Diagram](${imageUrl})`)
     } catch (err) {
       console.error('Error converting Mermaid diagram:', err)
@@ -59,4 +72,16 @@ export async function convertMermaidToImages(markdown: string): Promise<string> 
   }
 
   return updatedContent
+}
+
+/**
+ * Renders Mermaid code to SVG
+ */
+export async function renderMermaidToSvg(
+  mermaidCode: string,
+  renderId: string
+): Promise<string> {
+  initMermaid()
+  const { svg } = await mermaid.render(renderId, mermaidCode)
+  return svg
 }
