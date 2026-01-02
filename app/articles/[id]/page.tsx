@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { renderMermaidToSvg } from '@/lib/utils/mermaid-converter'
-import html2canvas from 'html2canvas'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -120,75 +119,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               const svg = await renderMermaidToSvg(mermaidCode, `mermaid-richtext-${article.id}-${i}`)
               console.log(`Rendered SVG length:`, svg.length)
 
-              // Create a temporary DOM element to render SVG with proper fonts
-              const tempContainer = document.createElement('div')
-              tempContainer.style.position = 'absolute'
-              tempContainer.style.left = '-9999px'
-              tempContainer.style.top = '-9999px'
-              tempContainer.style.background = '#ffffff'
-              tempContainer.innerHTML = svg
-              document.body.appendChild(tempContainer)
-
-              // Use html2canvas to convert SVG to PNG (with proper font rendering)
-              console.log(`Converting diagram ${i} to PNG with fonts...`)
-              const canvas = await html2canvas(tempContainer, {
-                backgroundColor: '#ffffff',
-                scale: 3, // High resolution
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-              })
-
-              // Clean up temp element
-              document.body.removeChild(tempContainer)
-
-              // Convert canvas to PNG blob
-              console.log(`Converting canvas to PNG...`)
-              const pngBlob = await new Promise<Blob | null>((resolve) => {
-                canvas.toBlob(resolve, 'image/png', 1.0)
-              })
-
-              if (!pngBlob) {
-                throw new Error('Failed to convert canvas to PNG blob')
-              }
-
-              // Convert canvas to WebP blob (browser native, no Sharp needed!)
-              console.log(`Converting canvas to WebP...`)
-              const webpBlob = await new Promise<Blob | null>((resolve) => {
-                canvas.toBlob(resolve, 'image/webp', 0.95)
-              })
-
-              if (!webpBlob) {
-                throw new Error('Failed to convert canvas to WebP blob')
-              }
-
-              // Convert PNG blob to base64
-              const pngReader = new FileReader()
-              const pngBase64Promise = new Promise<string>((resolve, reject) => {
-                pngReader.onloadend = () => resolve(pngReader.result as string)
-                pngReader.onerror = reject
-              })
-              pngReader.readAsDataURL(pngBlob)
-              const pngBase64 = await pngBase64Promise
-
-              // Convert WebP blob to base64
-              const webpReader = new FileReader()
-              const webpBase64Promise = new Promise<string>((resolve, reject) => {
-                webpReader.onloadend = () => resolve(webpReader.result as string)
-                webpReader.onerror = reject
-              })
-              webpReader.readAsDataURL(webpBlob)
-              const webpBase64 = await webpBase64Promise
-
-              // Upload all formats (SVG, PNG, WebP) to R2
-              console.log(`Uploading diagram ${i} to R2 (SVG + PNG + WebP)...`)
+              // Upload SVG to R2
+              console.log(`Uploading diagram ${i} SVG to R2...`)
               const response = await fetch('/api/diagrams/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   svg,
-                  pngData: pngBase64,
-                  webpData: webpBase64,
                   diagramId: `${i}`,
                   articleId: article.id,
                 }),
@@ -196,7 +133,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
               if (response.ok) {
                 const { url } = await response.json()
-                console.log(`Uploaded diagram ${i}, URL:`, url)
+                console.log(`Uploaded diagram ${i}, SVG URL:`, url)
                 imageUrls[fullMatch] = url
                 // Also store with the code as key for caching
                 if (!cachedDiagrams) {
