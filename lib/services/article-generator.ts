@@ -71,14 +71,15 @@ graph TD
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 CRITICAL - References Section:
-- Include a "## References" section at the end of the article
-- List 5-8 high-quality reference sources (documentation, books, articles, official guides)
-- Format as a numbered list with descriptive titles and context
+- Include a "## References and Further Reading" section at the end of the article
+- List 5-8 high-quality reference sources as simple hyperlinks
+- Format as bullet points with just the title hyperlinked (no descriptions)
 - Example format:
-  ## References
+  ## References and Further Reading
 
-  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
-  2. **Research Paper** - "Paper Title" by Author et al. - Academic research on the topic
+  - [AWS Well-Architected Framework - Machine Learning Lens](https://aws.amazon.com/architecture/well-architected/)
+  - [AWS Generative AI Lens Documentation](https://docs.aws.amazon.com/wellarchitected/latest/generative-ai-lens/welcome.html)
+  - [AWS Sustainability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/sustainability-pillar.html)
 
 Generate a complete article in Markdown format with:
 1. A compelling title
