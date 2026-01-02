@@ -22,7 +22,6 @@ import { RichTextEditor } from '@/components/RichTextEditor'
 import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
-import TurndownService from 'turndown'
 
 interface Profile {
   full_name?: string | null
@@ -78,7 +77,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       setProcessingDiagrams(true)
       try {
-        let content = article.content
+        const content = article.content
         const mermaidBlocks: Array<{ code: string; fullMatch: string }> = []
         const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
         let match
