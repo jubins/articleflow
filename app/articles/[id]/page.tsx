@@ -86,14 +86,19 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         })
 
         let content = article.content
-        const mermaidBlocks: string[] = []
+        const mermaidBlocks: Array<{ code: string; fullMatch: string }> = []
         const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
         let match
 
-        // Extract all mermaid blocks
+        // Extract all mermaid blocks with their full match text
         while ((match = mermaidRegex.exec(content)) !== null) {
-          mermaidBlocks.push(match[1])
+          mermaidBlocks.push({
+            code: match[1].trim(),
+            fullMatch: match[0]
+          })
         }
+
+        console.log('Found mermaid blocks:', mermaidBlocks.length)
 
         // If no mermaid blocks, just convert to HTML and return
         if (mermaidBlocks.length === 0) {
@@ -107,49 +112,72 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         let needsUpload = false
 
         for (let i = 0; i < mermaidBlocks.length; i++) {
-          const mermaidCode = mermaidBlocks[i]
+          const { code: mermaidCode, fullMatch } = mermaidBlocks[i]
 
           // Check if we have a cached URL for this diagram
           if (cachedDiagrams && cachedDiagrams[mermaidCode]) {
-            imageUrls[mermaidCode] = cachedDiagrams[mermaidCode]
+            console.log(`Using cached URL for diagram ${i}:`, cachedDiagrams[mermaidCode])
+            imageUrls[fullMatch] = cachedDiagrams[mermaidCode]
           } else {
             // Need to upload this diagram
             needsUpload = true
             try {
+              console.log(`Rendering diagram ${i}...`)
               // Render mermaid to SVG
-              const { svg } = await mermaid.render(`mermaid-richtext-${i}`, mermaidCode)
+              const { svg } = await mermaid.render(`mermaid-richtext-${article.id}-${i}`, mermaidCode)
+              console.log(`Rendered SVG length:`, svg.length)
 
               // Upload SVG to R2
+              console.log(`Uploading diagram ${i} to R2...`)
               const response = await fetch('/api/diagrams/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   svg,
-                  diagramId: `${article.id}-${i}`,
+                  diagramId: `${i}`,
+                  articleId: article.id,
                 }),
               })
 
               if (response.ok) {
                 const { url } = await response.json()
-                imageUrls[mermaidCode] = url
+                console.log(`Uploaded diagram ${i}, URL:`, url)
+                imageUrls[fullMatch] = url
+                // Also store with the code as key for caching
+                if (!cachedDiagrams) {
+                  cachedDiagrams = {}
+                }
+                cachedDiagrams[mermaidCode] = url
+              } else {
+                const errorData = await response.json()
+                console.error(`Upload failed for diagram ${i}:`, errorData)
               }
             } catch (err) {
-              console.error('Error processing mermaid diagram:', err)
+              console.error(`Error processing mermaid diagram ${i}:`, err)
             }
           }
         }
 
+        console.log('Total image URLs:', Object.keys(imageUrls).length)
+
         // If we uploaded new diagrams, save them to the database
-        if (needsUpload && Object.keys(imageUrls).length > 0) {
+        if (needsUpload && cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
           try {
+            console.log('Saving diagram URLs to database...')
             const supabase = createClient()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabase as any)
+            const { error } = await (supabase as any)
               .from('articles')
               .update({
-                diagram_images: imageUrls,
+                diagram_images: cachedDiagrams,
               })
               .eq('id', article.id)
+
+            if (error) {
+              console.error('Database update error:', error)
+            } else {
+              console.log('Successfully saved diagram URLs to database')
+            }
           } catch (err) {
             console.error('Error saving diagram URLs:', err)
           }
@@ -157,16 +185,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
         // Replace mermaid blocks with image tags
         let processedContent = content
-        for (const [mermaidCode, imageUrl] of Object.entries(imageUrls)) {
-          const escapedCode = mermaidCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-          processedContent = processedContent.replace(
-            new RegExp(`\`\`\`mermaid\\n${escapedCode}\`\`\``, 'g'),
-            `![Diagram](${imageUrl})`
-          )
+        for (const [fullMatch, imageUrl] of Object.entries(imageUrls)) {
+          console.log('Replacing:', fullMatch.substring(0, 50), 'with image URL:', imageUrl)
+          processedContent = processedContent.replace(fullMatch, `![Diagram](${imageUrl})`)
         }
 
+        console.log('Processed content length:', processedContent.length)
+
         // Convert to HTML
-        setRichTextHtml(markdownToHtml(processedContent))
+        const html = markdownToHtml(processedContent)
+        console.log('HTML length:', html.length)
+        setRichTextHtml(html)
       } catch (err) {
         console.error('Error processing diagrams:', err)
         // Fallback to original content

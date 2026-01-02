@@ -16,11 +16,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, diagramId } = await request.json()
+    const { svg, diagramId, articleId } = await request.json()
 
     if (!svg) {
       return NextResponse.json(
         { error: 'SVG data is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
         { status: 400 }
       )
     }
@@ -78,13 +85,13 @@ export async function POST(request: NextRequest) {
       .webp({ quality: 95 })
       .toBuffer()
 
-    // Upload to R2 in articles folder
+    // Upload to R2 in articles/{article-id}/diagrams folder
     const r2 = new R2StorageService()
     const result = await r2.upload({
       buffer: webpBuffer,
       contentType: 'image/webp',
       fileName: `diagram-${diagramId || Date.now()}.webp`,
-      folder: 'articles',
+      folder: `articles/${articleId}/diagrams`,
     })
 
     return NextResponse.json({
