@@ -32,28 +32,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Clean and prepare SVG with proper font embedding
+    // Clean and prepare SVG
     let cleanSvg = svg.trim()
 
-    // Add font-family to all text elements to ensure proper rendering
-    cleanSvg = cleanSvg.replace(
-      /<style>/g,
-      `<style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        text { font-family: 'Inter', 'Arial', sans-serif !important; }
-      `
-    )
-
-    // If no style tag exists, add one
-    if (!cleanSvg.includes('<style>')) {
-      cleanSvg = cleanSvg.replace(
-        /<svg/,
-        `<svg><style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          text { font-family: 'Inter', 'Arial', sans-serif !important; }
-        </style>`
-      )
-    }
+    // Escape any unescaped ampersands that aren't part of entities
+    cleanSvg = cleanSvg.replace(/&(?!(amp|lt|gt|quot|apos|#[0-9]+|#x[0-9a-fA-F]+);)/g, '&amp;')
 
     // Check if SVG has dimensions, if not add default ones
     if (!cleanSvg.includes('width=') || !cleanSvg.includes('height=')) {
