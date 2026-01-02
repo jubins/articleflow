@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { renderMermaidToSvg } from '@/lib/utils/mermaid-converter'
+import html2canvas from 'html2canvas'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -119,13 +120,53 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               const svg = await renderMermaidToSvg(mermaidCode, `mermaid-richtext-${article.id}-${i}`)
               console.log(`Rendered SVG length:`, svg.length)
 
-              // Upload SVG to R2
+              // Create a temporary DOM element to render SVG with proper fonts
+              const tempContainer = document.createElement('div')
+              tempContainer.style.position = 'absolute'
+              tempContainer.style.left = '-9999px'
+              tempContainer.style.top = '-9999px'
+              tempContainer.style.background = '#ffffff'
+              tempContainer.innerHTML = svg
+              document.body.appendChild(tempContainer)
+
+              // Use html2canvas to convert SVG to PNG (with proper font rendering)
+              console.log(`Converting diagram ${i} to PNG with fonts...`)
+              const canvas = await html2canvas(tempContainer, {
+                backgroundColor: '#ffffff',
+                scale: 3, // High resolution
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+              })
+
+              // Clean up temp element
+              document.body.removeChild(tempContainer)
+
+              // Convert canvas to PNG blob
+              const blob = await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob(resolve, 'image/png', 1.0)
+              })
+
+              if (!blob) {
+                throw new Error('Failed to convert canvas to blob')
+              }
+
+              // Convert blob to base64 for upload
+              const reader = new FileReader()
+              const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.onerror = reject
+              })
+              reader.readAsDataURL(blob)
+              const base64Data = await base64Promise
+
+              // Upload PNG to R2
               console.log(`Uploading diagram ${i} to R2...`)
               const response = await fetch('/api/diagrams/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  svg,
+                  imageData: base64Data,
                   diagramId: `${i}`,
                   articleId: article.id,
                 }),
