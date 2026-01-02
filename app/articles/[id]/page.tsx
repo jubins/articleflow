@@ -73,6 +73,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     const processMermaidDiagrams = async () => {
       if (activeTab !== 'richtext' || !article) return
 
+      // Check if we have cached diagram images
+      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+
       setProcessingDiagrams(true)
       try {
         // Initialize mermaid if not already done
@@ -92,30 +95,63 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
           mermaidBlocks.push(match[1])
         }
 
+        // If no mermaid blocks, just convert to HTML and return
+        if (mermaidBlocks.length === 0) {
+          setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
+          setProcessingDiagrams(false)
+          return
+        }
+
         // Process each mermaid block
         const imageUrls: Record<string, string> = {}
+        let needsUpload = false
+
         for (let i = 0; i < mermaidBlocks.length; i++) {
           const mermaidCode = mermaidBlocks[i]
-          try {
-            // Render mermaid to SVG
-            const { svg } = await mermaid.render(`mermaid-richtext-${i}`, mermaidCode)
 
-            // Upload SVG to R2
-            const response = await fetch('/api/diagrams/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                svg,
-                diagramId: `${article.id}-${i}`,
-              }),
-            })
+          // Check if we have a cached URL for this diagram
+          if (cachedDiagrams && cachedDiagrams[mermaidCode]) {
+            imageUrls[mermaidCode] = cachedDiagrams[mermaidCode]
+          } else {
+            // Need to upload this diagram
+            needsUpload = true
+            try {
+              // Render mermaid to SVG
+              const { svg } = await mermaid.render(`mermaid-richtext-${i}`, mermaidCode)
 
-            if (response.ok) {
-              const { url } = await response.json()
-              imageUrls[mermaidCode] = url
+              // Upload SVG to R2
+              const response = await fetch('/api/diagrams/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  svg,
+                  diagramId: `${article.id}-${i}`,
+                }),
+              })
+
+              if (response.ok) {
+                const { url } = await response.json()
+                imageUrls[mermaidCode] = url
+              }
+            } catch (err) {
+              console.error('Error processing mermaid diagram:', err)
             }
+          }
+        }
+
+        // If we uploaded new diagrams, save them to the database
+        if (needsUpload && Object.keys(imageUrls).length > 0) {
+          try {
+            const supabase = createClient()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase as any)
+              .from('articles')
+              .update({
+                diagram_images: imageUrls,
+              })
+              .eq('id', article.id)
           } catch (err) {
-            console.error('Error processing mermaid diagram:', err)
+            console.error('Error saving diagram URLs:', err)
           }
         }
 
@@ -747,7 +783,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span className="text-sm text-blue-700 font-medium">
-                          Processing diagrams and uploading images to Cloudflare R2...
+                          Processing diagrams...
                         </span>
                       </div>
                     </div>

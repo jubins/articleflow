@@ -25,8 +25,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Clean and prepare SVG
+    // Clean and prepare SVG with proper font embedding
     let cleanSvg = svg.trim()
+
+    // Add font-family to all text elements to ensure proper rendering
+    cleanSvg = cleanSvg.replace(
+      /<style>/g,
+      `<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        text { font-family: 'Inter', 'Arial', sans-serif !important; }
+      `
+    )
+
+    // If no style tag exists, add one
+    if (!cleanSvg.includes('<style>')) {
+      cleanSvg = cleanSvg.replace(
+        /<svg/,
+        `<svg><style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+          text { font-family: 'Inter', 'Arial', sans-serif !important; }
+        </style>`
+      )
+    }
 
     // Check if SVG has dimensions, if not add default ones
     if (!cleanSvg.includes('width=') || !cleanSvg.includes('height=')) {
@@ -53,18 +73,18 @@ export async function POST(request: NextRequest) {
 
     // Convert SVG to WebP using sharp with proper density for better quality
     const webpBuffer = await sharp(svgBuffer, {
-      density: 150 // Higher DPI for better quality
+      density: 300 // Higher DPI for better quality and text rendering
     })
-      .webp({ quality: 90 })
+      .webp({ quality: 95 })
       .toBuffer()
 
-    // Upload to R2
+    // Upload to R2 in articles folder
     const r2 = new R2StorageService()
     const result = await r2.upload({
       buffer: webpBuffer,
       contentType: 'image/webp',
       fileName: `diagram-${diagramId || Date.now()}.webp`,
-      folder: `${user.id}/diagrams`,
+      folder: 'articles',
     })
 
     return NextResponse.json({
