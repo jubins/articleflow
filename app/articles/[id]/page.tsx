@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { renderMermaidToSvg } from '@/lib/utils/mermaid-converter'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -48,7 +47,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
-  const [processingDiagrams, setProcessingDiagrams] = useState(false)
   const [displayContent, setDisplayContent] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -67,154 +65,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     }
   }, [article])
 
-  // Process mermaid diagrams and upload to R2 when switching to rich text tab
+  // Set rich text HTML when switching to rich text tab
   useEffect(() => {
-    const processMermaidDiagrams = async () => {
-      if (activeTab !== 'richtext' || !article) return
+    if (activeTab !== 'richtext' || !article) return
 
-      // Check if we have cached diagram images
-      let cachedDiagrams = article.diagram_images as Record<string, string> | null
-
-      setProcessingDiagrams(true)
-      try {
-        const content = article.content
-        const mermaidBlocks: Array<{ code: string; fullMatch: string }> = []
-        const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
-        let match
-
-        // Extract all mermaid blocks with their full match text
-        while ((match = mermaidRegex.exec(content)) !== null) {
-          mermaidBlocks.push({
-            code: match[1].trim(),
-            fullMatch: match[0]
-          })
-        }
-
-        console.log('Found mermaid blocks:', mermaidBlocks.length)
-
-        // If no mermaid blocks, just convert to HTML and return
-        if (mermaidBlocks.length === 0) {
-          setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
-          setProcessingDiagrams(false)
-          return
-        }
-
-        // Process each mermaid block
-        const imageUrls: Record<string, string> = {}
-        let needsUpload = false
-
-        for (let i = 0; i < mermaidBlocks.length; i++) {
-          const { code: mermaidCode, fullMatch } = mermaidBlocks[i]
-
-          // Check if we have a cached URL for this diagram
-          if (cachedDiagrams && cachedDiagrams[mermaidCode]) {
-            console.log(`Using cached URL for diagram ${i}:`, cachedDiagrams[mermaidCode])
-            imageUrls[fullMatch] = cachedDiagrams[mermaidCode]
-          } else {
-            // Need to upload this diagram
-            needsUpload = true
-            try {
-              console.log(`Rendering diagram ${i}...`)
-              // Render mermaid to SVG
-              const svg = await renderMermaidToSvg(mermaidCode, `mermaid-richtext-${article.id}-${i}`)
-              console.log(`Rendered SVG length:`, svg.length)
-
-              // Upload SVG to R2
-              console.log(`Uploading diagram ${i} SVG to R2...`)
-              const response = await fetch('/api/diagrams/upload', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  svg,
-                  diagramId: `${i}`,
-                  articleId: article.id,
-                }),
-              })
-
-              if (response.ok) {
-                const { url } = await response.json()
-                console.log(`Uploaded diagram ${i}, SVG URL:`, url)
-                imageUrls[fullMatch] = url
-                // Also store with the code as key for caching
-                if (!cachedDiagrams) {
-                  cachedDiagrams = {}
-                }
-                cachedDiagrams[mermaidCode] = url
-              } else {
-                const errorData = await response.json()
-                console.error(`Upload failed for diagram ${i}:`, errorData)
-              }
-            } catch (err) {
-              console.error(`Error processing mermaid diagram ${i}:`, err)
-            }
-          }
-        }
-
-        console.log('Total image URLs:', Object.keys(imageUrls).length)
-
-        // If we uploaded new diagrams, save them to the database
-        if (needsUpload && cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
-          try {
-            console.log('Saving diagram URLs to database...')
-            const supabase = createClient()
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { error } = await (supabase as any)
-              .from('articles')
-              .update({
-                diagram_images: cachedDiagrams,
-              })
-              .eq('id', article.id)
-
-            if (error) {
-              console.error('Database update error:', error)
-            } else {
-              console.log('Successfully saved diagram URLs to database')
-            }
-          } catch (err) {
-            console.error('Error saving diagram URLs:', err)
-          }
-        }
-
-        // Replace mermaid blocks with image tags
-        let processedContent = content
-        let replacementCount = 0
-        for (const [fullMatch, imageUrl] of Object.entries(imageUrls)) {
-          console.log('Attempting to replace:', fullMatch.substring(0, 80))
-          console.log('With image URL:', imageUrl)
-          console.log('Full match length:', fullMatch.length)
-
-          // Check if the fullMatch exists in the content
-          const index = processedContent.indexOf(fullMatch)
-          console.log('Found at index:', index)
-
-          if (index !== -1) {
-            processedContent = processedContent.replace(fullMatch, `![Diagram](${imageUrl})`)
-            replacementCount++
-            console.log('Successfully replaced')
-          } else {
-            console.error('Failed to find match in content!')
-            console.log('Looking for:', fullMatch)
-            console.log('Content sample:', processedContent.substring(0, 500))
-          }
-        }
-
-        console.log('Total replacements made:', replacementCount)
-        console.log('Processed content length:', processedContent.length)
-
-        // Convert to HTML
-        const html = markdownToHtml(processedContent)
-        console.log('HTML length:', html.length)
-        setRichTextHtml(html)
-      } catch (err) {
-        console.error('Error processing diagrams:', err)
-        // Fallback to original content
-        setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
-      } finally {
-        setProcessingDiagrams(false)
-      }
-    }
-
-    processMermaidDiagrams()
+    // Diagrams are already processed during article generation
+    // Just use the pre-generated rich_text_content
+    setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
   }, [activeTab, article])
 
   const loadArticle = async () => {
@@ -814,26 +671,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               {/* Rich Text Tab */}
               {activeTab === 'richtext' && (
                 <div className="relative">
-                  {processingDiagrams && (
-                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-sm text-blue-700 font-medium">
-                          Processing diagrams...
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Action Icons */}
                   <div className="flex justify-end gap-2 mb-4">
                     <button
                       onClick={handleCopy}
                       className="p-2 hover:bg-gray-100 rounded-md transition-colors"
                       title="Copy content with embedded images"
-                      disabled={processingDiagrams}
                     >
                       {copySuccess ? (
                         <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -847,7 +690,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     </button>
                     <button
                       onClick={() => handleDownload('docx')}
-                      disabled={downloading === 'docx' || processingDiagrams}
+                      disabled={downloading === 'docx'}
                       className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
                       title="Download Word document with embedded images"
                     >

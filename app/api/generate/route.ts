@@ -3,10 +3,95 @@ import { createClient } from '@/lib/supabase/server'
 import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
 import { markdownToHtml } from '@/lib/utils/markdown'
-// import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
+import { R2StorageService } from '@/lib/services/r2-storage'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Process mermaid diagrams in markdown content
+ * - Extracts mermaid code blocks
+ * - Converts to SVG using mermaid.ink API
+ * - Uploads SVG to R2
+ * - Replaces mermaid blocks with image URLs
+ * - Returns processed content and diagram cache
+ */
+async function processMermaidDiagrams(
+  markdown: string,
+  articleId: string
+): Promise<{ content: string; diagramCache: Record<string, string> }> {
+  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
+  const matches = Array.from(markdown.matchAll(mermaidRegex))
+
+  if (matches.length === 0) {
+    return { content: markdown, diagramCache: {} }
+  }
+
+  console.log(`Processing ${matches.length} mermaid diagrams for article ${articleId}`)
+
+  const diagramCache: Record<string, string> = {}
+  const r2 = new R2StorageService()
+
+  // Process each diagram
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i]
+    const mermaidCode = match[1].trim()
+
+    try {
+      // Encode mermaid code as base64 for mermaid.ink API
+      const base64Code = Buffer.from(mermaidCode).toString('base64')
+      const mermaidInkUrl = `https://mermaid.ink/svg/${base64Code}`
+
+      console.log(`Fetching SVG from mermaid.ink for diagram ${i}...`)
+
+      // Fetch SVG from mermaid.ink
+      const response = await fetch(mermaidInkUrl)
+      if (!response.ok) {
+        throw new Error(`mermaid.ink API failed: ${response.status}`)
+      }
+
+      const svgText = await response.text()
+      const svgBuffer = Buffer.from(svgText, 'utf-8')
+
+      console.log(`Uploading diagram ${i} to R2 (${svgBuffer.length} bytes)...`)
+
+      // Upload to R2
+      const result = await r2.upload({
+        buffer: svgBuffer,
+        contentType: 'image/svg+xml',
+        fileName: `diagram-${i}.svg`,
+        folder: `articles/${articleId}/diagrams`,
+      })
+
+      console.log(`✓ Uploaded diagram ${i}: ${result.url}`)
+
+      // Cache the URL (keyed by mermaid code for consistency with client-side)
+      diagramCache[mermaidCode] = result.url
+    } catch (error) {
+      console.error(`Failed to process diagram ${i}:`, error)
+      // Continue with next diagram even if one fails
+    }
+  }
+
+  // Replace mermaid blocks with image URLs
+  let processedContent = markdown
+  processedContent = processedContent.replace(
+    /```mermaid\n([\s\S]*?)```/g,
+    (match, code) => {
+      const trimmedCode = code.trim()
+      const imageUrl = diagramCache[trimmedCode]
+
+      if (imageUrl) {
+        return `![Mermaid Diagram](${imageUrl})`
+      }
+      return match // Keep original if processing failed
+    }
+  )
+
+  console.log(`Processed ${Object.keys(diagramCache).length}/${matches.length} diagrams successfully`)
+
+  return { content: processedContent, diagramCache }
+}
 
 // Request validation schema
 const generateRequestSchema = z.object({
@@ -186,14 +271,16 @@ export async function POST(request: NextRequest) {
         profile: profile || null,
       })
 
-      // Convert Mermaid diagrams to WebP images
-      // TODO: Mermaid requires browser environment - implement using Puppeteer for server-side rendering
-      // const contentWithImages = await convertMermaidToImages(generatedArticle.content)
+      // Process mermaid diagrams (convert to SVG images and upload to R2)
+      const { content: processedContent, diagramCache } = await processMermaidDiagrams(
+        generatedArticle.content,
+        typedArticle.id
+      )
 
       const generationTime = Date.now() - startTime
 
-      // Convert markdown to rich text HTML for storage
-      const richTextHtml = markdownToHtml(generatedArticle.content)
+      // Convert markdown to rich text HTML for storage (using processed content with images)
+      const richTextHtml = markdownToHtml(processedContent)
 
       // Helper function to generate hashtags
       const generateHashtags = (title: string, tags: string[]): string => {
@@ -254,7 +341,7 @@ export async function POST(request: NextRequest) {
         // @ts-ignore - Supabase type inference issue
         .update({
           title: generatedArticle.title,
-          content: generatedArticle.content,
+          content: processedContent, // Use processed content with image URLs
           rich_text_content: richTextHtml,
           description: generatedArticle.description,
           tags: generatedArticle.tags,
@@ -263,6 +350,7 @@ export async function POST(request: NextRequest) {
           generated_at: new Date().toISOString(),
           linkedin_teaser: linkedinTeaser,
           generation_metadata: generatedArticle.metadata,
+          diagram_images: diagramCache, // Cache diagram URLs
         })
         .eq('id', typedArticle.id)
 
