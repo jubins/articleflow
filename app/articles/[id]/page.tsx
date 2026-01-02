@@ -74,7 +74,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       if (activeTab !== 'richtext' || !article) return
 
       // Check if we have cached diagram images
-      const cachedDiagrams = article.diagram_images as Record<string, string> | null
+      let cachedDiagrams = article.diagram_images as Record<string, string> | null
 
       setProcessingDiagrams(true)
       try {
