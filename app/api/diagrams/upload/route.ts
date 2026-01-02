@@ -61,26 +61,65 @@ export async function POST(request: NextRequest) {
     // Convert SVG string to buffer with UTF-8 encoding
     const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
 
-    // Convert SVG to WebP using sharp with proper density for better quality
-    const webpBuffer = await sharp(svgBuffer, {
+    // Debug: Check if SVG contains text elements
+    const hasText = cleanSvg.includes('<text') || cleanSvg.includes('</text>')
+    console.log(`SVG contains text elements: ${hasText}`)
+    if (!hasText) {
+      console.warn('WARNING: SVG does not contain any <text> elements!')
+      console.log('SVG preview (first 500 chars):', cleanSvg.substring(0, 500))
+    }
+
+    // Upload the original SVG for debugging
+    const r2 = new R2StorageService()
+    const svgResult = await r2.upload({
+      buffer: svgBuffer,
+      contentType: 'image/svg+xml',
+      fileName: `diagram-${diagramId || Date.now()}.svg`,
+      folder: `articles/${articleId}/diagrams`,
+    })
+
+    console.log(`Uploaded SVG to: ${svgResult.url}`)
+
+    // Convert SVG to PNG using sharp with high DPI for text rendering
+    // PNG typically handles text better than WebP during conversion
+    const pngBuffer = await sharp(svgBuffer, {
       density: 300 // Higher DPI for better quality and text rendering
+    })
+      .png({ quality: 100, compressionLevel: 9 })
+      .toBuffer()
+
+    // Upload PNG version
+    const pngResult = await r2.upload({
+      buffer: pngBuffer,
+      contentType: 'image/png',
+      fileName: `diagram-${diagramId || Date.now()}.png`,
+      folder: `articles/${articleId}/diagrams`,
+    })
+
+    console.log(`Uploaded PNG to: ${pngResult.url}`)
+
+    // Also create WebP for comparison
+    const webpBuffer = await sharp(svgBuffer, {
+      density: 300
     })
       .webp({ quality: 95 })
       .toBuffer()
 
-    // Upload to R2 in articles/{article-id}/diagrams folder
-    const r2 = new R2StorageService()
-    const result = await r2.upload({
+    const webpResult = await r2.upload({
       buffer: webpBuffer,
       contentType: 'image/webp',
       fileName: `diagram-${diagramId || Date.now()}.webp`,
       folder: `articles/${articleId}/diagrams`,
     })
 
+    console.log(`Uploaded WebP to: ${webpResult.url}`)
+
     return NextResponse.json({
       success: true,
-      url: result.url,
-      key: result.key,
+      url: pngResult.url, // Return PNG as primary
+      key: pngResult.key,
+      svgUrl: svgResult.url, // Include SVG for debugging
+      webpUrl: webpResult.url, // Include WebP for comparison
     })
   } catch (error) {
     console.error('Error uploading diagram:', error)
