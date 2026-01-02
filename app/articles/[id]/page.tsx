@@ -40,16 +40,17 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
-  const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
   const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
-  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
+  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium' | null>(null)
   const [displayContent, setDisplayContent] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -67,7 +68,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   // Convert markdown to HTML when switching to rich text tab
   useEffect(() => {
-    if (activeTab === 'richtext' && article && !isEditingRichText) {
+    if (activeTab === 'richtext' && article) {
       // Process content to use cached diagram images
       const cachedDiagrams = article.diagram_images as Record<string, string> | null
       const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
@@ -80,7 +81,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
       }
     }
-  }, [activeTab, article, isEditingRichText])
+  }, [activeTab, article])
 
   const loadArticle = async () => {
     try {
@@ -220,7 +221,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       setArticle({ ...article, content: editedContent, rich_text_content: richTextHtml })
       setIsEditingMarkdown(false)
-      setIsEditingRichText(false)
       setHasUnsavedChanges(false)
       setError('')
       toast.success('Changes saved successfully!')
@@ -233,51 +233,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   const handleCancelEdit = () => {
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setEditedContent('')
     setHasUnsavedChanges(false)
-    // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
-  const handleSaveRichText = async () => {
-    if (!article || !richTextHtml) return
-
-    try {
-      // Convert HTML back to markdown
-      const turndownService = new TurndownService({
-        headingStyle: 'atx',
-        codeBlockStyle: 'fenced',
-      })
-      const markdown = turndownService.turndown(richTextHtml)
-
-      const supabase = createClient()
-
-      // Save both markdown and rich text HTML in database
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from('articles')
-        .update({
-          content: markdown,
-          rich_text_content: richTextHtml,
-        })
-        .eq('id', article.id)
-
-      if (error) throw error
-
-      setArticle({ ...article, content: markdown, rich_text_content: richTextHtml })
-      setIsEditingRichText(false)
-      setHasUnsavedChanges(false)
-      setError('')
-      toast.success('Changes saved successfully!')
-    } catch (err) {
-      console.error('Save error:', err)
-      setError('Failed to save changes')
-      toast.error('Failed to save changes')
-    }
-  }
-
-  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
-    if (hasUnsavedChanges && (isEditingMarkdown || isEditingRichText)) {
+  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel' | 'dzone' | 'medium') => {
+    if (hasUnsavedChanges && isEditingMarkdown) {
       setPendingTab(newTab)
       setShowUnsavedModal(true)
       return
@@ -288,7 +249,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const confirmTabChange = () => {
     // Reset editing states if user confirms
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setHasUnsavedChanges(false)
     setEditedContent('')
     if (pendingTab) {
@@ -296,6 +256,85 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     }
     setShowUnsavedModal(false)
     setPendingTab(null)
+  }
+
+  const handleDelete = async () => {
+    if (!article) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/articles/${article.id}/delete`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete article')
+      }
+
+      toast.success('Article deleted successfully!')
+      // Navigate to dashboard after successful deletion
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
+    } catch (err) {
+      console.error('Delete error:', err)
+      toast.error('Failed to delete article')
+      setIsDeleting(false)
+      setShowDeleteModal(false)
+    }
+  }
+
+  const generateDzoneContent = () => {
+    if (!article) return ''
+
+    // Generate TL;DR from first paragraph or description
+    const tldr = article.description || article.content.split('\n\n')[0].substring(0, 200) + '...'
+
+    // Meta description (same as article description or excerpt)
+    const metaDescription = article.description || article.content.split('\n\n')[0].substring(0, 160)
+
+    // Extract references section if it exists
+    const referencesMatch = article.content.match(/##\s+References\s*\n([\s\S]*?)(?=\n##|\n$|$)/i)
+    const references = referencesMatch ? referencesMatch[0] : ''
+
+    return `# DZone Article Details
+
+## TL;DR
+${tldr}
+
+## Meta Description
+${metaDescription}
+
+## Tags
+${article.tags?.join(', ') || 'No tags'}
+
+## Article Content
+${displayContent}
+
+${references ? `\n${references}` : ''}
+
+---
+**Platform:** DZone
+**Word Count:** ${article.word_count} words
+**Type:** ${article.article_type || 'technical'}
+`
+  }
+
+  const generateMediumContent = () => {
+    if (!article) return ''
+
+    // Medium uses a cleaner format with subtitle (description)
+    return `# ${article.title}
+
+## ${article.description || ''}
+
+${displayContent}
+
+---
+
+${article.tags && article.tags.length > 0 ? `**Tags:** ${article.tags.join(', ')}` : ''}
+${profile && profile.full_name ? `\n**Author:** ${profile.full_name}` : ''}
+`
   }
 
   if (loading) {
@@ -339,11 +378,28 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         cancelText="Stay"
         variant="warning"
       />
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Article"
+        message="Are you sure you want to delete this article? This action cannot be undone."
+        confirmText={isDeleting ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+        variant="danger"
+      />
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Button variant="outline" onClick={() => router.push('/dashboard')}>
             ← Back to Dashboard
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete Article'}
           </Button>
         </div>
 
@@ -417,6 +473,26 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                       }`}
                     >
                       Rich Text
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('dzone')}
+                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'dzone'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                      }`}
+                    >
+                      DZone
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('medium')}
+                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'medium'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                      }`}
+                    >
+                      Medium
                     </button>
                   </>
                 )}
@@ -679,90 +755,125 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                 <div className="relative">
                   {/* Action Icons */}
                   <div className="flex justify-end gap-2 mb-4">
-                    {!isEditingRichText ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            setIsEditingRichText(true)
-                            setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
-                            setHasUnsavedChanges(false)
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Edit content"
-                        >
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCopy}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Copy markdown"
-                        >
-                          {copySuccess ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDownload('docx')}
-                          disabled={downloading === 'docx'}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-                          title="Download Word document"
-                        >
-                          {downloading === 'docx' ? (
-                            <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleSaveRichText}
-                          className="p-2 hover:bg-green-100 rounded-md transition-colors"
-                          title="Save changes"
-                        >
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-2 hover:bg-red-100 rounded-md transition-colors"
-                          title="Cancel editing"
-                        >
-                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                      title="Copy content"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDownload('docx')}
+                      disabled={downloading === 'docx'}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                      title="Download Word document"
+                    >
+                      {downloading === 'docx' ? (
+                        <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
 
-                  {/* Rich Text Editor */}
+                  {/* Rich Text Editor (Read-only) */}
                   <div>
                     <RichTextEditor
                       content={richTextHtml}
-                      onChange={(html) => {
-                        setRichTextHtml(html)
-                        if (isEditingRichText) {
-                          setHasUnsavedChanges(true)
-                        }
-                      }}
-                      editable={isEditingRichText}
+                      onChange={() => {}}
+                      editable={false}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* DZone Tab */}
+              {activeTab === 'dzone' && (
+                <div className="relative">
+                  {/* Action Icons */}
+                  <div className="absolute top-0 right-0 flex gap-2 z-10">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(generateDzoneContent())
+                          toast.success('DZone content copied to clipboard!')
+                          setCopySuccess(true)
+                          setTimeout(() => setCopySuccess(false), 2000)
+                        } catch (err) {
+                          console.error('Copy error:', err)
+                          toast.error('Failed to copy content')
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                      title="Copy DZone content"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* DZone Content */}
+                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
+                    {generateDzoneContent()}
+                  </pre>
+                </div>
+              )}
+
+              {/* Medium Tab */}
+              {activeTab === 'medium' && (
+                <div className="relative">
+                  {/* Action Icons */}
+                  <div className="absolute top-0 right-0 flex gap-2 z-10">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(generateMediumContent())
+                          toast.success('Medium content copied to clipboard!')
+                          setCopySuccess(true)
+                          setTimeout(() => setCopySuccess(false), 2000)
+                        } catch (err) {
+                          console.error('Copy error:', err)
+                          toast.error('Failed to copy content')
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-md transition-colors bg-white border border-gray-200"
+                      title="Copy Medium content"
+                    >
+                      {copySuccess ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Medium Content */}
+                  <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
+                    {generateMediumContent()}
+                  </pre>
                 </div>
               )}
 

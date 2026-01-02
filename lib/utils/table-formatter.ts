@@ -6,13 +6,39 @@ export function formatTablesInMarkdown(markdown: string): string {
   const lines = markdown.split('\n')
   const result: string[] = []
   let i = 0
+  let inCodeBlock = false
+  let codeBlockFence = ''
 
   while (i < lines.length) {
-    const line = lines[i].trim()
+    const line = lines[i]
+    const trimmedLine = line.trim()
+
+    // Track code block state
+    if (trimmedLine.startsWith('```')) {
+      if (!inCodeBlock) {
+        // Entering a code block
+        inCodeBlock = true
+        codeBlockFence = '```'
+      } else if (codeBlockFence === '```') {
+        // Exiting a code block
+        inCodeBlock = false
+        codeBlockFence = ''
+      }
+      result.push(line)
+      i++
+      continue
+    }
+
+    // If we're inside a code block, preserve the line as-is
+    if (inCodeBlock) {
+      result.push(line)
+      i++
+      continue
+    }
 
     // Check if this line looks like a table header or title
     // followed by lines that could be table cells
-    if (line && !line.startsWith('|') && !line.startsWith('#') && !line.startsWith('-')) {
+    if (trimmedLine && !trimmedLine.startsWith('|') && !trimmedLine.startsWith('#') && !trimmedLine.startsWith('-')) {
       // Look ahead to see if next few lines look like table data
       const potentialTableLines: string[] = []
       let j = i

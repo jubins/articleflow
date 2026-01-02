@@ -70,18 +70,28 @@ graph TD
 
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
+CRITICAL - References Section:
+- Include a "## References" section at the end of the article
+- List 5-8 high-quality reference sources (documentation, books, articles, official guides)
+- Format as a numbered list with descriptive titles and context
+- Example format:
+  ## References
+
+  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
+  2. **Research Paper** - "Paper Title" by Author et al. - Academic research on the topic
+
 Generate a complete article in Markdown format with:
 1. A compelling title
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full article content in Markdown (must include diagrams, tables, and code examples)
+4. The full article content in Markdown (must include diagrams, tables, code examples, and references)
 
 Format your response as JSON:
 {
   "title": "Article Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full article content..."
+  "content": "Full article content with References section..."
 }`,
 
   tutorial: `You are a technical content writer creating a step-by-step tutorial for {{platform}}.
@@ -122,18 +132,28 @@ graph TD
 
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
+CRITICAL - References Section:
+- Include a "## References" section at the end of the tutorial
+- List 5-8 high-quality reference sources (documentation, tutorials, guides)
+- Format as a numbered list with descriptive titles and context
+- Example format:
+  ## References
+
+  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
+  2. **Tutorial Series** - "Series Title" - Related tutorials for further learning
+
 Generate a complete tutorial in Markdown format with:
 1. A compelling title starting with "How to..." or "Getting Started with..."
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full tutorial content in Markdown
+4. The full tutorial content in Markdown (must include references)
 
 Format your response as JSON:
 {
   "title": "Tutorial Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full tutorial content..."
+  "content": "Full tutorial content with References section..."
 }`,
 
   comparison: `You are a technical content writer creating a comparison article for {{platform}}.
@@ -159,18 +179,28 @@ CRITICAL - Analysis:
 - Include specific examples or data
 - Recommend which option for which use case
 
+CRITICAL - References Section:
+- Include a "## References" section at the end of the article
+- List 5-8 high-quality reference sources (official docs, comparison studies, benchmarks)
+- Format as a numbered list with descriptive titles and context
+- Example format:
+  ## References
+
+  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
+  2. **Benchmark Study** - "Study Title" - Performance comparison data
+
 Generate a complete comparison article in Markdown format with:
 1. A compelling title (e.g., "X vs Y: Which Should You Choose?")
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full article content in Markdown (must include comparison tables)
+4. The full article content in Markdown (must include comparison tables and references)
 
 Format your response as JSON:
 {
   "title": "Comparison Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full comparison content..."
+  "content": "Full comparison content with References section..."
 }`,
 
   'best-practices': `You are a technical content writer creating a best practices guide for {{platform}}.
@@ -196,18 +226,28 @@ CRITICAL - Practical Guidance:
 - Explain the reasoning behind each practice
 - Include real-world scenarios
 
+CRITICAL - References Section:
+- Include a "## References" section at the end of the article
+- List 5-8 high-quality reference sources (style guides, official best practices, industry standards)
+- Format as a numbered list with descriptive titles and context
+- Example format:
+  ## References
+
+  1. **Official Style Guide** - [Technology Name Style Guide](URL) - Industry-standard best practices
+  2. **Book** - "Book Title" by Author - Comprehensive guide to best practices
+
 Generate a complete best practices article in Markdown format with:
 1. A compelling title (e.g., "Best Practices for..." or "...Best Practices")
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full article content in Markdown
+4. The full article content in Markdown (must include references)
 
 Format your response as JSON:
 {
   "title": "Best Practices Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full best practices content..."
+  "content": "Full best practices content with References section..."
 }`,
 
   'case-study': `You are a technical content writer creating a case study article for {{platform}}.
@@ -254,18 +294,28 @@ CRITICAL - Results & Metrics:
 - Use tables for metrics comparison
 - Include lessons learned
 
+CRITICAL - References Section:
+- Include a "## References" section at the end of the article
+- List 5-8 high-quality reference sources (documentation, related case studies, research papers)
+- Format as a numbered list with descriptive titles and context
+- Example format:
+  ## References
+
+  1. **Official Documentation** - [Technology Name Official Docs](URL) - Technical reference used in implementation
+  2. **Case Study** - "Related Case Study Title" - Similar implementation story
+
 Generate a complete case study in Markdown format with:
 1. A compelling title (e.g., "How We..." or "Building...")
 2. A brief description (150-200 characters for SEO)
 3. 3-5 relevant tags
-4. The full case study content in Markdown
+4. The full case study content in Markdown (must include references)
 
 Format your response as JSON:
 {
   "title": "Case Study Title Here",
   "description": "Brief description for SEO",
   "tags": ["tag1", "tag2", "tag3"],
-  "content": "Full case study content..."
+  "content": "Full case study content with References section..."
 }`,
 
   carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
