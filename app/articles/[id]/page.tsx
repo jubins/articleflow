@@ -185,11 +185,28 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
         // Replace mermaid blocks with image tags
         let processedContent = content
+        let replacementCount = 0
         for (const [fullMatch, imageUrl] of Object.entries(imageUrls)) {
-          console.log('Replacing:', fullMatch.substring(0, 50), 'with image URL:', imageUrl)
-          processedContent = processedContent.replace(fullMatch, `![Diagram](${imageUrl})`)
+          console.log('Attempting to replace:', fullMatch.substring(0, 80))
+          console.log('With image URL:', imageUrl)
+          console.log('Full match length:', fullMatch.length)
+
+          // Check if the fullMatch exists in the content
+          const index = processedContent.indexOf(fullMatch)
+          console.log('Found at index:', index)
+
+          if (index !== -1) {
+            processedContent = processedContent.replace(fullMatch, `![Diagram](${imageUrl})`)
+            replacementCount++
+            console.log('Successfully replaced')
+          } else {
+            console.error('Failed to find match in content!')
+            console.log('Looking for:', fullMatch)
+            console.log('Content sample:', processedContent.substring(0, 500))
+          }
         }
 
+        console.log('Total replacements made:', replacementCount)
         console.log('Processed content length:', processedContent.length)
 
         // Convert to HTML
