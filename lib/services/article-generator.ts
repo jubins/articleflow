@@ -134,14 +134,15 @@ graph TD
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 CRITICAL - References Section:
-- Include a "## References" section at the end of the tutorial
-- List 5-8 high-quality reference sources (documentation, tutorials, guides)
-- Format as a numbered list with descriptive titles and context
+- Include a "## References and Further Reading" section at the end of the tutorial
+- List 5-8 high-quality reference sources as simple hyperlinks
+- Format as bullet points with just the title hyperlinked (no descriptions)
 - Example format:
-  ## References
+  ## References and Further Reading
 
-  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
-  2. **Tutorial Series** - "Series Title" - Related tutorials for further learning
+  - [Official Documentation - Getting Started Guide](https://example.com/docs)
+  - [Tutorial Series on Advanced Topics](https://example.com/tutorials)
+  - [Community Best Practices Guide](https://example.com/best-practices)
 
 Generate a complete tutorial in Markdown format with:
 1. A compelling title starting with "How to..." or "Getting Started with..."
@@ -181,14 +182,15 @@ CRITICAL - Analysis:
 - Recommend which option for which use case
 
 CRITICAL - References Section:
-- Include a "## References" section at the end of the article
-- List 5-8 high-quality reference sources (official docs, comparison studies, benchmarks)
-- Format as a numbered list with descriptive titles and context
+- Include a "## References and Further Reading" section at the end of the article
+- List 5-8 high-quality reference sources as simple hyperlinks
+- Format as bullet points with just the title hyperlinked (no descriptions)
 - Example format:
-  ## References
+  ## References and Further Reading
 
-  1. **Official Documentation** - [Technology Name Official Docs](URL) - Comprehensive guide covering core concepts
-  2. **Benchmark Study** - "Study Title" - Performance comparison data
+  - [Tool A Official Documentation](https://example.com/tool-a/docs)
+  - [Tool B Official Documentation](https://example.com/tool-b/docs)
+  - [Performance Benchmark Study](https://example.com/benchmark-study)
 
 Generate a complete comparison article in Markdown format with:
 1. A compelling title (e.g., "X vs Y: Which Should You Choose?")
@@ -228,14 +230,15 @@ CRITICAL - Practical Guidance:
 - Include real-world scenarios
 
 CRITICAL - References Section:
-- Include a "## References" section at the end of the article
-- List 5-8 high-quality reference sources (style guides, official best practices, industry standards)
-- Format as a numbered list with descriptive titles and context
+- Include a "## References and Further Reading" section at the end of the article
+- List 5-8 high-quality reference sources as simple hyperlinks
+- Format as bullet points with just the title hyperlinked (no descriptions)
 - Example format:
-  ## References
+  ## References and Further Reading
 
-  1. **Official Style Guide** - [Technology Name Style Guide](URL) - Industry-standard best practices
-  2. **Book** - "Book Title" by Author - Comprehensive guide to best practices
+  - [Official Style Guide](https://example.com/style-guide)
+  - [Industry Best Practices Documentation](https://example.com/best-practices)
+  - [Clean Code Principles](https://example.com/clean-code)
 
 Generate a complete best practices article in Markdown format with:
 1. A compelling title (e.g., "Best Practices for..." or "...Best Practices")
@@ -296,14 +299,15 @@ CRITICAL - Results & Metrics:
 - Include lessons learned
 
 CRITICAL - References Section:
-- Include a "## References" section at the end of the article
-- List 5-8 high-quality reference sources (documentation, related case studies, research papers)
-- Format as a numbered list with descriptive titles and context
+- Include a "## References and Further Reading" section at the end of the article
+- List 5-8 high-quality reference sources as simple hyperlinks
+- Format as bullet points with just the title hyperlinked (no descriptions)
 - Example format:
-  ## References
+  ## References and Further Reading
 
-  1. **Official Documentation** - [Technology Name Official Docs](URL) - Technical reference used in implementation
-  2. **Case Study** - "Related Case Study Title" - Similar implementation story
+  - [Official Documentation](https://example.com/docs)
+  - [Related Case Study - Similar Implementation](https://example.com/case-study)
+  - [Performance Optimization Guide](https://example.com/optimization)
 
 Generate a complete case study in Markdown format with:
 1. A compelling title (e.g., "How We..." or "Building...")
