@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Article } from '@/lib/types/database'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign } from 'docx'
 
 export async function GET(
   request: NextRequest,
@@ -206,7 +206,13 @@ async function convertMarkdownToDocx(
     // Handle images
     const imageMatch = line.match(/!\[.*?\]\((.*?)\)/)
     if (imageMatch) {
-      const imageUrl = imageMatch[1]
+      let imageUrl = imageMatch[1]
+
+      // Convert .svg to .webp for better DOCX compatibility
+      if (imageUrl.toLowerCase().endsWith('.svg')) {
+        imageUrl = imageUrl.replace(/\.svg$/i, '.webp')
+      }
+
       try {
         // Fetch the image
         const response = await fetch(imageUrl)
@@ -214,7 +220,7 @@ async function convertMarkdownToDocx(
         const imageBuffer = Buffer.from(arrayBuffer)
 
         // Detect image type from URL
-        const imageType = imageUrl.toLowerCase().endsWith('.svg') ? 'svg' :
+        const imageType = imageUrl.toLowerCase().endsWith('.webp') ? 'png' : // WebP as PNG for DOCX
                          imageUrl.toLowerCase().endsWith('.jpg') || imageUrl.toLowerCase().endsWith('.jpeg') ? 'jpg' :
                          'png' // default to png
 
@@ -225,7 +231,7 @@ async function convertMarkdownToDocx(
           new Paragraph({
             children: [
               new ImageRun({
-                type: imageType as 'png' | 'jpg' | 'svg',
+                type: imageType as 'png' | 'jpg',
                 data: imageBuffer,
                 transformation: {
                   width: 600,
@@ -404,44 +410,46 @@ function parseMarkdownLine(line: string): TextRun[] {
   return textRuns
 }
 
-function convertToDocxTable(tableRows: string[][]): Paragraph[] {
+function convertToDocxTable(tableRows: string[][]): (Paragraph | Table)[] {
   if (tableRows.length === 0) {
     return []
   }
 
   const numCols = tableRows[0].length
-  const columnWidths = Array(numCols).fill(Math.floor(9000 / numCols))
+  // Use percentage-based widths for better layout
+  const columnWidthPercent = Math.floor(100 / numCols)
 
   const rows = tableRows.map((rowCells, rowIndex) => {
     const isHeader = rowIndex === 0
 
     return new TableRow({
-      children: rowCells.map((cellText, cellIndex) => {
+      children: rowCells.map((cellText) => {
         return new TableCell({
           children: [
             new Paragraph({
               children: [
                 new TextRun({
-                  text: cellText,
+                  text: cellText.trim(),
                   bold: isHeader,
                   size: isHeader ? 22 : 20,
+                  color: isHeader ? 'FFFFFF' : '000000',
                 }),
               ],
             }),
           ],
           width: {
-            size: columnWidths[cellIndex],
-            type: WidthType.DXA,
+            size: columnWidthPercent,
+            type: WidthType.PERCENTAGE,
           },
+          verticalAlign: VerticalAlign.CENTER,
           shading: isHeader ? {
             fill: '4472C4',
-            color: 'FFFFFF',
           } : undefined,
           margins: {
-            top: 100,
-            bottom: 100,
-            left: 100,
-            right: 100,
+            top: 150,
+            bottom: 150,
+            left: 150,
+            right: 150,
           },
         })
       }),
@@ -455,15 +463,18 @@ function convertToDocxTable(tableRows: string[][]): Paragraph[] {
       type: WidthType.PERCENTAGE,
     },
     borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      left: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      right: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 3, color: 'CCCCCC' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 3, color: 'CCCCCC' },
     },
   })
 
-  // Return the table wrapped in a paragraph container
-  return [table as unknown as Paragraph]
+  // Return array with table and spacing paragraph
+  return [
+    table,
+    new Paragraph({ text: '', spacing: { after: 200 } }) // Add spacing after table
+  ]
 }

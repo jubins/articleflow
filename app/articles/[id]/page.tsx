@@ -156,10 +156,38 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     try {
-      // If on rich text tab, copy HTML format; otherwise copy markdown
+      // If on rich text tab, copy HTML format with embedded images
       if (activeTab === 'richtext' && richTextHtml) {
-        // Copy as HTML using clipboard API with multiple formats
-        const htmlBlob = new Blob([richTextHtml], { type: 'text/html' })
+        // Embed images as data URIs for better paste compatibility
+        let htmlWithEmbeddedImages = richTextHtml
+
+        // Find all img tags
+        const imgRegex = /<img[^>]+src="([^">]+)"/g
+        const matches = Array.from(richTextHtml.matchAll(imgRegex))
+
+        // Fetch and embed each image
+        for (const match of matches) {
+          const imgUrl = match[1]
+          try {
+            const response = await fetch(imgUrl)
+            const blob = await response.blob()
+            const reader = new FileReader()
+
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              reader.onloadend = () => resolve(reader.result as string)
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            })
+
+            // Replace URL with data URI
+            htmlWithEmbeddedImages = htmlWithEmbeddedImages.replace(imgUrl, base64Data)
+          } catch (imgError) {
+            console.error(`Failed to embed image ${imgUrl}:`, imgError)
+            // Continue with other images
+          }
+        }
+
+        const htmlBlob = new Blob([htmlWithEmbeddedImages], { type: 'text/html' })
         const textBlob = new Blob([displayContent || article.content], { type: 'text/plain' })
 
         await navigator.clipboard.write([
@@ -168,7 +196,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
             'text/plain': textBlob,
           })
         ])
-        toast.success('Rich text copied to clipboard!')
+        toast.success('Rich text copied with images!')
       } else {
         // Copy displayContent which has cached diagram images if available
         await navigator.clipboard.writeText(displayContent || article.content)

@@ -4,6 +4,7 @@ import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { R2StorageService } from '@/lib/services/r2-storage'
+import sharp from 'sharp'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -12,14 +13,14 @@ export const dynamic = 'force-dynamic'
  * Process mermaid diagrams in markdown content
  * - Extracts mermaid code blocks
  * - Converts to SVG using mermaid.ink API
- * - Uploads SVG to R2
- * - Replaces mermaid blocks with image URLs
- * - Returns processed content and diagram cache
+ * - Uploads both SVG and WebP to R2
+ * - Replaces mermaid blocks with WebP image URLs (for platform compatibility)
+ * - Returns processed content and diagram cache with both URLs
  */
 async function processMermaidDiagrams(
   markdown: string,
   articleId: string
-): Promise<{ content: string; diagramCache: Record<string, string> }> {
+): Promise<{ content: string; diagramCache: Record<string, { svg: string; webp: string }> }> {
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
   const matches = Array.from(markdown.matchAll(mermaidRegex))
 
@@ -29,7 +30,7 @@ async function processMermaidDiagrams(
 
   console.log(`Processing ${matches.length} mermaid diagrams for article ${articleId}`)
 
-  const diagramCache: Record<string, string> = {}
+  const diagramCache: Record<string, { svg: string; webp: string }> = {}
   const r2 = new R2StorageService()
 
   // Process each diagram
@@ -53,36 +54,55 @@ async function processMermaidDiagrams(
       const svgText = await response.text()
       const svgBuffer = Buffer.from(svgText, 'utf-8')
 
-      console.log(`Uploading diagram ${i} to R2 (${svgBuffer.length} bytes)...`)
+      console.log(`Uploading SVG diagram ${i} to R2 (${svgBuffer.length} bytes)...`)
 
-      // Upload to R2
-      const result = await r2.upload({
+      // Upload SVG to R2
+      const svgResult = await r2.upload({
         buffer: svgBuffer,
         contentType: 'image/svg+xml',
         fileName: `diagram-${i}.svg`,
         folder: `articles/${articleId}/diagrams`,
       })
 
-      console.log(`✓ Uploaded diagram ${i}: ${result.url}`)
+      console.log(`✓ Uploaded SVG: ${svgResult.url}`)
 
-      // Cache the URL (keyed by mermaid code for consistency with client-side)
-      diagramCache[mermaidCode] = result.url
+      // Convert SVG to WebP using sharp
+      console.log(`Converting diagram ${i} to WebP...`)
+      const webpBuffer = await sharp(svgBuffer, { density: 300 })
+        .webp({ quality: 90 })
+        .toBuffer()
+
+      // Upload WebP to R2
+      const webpResult = await r2.upload({
+        buffer: webpBuffer,
+        contentType: 'image/webp',
+        fileName: `diagram-${i}.webp`,
+        folder: `articles/${articleId}/diagrams`,
+      })
+
+      console.log(`✓ Uploaded WebP (${webpBuffer.length} bytes): ${webpResult.url}`)
+
+      // Cache both URLs (keyed by mermaid code)
+      diagramCache[mermaidCode] = {
+        svg: svgResult.url,
+        webp: webpResult.url,
+      }
     } catch (error) {
       console.error(`Failed to process diagram ${i}:`, error)
       // Continue with next diagram even if one fails
     }
   }
 
-  // Replace mermaid blocks with image URLs
+  // Replace mermaid blocks with WebP image URLs (better platform compatibility)
   let processedContent = markdown
   processedContent = processedContent.replace(
     /```mermaid\n([\s\S]*?)```/g,
     (match, code) => {
       const trimmedCode = code.trim()
-      const imageUrl = diagramCache[trimmedCode]
+      const urls = diagramCache[trimmedCode]
 
-      if (imageUrl) {
-        return `![Mermaid Diagram](${imageUrl})`
+      if (urls && urls.webp) {
+        return `![Mermaid Diagram](${urls.webp})`
       }
       return match // Keep original if processing failed
     }
@@ -277,10 +297,17 @@ export async function POST(request: NextRequest) {
         typedArticle.id
       )
 
+      // Create rich text content with SVG URLs for better in-app rendering
+      let richTextContent = processedContent
+      richTextContent = richTextContent.replace(
+        /!\[Mermaid Diagram\]\((.*?)\.webp\)/g,
+        (match, baseUrl) => `![Mermaid Diagram](${baseUrl}.svg)`
+      )
+
       const generationTime = Date.now() - startTime
 
-      // Convert markdown to rich text HTML for storage (using processed content with images)
-      const richTextHtml = markdownToHtml(processedContent)
+      // Convert markdown to rich text HTML for storage (using SVG URLs for in-app display)
+      const richTextHtml = markdownToHtml(richTextContent)
 
       // Helper function to generate hashtags
       const generateHashtags = (title: string, tags: string[]): string => {
