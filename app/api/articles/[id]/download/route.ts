@@ -100,7 +100,7 @@ async function convertMermaidDiagramsToImages(
   cachedDiagrams: Record<string, string> | null = null
 ): Promise<{ content: string; images: Map<string, string>; needsUpdate: boolean }> {
   const images = new Map<string, string>()
-  let needsUpdate = false
+  const needsUpdate = false
 
   // Extract all Mermaid diagrams
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
