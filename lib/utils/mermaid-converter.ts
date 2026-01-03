@@ -1,20 +1,14 @@
 import mermaid from 'mermaid'
-import sharp from 'sharp'
-import { uploadMermaidDiagram } from '@/lib/storage/r2'
 
 /**
- * Convert all Mermaid diagrams in markdown content to WebP images
+ * Mermaid initialization guard and config
+ * This is client-safe (no Node.js dependencies)
  */
-export async function convertMermaidToImages(markdown: string): Promise<string> {
-  const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
-  let updatedContent = markdown
-  const matches = Array.from(markdown.matchAll(mermaidRegex))
+let initialized = false
 
-  if (matches.length === 0) {
-    return markdown
-  }
+export function initMermaid() {
+  if (initialized) return
 
-  // Initialize mermaid for server-side rendering
   mermaid.initialize({
     startOnLoad: false,
     theme: 'default',
@@ -31,32 +25,23 @@ export async function convertMermaidToImages(markdown: string): Promise<string> 
     },
     securityLevel: 'loose',
     fontFamily: 'system-ui, sans-serif',
+    sequence: {
+      wrap: true,
+      width: 150,
+    },
   })
 
-  // Process each mermaid diagram
-  for (const match of matches) {
-    const mermaidCode = match[1]
+  initialized = true
+}
 
-    try {
-      // Render mermaid to SVG
-      const { svg } = await mermaid.render(`diagram-${Date.now()}-${Math.random()}`, mermaidCode)
-
-      // Convert SVG to WebP
-      const svgBuffer = Buffer.from(svg)
-      const webpBuffer = await sharp(svgBuffer)
-        .webp({ quality: 90 })
-        .toBuffer()
-
-      // Upload to R2
-      const imageUrl = await uploadMermaidDiagram(webpBuffer)
-
-      // Replace mermaid code block with image markdown
-      updatedContent = updatedContent.replace(match[0], `![Diagram](${imageUrl})`)
-    } catch (err) {
-      console.error('Error converting Mermaid diagram:', err)
-      // Keep the original Mermaid code if conversion fails
-    }
-  }
-
-  return updatedContent
+/**
+ * Renders Mermaid code to SVG (client-side safe)
+ */
+export async function renderMermaidToSvg(
+  mermaidCode: string,
+  renderId: string
+): Promise<string> {
+  initMermaid()
+  const { svg } = await mermaid.render(renderId, mermaidCode)
+  return svg
 }

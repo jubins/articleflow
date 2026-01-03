@@ -228,7 +228,7 @@ export default function GeneratePage() {
                       <ul className="space-y-1.5 text-sm text-green-800">
                         {formData.articleType === 'technical' && (
                           <>
-                            <li>• Architecture diagrams with Mermaid</li>
+                            <li>• Architecture diagrams</li>
                             <li>• Code examples with syntax highlighting</li>
                             <li>• Comparison tables</li>
                             <li>• Technical deep-dive content (~2000 words)</li>
