@@ -1,9 +1,8 @@
 import mermaid from 'mermaid'
-import sharp from 'sharp'
 import { uploadMermaidDiagram } from '@/lib/storage/r2'
 
 /**
- * Convert all Mermaid diagrams in markdown content to WebP images
+ * Convert all Mermaid diagrams in markdown content to SVG images
  */
 export async function convertMermaidToImages(markdown: string): Promise<string> {
   const mermaidRegex = /```mermaid\n([\s\S]*?)```/g
@@ -41,14 +40,11 @@ export async function convertMermaidToImages(markdown: string): Promise<string> 
       // Render mermaid to SVG
       const { svg } = await mermaid.render(`diagram-${Date.now()}-${Math.random()}`, mermaidCode)
 
-      // Convert SVG to WebP
-      const svgBuffer = Buffer.from(svg)
-      const webpBuffer = await sharp(svgBuffer)
-        .webp({ quality: 90 })
-        .toBuffer()
+      // Convert SVG string to buffer
+      const svgBuffer = Buffer.from(svg, 'utf-8')
 
-      // Upload to R2
-      const imageUrl = await uploadMermaidDiagram(webpBuffer)
+      // Upload SVG to R2
+      const imageUrl = await uploadMermaidDiagram(svgBuffer)
 
       // Replace mermaid code block with image markdown
       updatedContent = updatedContent.replace(match[0], `![Diagram](${imageUrl})`)

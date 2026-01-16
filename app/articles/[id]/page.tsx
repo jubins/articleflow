@@ -40,7 +40,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState<'md' | 'docx' | null>(null)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
   const [isEditingRichText, setIsEditingRichText] = useState(false)
@@ -48,8 +48,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
-  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'richtext' | 'carousel' | null>(null)
+  const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'carousel' | null>(null)
   const [displayContent, setDisplayContent] = useState('')
+  const [markdownContent, setMarkdownContent] = useState('')
+  const [processingDiagrams, setProcessingDiagrams] = useState(false)
+  const [copiedDescription, setCopiedDescription] = useState(false)
+  const [copiedTags, setCopiedTags] = useState(false)
+  const [copiedTldr, setCopiedTldr] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -62,25 +67,18 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       const cachedDiagrams = article.diagram_images as Record<string, string> | null
       const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
       setDisplayContent(processedContent)
+      setMarkdownContent(processedContent)
     }
   }, [article])
 
-  // Convert markdown to HTML when switching to rich text tab
+  // Process diagrams when switching to markdown tab
   useEffect(() => {
-    if (activeTab === 'richtext' && article && !isEditingRichText) {
-      // Process content to use cached diagram images
-      const cachedDiagrams = article.diagram_images as Record<string, string> | null
-      const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
-
-      // If we have cached diagrams, always use processed content to show images
-      // Otherwise, use stored rich text content if available
-      if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
-        setRichTextHtml(markdownToHtml(processedContent))
-      } else {
-        setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
-      }
+    if (activeTab === 'markdown' && article && !isEditingMarkdown) {
+      processDiagramsForMarkdown()
     }
-  }, [activeTab, article, isEditingRichText])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, article])
+
 
   const loadArticle = async () => {
     try {
@@ -118,6 +116,46 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       setError('Failed to load article')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const processDiagramsForMarkdown = async () => {
+    if (!article || processingDiagrams) return
+
+    // Check if article has mermaid diagrams
+    const hasMermaid = article.content.includes('```mermaid')
+    if (!hasMermaid) return
+
+    // Check if already cached
+    const cachedDiagrams = article.diagram_images as Record<string, string> | null
+    if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
+      // Already cached, just use the processed content
+      return
+    }
+
+    setProcessingDiagrams(true)
+
+    try {
+      const response = await fetch(`/api/articles/${article.id}/process-diagrams`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to process diagrams')
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.content) {
+        setMarkdownContent(data.content)
+        // Update article with cached diagrams
+        setArticle({ ...article, diagram_images: data.diagrams })
+      }
+    } catch (err) {
+      console.error('Error processing diagrams:', err)
+      // Don't show error to user, just use original content
+    } finally {
+      setProcessingDiagrams(false)
     }
   }
 
@@ -164,24 +202,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     if (!article) return
 
     try {
-      // If on rich text tab, copy HTML format; otherwise copy markdown
-      if (activeTab === 'richtext' && richTextHtml) {
-        // Copy as HTML using clipboard API with multiple formats
-        const htmlBlob = new Blob([richTextHtml], { type: 'text/html' })
-        const textBlob = new Blob([displayContent || article.content], { type: 'text/plain' })
-
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'text/html': htmlBlob,
-            'text/plain': textBlob,
-          })
-        ])
-        toast.success('Rich text copied to clipboard!')
-      } else {
-        // Copy displayContent which has cached diagram images if available
-        await navigator.clipboard.writeText(displayContent || article.content)
-        toast.success('Content copied to clipboard!')
-      }
+      // Copy displayContent which has cached diagram images if available
+      await navigator.clipboard.writeText(displayContent || article.content)
+      toast.success('Content copied to clipboard!')
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (err) {
@@ -239,45 +262,9 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
-  const handleSaveRichText = async () => {
-    if (!article || !richTextHtml) return
 
-    try {
-      // Convert HTML back to markdown
-      const turndownService = new TurndownService({
-        headingStyle: 'atx',
-        codeBlockStyle: 'fenced',
-      })
-      const markdown = turndownService.turndown(richTextHtml)
-
-      const supabase = createClient()
-
-      // Save both markdown and rich text HTML in database
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from('articles')
-        .update({
-          content: markdown,
-          rich_text_content: richTextHtml,
-        })
-        .eq('id', article.id)
-
-      if (error) throw error
-
-      setArticle({ ...article, content: markdown, rich_text_content: richTextHtml })
-      setIsEditingRichText(false)
-      setHasUnsavedChanges(false)
-      setError('')
-      toast.success('Changes saved successfully!')
-    } catch (err) {
-      console.error('Save error:', err)
-      setError('Failed to save changes')
-      toast.error('Failed to save changes')
-    }
-  }
-
-  const handleTabChange = (newTab: 'preview' | 'markdown' | 'richtext' | 'carousel') => {
-    if (hasUnsavedChanges && (isEditingMarkdown || isEditingRichText)) {
+  const handleTabChange = (newTab: 'preview' | 'markdown' | 'carousel') => {
+    if (hasUnsavedChanges && isEditingMarkdown) {
       setPendingTab(newTab)
       setShowUnsavedModal(true)
       return
@@ -296,6 +283,46 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     }
     setShowUnsavedModal(false)
     setPendingTab(null)
+  }
+
+  const handleCopyDescription = async () => {
+    if (!article?.description) return
+    try {
+      await navigator.clipboard.writeText(article.description)
+      setCopiedDescription(true)
+      setTimeout(() => setCopiedDescription(false), 2000)
+      toast.success('Description copied!')
+    } catch (err) {
+      console.error('Copy error:', err)
+      toast.error('Failed to copy description')
+    }
+  }
+
+  const handleCopyTags = async () => {
+    if (!article?.tags || article.tags.length === 0) return
+    try {
+      const tagsText = article.tags.map(tag => `#${tag}`).join(' ')
+      await navigator.clipboard.writeText(tagsText)
+      setCopiedTags(true)
+      setTimeout(() => setCopiedTags(false), 2000)
+      toast.success('Tags copied!')
+    } catch (err) {
+      console.error('Copy error:', err)
+      toast.error('Failed to copy tags')
+    }
+  }
+
+  const handleCopyTldr = async () => {
+    if (!article?.tldr) return
+    try {
+      await navigator.clipboard.writeText(article.tldr)
+      setCopiedTldr(true)
+      setTimeout(() => setCopiedTldr(false), 2000)
+      toast.success('TL;DR copied!')
+    } catch (err) {
+      console.error('Copy error:', err)
+      toast.error('Failed to copy TL;DR')
+    }
   }
 
   if (loading) {
@@ -354,18 +381,76 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               <div className="flex-1">
                 <CardTitle className="text-2xl mb-2">{article.title}</CardTitle>
                 {article.description && (
-                  <p className="text-gray-600 mb-3">{article.description}</p>
-                )}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {article.tags && article.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                  <div className="group flex items-start gap-2 mb-3">
+                    <p className="text-gray-600 flex-1">{article.description}</p>
+                    <button
+                      onClick={handleCopyDescription}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Copy description"
                     >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                      {copiedDescription ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
+                {article.tldr && (
+                  <div className="group flex items-start gap-2 mb-3">
+                    <p className="text-gray-700 flex-1 text-sm">
+                      <span className="font-semibold">TL;DR:</span> {article.tldr}
+                    </p>
+                    <button
+                      onClick={handleCopyTldr}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Copy TL;DR"
+                    >
+                      {copiedTldr ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
+                {article.tags && article.tags.length > 0 && (
+                  <div className="group flex items-start gap-2 mb-3">
+                    <div className="flex flex-wrap gap-2 flex-1">
+                      {article.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleCopyTags}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Copy hashtags"
+                    >
+                      {copiedTags ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span>Type: {article.article_type || 'technical'}</span>
                   <span>•</span>
@@ -394,31 +479,19 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                   }`}
                 >
-                  Preview
+                  Rich Text
                 </button>
                 {article.article_type !== 'carousel' && (
-                  <>
-                    <button
-                      onClick={() => handleTabChange('markdown')}
-                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'markdown'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      Markdown
-                    </button>
-                    <button
-                      onClick={() => handleTabChange('richtext')}
-                      className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'richtext'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                      }`}
-                    >
-                      Rich Text
-                    </button>
-                  </>
+                  <button
+                    onClick={() => handleTabChange('markdown')}
+                    className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                      activeTab === 'markdown'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
+                  >
+                    Markdown
+                  </button>
                 )}
                 {article.article_type === 'carousel' && (
                   <button
@@ -656,6 +729,14 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   </div>
 
                   {/* Markdown Content */}
+                  {processingDiagrams && (
+                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Processing diagrams...
+                    </div>
+                  )}
                   {isEditingMarkdown ? (
                     <textarea
                       value={editedContent}
@@ -668,103 +749,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     />
                   ) : (
                     <pre className="bg-gray-50 p-6 rounded-lg overflow-auto text-sm font-mono text-gray-900 leading-relaxed border border-gray-200 max-h-[600px]">
-                      {displayContent}
+                      {markdownContent}
                     </pre>
                   )}
                 </div>
               )}
 
-              {/* Rich Text Tab */}
-              {activeTab === 'richtext' && (
-                <div className="relative">
-                  {/* Action Icons */}
-                  <div className="flex justify-end gap-2 mb-4">
-                    {!isEditingRichText ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            setIsEditingRichText(true)
-                            setRichTextHtml(article.rich_text_content || markdownToHtml(article.content))
-                            setHasUnsavedChanges(false)
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Edit content"
-                        >
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCopy}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Copy markdown"
-                        >
-                          {copySuccess ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDownload('docx')}
-                          disabled={downloading === 'docx'}
-                          className="p-2 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-                          title="Download Word document"
-                        >
-                          {downloading === 'docx' ? (
-                            <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleSaveRichText}
-                          className="p-2 hover:bg-green-100 rounded-md transition-colors"
-                          title="Save changes"
-                        >
-                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-2 hover:bg-red-100 rounded-md transition-colors"
-                          title="Cancel editing"
-                        >
-                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Rich Text Editor */}
-                  <div>
-                    <RichTextEditor
-                      content={richTextHtml}
-                      onChange={(html) => {
-                        setRichTextHtml(html)
-                        if (isEditingRichText) {
-                          setHasUnsavedChanges(true)
-                        }
-                      }}
-                      editable={isEditingRichText}
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Carousel Tab */}
               {activeTab === 'carousel' && article.article_type === 'carousel' && (

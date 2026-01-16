@@ -152,7 +152,8 @@ async function convertMermaidDiagramsToImages(
 
         // Encode the Mermaid code as base64 for mermaid.ink API
         const base64Code = Buffer.from(diagram.code).toString('base64')
-        const mermaidInkUrl = `https://mermaid.ink/img/${base64Code}`
+        // Use SVG endpoint instead of PNG
+        const mermaidInkUrl = `https://mermaid.ink/svg/${base64Code}`
 
         let imageUrl = mermaidInkUrl
 
@@ -160,11 +161,11 @@ async function convertMermaidDiagramsToImages(
         if (r2) {
           const result = await r2.uploadFromUrl(mermaidInkUrl, {
             folder: `articles/${articleId}/diagrams`,
-            fileName: `diagram-${diagram.index}.webp`,
-            convertToWebP: true,
+            fileName: `diagram-${diagram.index}.svg`,
+            convertToWebP: false,
           })
           imageUrl = result.url
-          console.log(`Successfully uploaded diagram ${diagram.index} to R2 as WebP:`, result.url)
+          console.log(`Successfully uploaded diagram ${diagram.index} to R2 as SVG:`, result.url)
         } else {
           console.log(`Using mermaid.ink URL for diagram ${diagram.index}:`, mermaidInkUrl)
         }

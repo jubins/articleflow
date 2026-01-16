@@ -257,6 +257,7 @@ export async function POST(request: NextRequest) {
           content: generatedArticle.content,
           rich_text_content: richTextHtml,
           description: generatedArticle.description,
+          tldr: generatedArticle.tldr,
           tags: generatedArticle.tags,
           word_count: generatedArticle.wordCount,
           status: 'generated',

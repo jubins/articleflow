@@ -24,7 +24,7 @@ export async function uploadToR2(
   contentType: string,
   folder: string = 'diagrams'
 ): Promise<UploadResult> {
-  const key = `${folder}/${uuidv4()}.webp`
+  const key = `${folder}/${uuidv4()}.svg`
 
   const command = new PutObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME!,
@@ -41,9 +41,9 @@ export async function uploadToR2(
 }
 
 /**
- * Upload a Mermaid diagram image to R2
+ * Upload a Mermaid diagram SVG to R2
  */
 export async function uploadMermaidDiagram(buffer: Buffer): Promise<string> {
-  const result = await uploadToR2(buffer, 'image/webp', 'diagrams')
+  const result = await uploadToR2(buffer, 'image/svg+xml', 'diagrams')
   return result.url
 }

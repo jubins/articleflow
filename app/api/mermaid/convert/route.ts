@@ -35,27 +35,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Converting SVG to WebP. SVG length:', cleanSvg.length)
+    console.log('Converting SVG to PNG. SVG length:', cleanSvg.length)
 
     // Convert SVG string to buffer with UTF-8 encoding
     const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
 
-    // Convert SVG to WebP using sharp with proper density for better quality
-    const webpBuffer = await sharp(svgBuffer, {
+    // Convert SVG to PNG using sharp with proper density for better quality
+    const pngBuffer = await sharp(svgBuffer, {
       density: 150 // Higher DPI for better quality
     })
-      .webp({ quality: 90 })
+      .png()
       .toBuffer()
 
-    console.log('Successfully converted to WebP. Size:', webpBuffer.length, 'bytes')
+    console.log('Successfully converted to PNG. Size:', pngBuffer.length, 'bytes')
 
     // Return the image directly instead of uploading to R2
     // This avoids 401 errors from private R2 buckets
-    return new NextResponse(webpBuffer as unknown as BodyInit, {
+    return new NextResponse(pngBuffer as unknown as BodyInit, {
       status: 200,
       headers: {
-        'Content-Type': 'image/webp',
-        'Content-Disposition': 'attachment; filename="diagram.webp"',
+        'Content-Type': 'image/png',
+        'Content-Disposition': 'attachment; filename="diagram.png"',
         'Cache-Control': 'no-cache',
       },
     })
