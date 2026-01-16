@@ -76,16 +76,16 @@ export function Mermaid({ chart, id }: MermaidProps) {
         allowTaint: true,
       })
 
-      // Convert canvas to WebP blob
+      // Convert canvas to PNG blob
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob(resolve, 'image/webp', 0.95)
+        canvas.toBlob(resolve, 'image/png')
       })
 
       if (blob) {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `diagram-${id}.webp`
+        a.download = `diagram-${id}.png`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -120,7 +120,7 @@ export function Mermaid({ chart, id }: MermaidProps) {
           onClick={handleDownload}
           className="text-sm text-blue-600 hover:text-blue-800 font-medium"
         >
-          Download Diagram (WebP)
+          Download Diagram (PNG)
         </button>
       </div>
     </div>
