@@ -54,6 +54,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [processingDiagrams, setProcessingDiagrams] = useState(false)
   const [copiedDescription, setCopiedDescription] = useState(false)
   const [copiedTags, setCopiedTags] = useState(false)
+  const [copiedTldr, setCopiedTldr] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -311,6 +312,19 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     }
   }
 
+  const handleCopyTldr = async () => {
+    if (!article?.tldr) return
+    try {
+      await navigator.clipboard.writeText(article.tldr)
+      setCopiedTldr(true)
+      setTimeout(() => setCopiedTldr(false), 2000)
+      toast.success('TL;DR copied!')
+    } catch (err) {
+      console.error('Copy error:', err)
+      toast.error('Failed to copy TL;DR')
+    }
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -367,11 +381,11 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               <div className="flex-1">
                 <CardTitle className="text-2xl mb-2">{article.title}</CardTitle>
                 {article.description && (
-                  <div className="flex items-start gap-2 mb-3">
+                  <div className="group flex items-start gap-2 mb-3">
                     <p className="text-gray-600 flex-1">{article.description}</p>
                     <button
                       onClick={handleCopyDescription}
-                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
                       title="Copy description"
                     >
                       {copiedDescription ? (
@@ -386,8 +400,30 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     </button>
                   </div>
                 )}
+                {article.tldr && (
+                  <div className="group flex items-start gap-2 mb-3">
+                    <p className="text-gray-700 flex-1 text-sm">
+                      <span className="font-semibold">TL;DR:</span> {article.tldr}
+                    </p>
+                    <button
+                      onClick={handleCopyTldr}
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Copy TL;DR"
+                    >
+                      {copiedTldr ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
                 {article.tags && article.tags.length > 0 && (
-                  <div className="flex items-start gap-2 mb-3">
+                  <div className="group flex items-start gap-2 mb-3">
                     <div className="flex flex-wrap gap-2 flex-1">
                       {article.tags.map((tag, idx) => (
                         <span
@@ -400,7 +436,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     </div>
                     <button
                       onClick={handleCopyTags}
-                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                      className="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
                       title="Copy hashtags"
                     >
                       {copiedTags ? (

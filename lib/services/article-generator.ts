@@ -18,6 +18,7 @@ export interface GeneratedArticle {
   title: string
   content: string
   description: string
+  tldr: string
   tags: string[]
   wordCount: number
   metadata: {
@@ -70,16 +71,28 @@ graph TD
 
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [AWS SageMaker HyperPod Official Documentation](URL)
+  - [Scaling Laws for Neural Language Models](URL)
+- DO NOT add any text or description after the hyperlink
+
 Generate a complete article in Markdown format with:
 1. A compelling title
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full article content in Markdown (must include diagrams, tables, and code examples)
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full article content in Markdown (must include diagrams, tables, code examples, and references section)
 
 Format your response as JSON:
 {
   "title": "Article Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full article content..."
 }`,
@@ -122,16 +135,27 @@ graph TD
 
 IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
+CRITICAL - References Section:
+- End the tutorial with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference with a brief description of what it covers
+- Example format:
+  - [Official Documentation Name](URL) - Brief description of the resource
+  - Author Name's Book/Article Title - Description of what readers will learn
+
 Generate a complete tutorial in Markdown format with:
 1. A compelling title starting with "How to..." or "Getting Started with..."
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full tutorial content in Markdown
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full tutorial content in Markdown (must include references section)
 
 Format your response as JSON:
 {
   "title": "Tutorial Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full tutorial content..."
 }`,
@@ -159,16 +183,28 @@ CRITICAL - Analysis:
 - Include specific examples or data
 - Recommend which option for which use case
 
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [AWS SageMaker HyperPod Official Documentation](URL)
+  - [Scaling Laws for Neural Language Models](URL)
+- DO NOT add any text or description after the hyperlink
+
 Generate a complete comparison article in Markdown format with:
 1. A compelling title (e.g., "X vs Y: Which Should You Choose?")
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full article content in Markdown (must include comparison tables)
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full article content in Markdown (must include comparison tables and references section)
 
 Format your response as JSON:
 {
   "title": "Comparison Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full comparison content..."
 }`,
@@ -196,16 +232,28 @@ CRITICAL - Practical Guidance:
 - Explain the reasoning behind each practice
 - Include real-world scenarios
 
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [AWS SageMaker HyperPod Official Documentation](URL)
+  - [Scaling Laws for Neural Language Models](URL)
+- DO NOT add any text or description after the hyperlink
+
 Generate a complete best practices article in Markdown format with:
 1. A compelling title (e.g., "Best Practices for..." or "...Best Practices")
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full article content in Markdown
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full article content in Markdown (must include references section)
 
 Format your response as JSON:
 {
   "title": "Best Practices Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full best practices content..."
 }`,
@@ -254,16 +302,28 @@ CRITICAL - Results & Metrics:
 - Use tables for metrics comparison
 - Include lessons learned
 
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [AWS SageMaker HyperPod Official Documentation](URL)
+  - [Scaling Laws for Neural Language Models](URL)
+- DO NOT add any text or description after the hyperlink
+
 Generate a complete case study in Markdown format with:
 1. A compelling title (e.g., "How We..." or "Building...")
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full case study content in Markdown
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full case study content in Markdown (must include references section)
 
 Format your response as JSON:
 {
   "title": "Case Study Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full case study content..."
 }`,
@@ -325,16 +385,28 @@ CRITICAL - Content Guidelines:
 - Final slide should inspire action or deeper thinking
 - Mix content types: some text slides, some diagram slides, some table slides
 
+CRITICAL - References Section:
+- After the final slide, add a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: official documentation, technical papers, reputable blogs, books
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [AWS SageMaker HyperPod Official Documentation](URL)
+  - [Scaling Laws for Neural Language Models](URL)
+- DO NOT add any text or description after the hyperlink
+
 Generate a complete LinkedIn carousel in Markdown format with:
 1. A compelling title for the carousel
-2. A brief description (150-200 characters for SEO)
-3. 3-5 relevant tags
-4. The full carousel content in Markdown (4-10 slides with clear headings "## Slide N:")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags
+5. The full carousel content in Markdown (4-10 slides with clear headings "## Slide N:" followed by references section)
 
 Format your response as JSON:
 {
   "title": "Carousel Title Here",
-  "description": "Brief description for SEO",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
   "tags": ["tag1", "tag2", "tag3"],
   "content": "Full carousel content with 4-10 slides..."
 }`
@@ -507,6 +579,7 @@ export class ArticleGeneratorService {
         title: parsed.title,
         content: parsed.content,
         description: parsed.description || '',
+        tldr: parsed.tldr || '',
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
         wordCount,
       }
