@@ -139,7 +139,7 @@ export async function validateAllMermaidDiagrams(content: string): Promise<{
  * Browser-safe validation using mermaid.parse()
  * This should be called from the frontend with the mermaid library loaded
  */
-export async function validateWithMermaid(diagram: string, mermaid: any): Promise<ValidationResult> {
+export async function validateWithMermaid(diagram: string, mermaid: { parse: (diagram: string) => Promise<void> }): Promise<ValidationResult> {
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -147,8 +147,8 @@ export async function validateWithMermaid(diagram: string, mermaid: any): Promis
     // Try to parse the diagram using mermaid's built-in parser
     await mermaid.parse(diagram)
     return { isValid: true, errors, warnings }
-  } catch (error: any) {
-    const errorMessage = error?.message || String(error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
     errors.push(`Mermaid parse error: ${errorMessage}`)
 
     return {

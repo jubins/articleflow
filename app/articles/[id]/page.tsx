@@ -17,11 +17,9 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
-import { RichTextEditor } from '@/components/RichTextEditor'
 import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
-import TurndownService from 'turndown'
 
 interface Profile {
   full_name?: string | null
@@ -43,9 +41,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
-  const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
-  const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'carousel' | null>(null)
@@ -269,7 +265,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       setArticle({ ...article, content: editedContent, rich_text_content: richTextHtml })
       setIsEditingMarkdown(false)
-      setIsEditingRichText(false)
       setHasUnsavedChanges(false)
       setError('')
       toast.success('Changes saved successfully!')
@@ -282,10 +277,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   const handleCancelEdit = () => {
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setEditedContent('')
     setHasUnsavedChanges(false)
-    // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
 
@@ -301,7 +294,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const confirmTabChange = () => {
     // Reset editing states if user confirms
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setHasUnsavedChanges(false)
     setEditedContent('')
     if (pendingTab) {
