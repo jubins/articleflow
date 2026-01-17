@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const [userEmail, setUserEmail] = useState<string>('')
   const [profile, setProfile] = useState<Partial<Profile>>({
     full_name: '',
     avatar_url: '',
@@ -43,6 +44,9 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
+
+      // Set user email
+      setUserEmail(user.email || '')
 
       const { data, error } = await supabase
         .from('profiles')
@@ -311,6 +315,15 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Input
+                label="Email"
+                type="email"
+                value={userEmail}
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
+                helperText="Your email address cannot be changed"
+              />
+
               <Input
                 label="Full Name"
                 type="text"

@@ -71,25 +71,19 @@ export default function PricingPage() {
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Full article with images</span>
+                  <span className="text-sm">AI-generated articles</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Download Markdown/DOCX</span>
+                  <span className="text-sm">Markdown export</span>
                 </li>
                 <li className="flex items-start">
-                  <svg className="w-5 h-5 text-red-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-gray-500">No automation</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-red-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-gray-500">No scheduling</span>
+                  <span className="text-sm">Mermaid diagrams</span>
                 </li>
               </ul>
 
@@ -132,19 +126,19 @@ export default function PricingPage() {
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Post to 2 platforms</span>
+                  <span className="text-sm">Multiple AI models (Claude/Gemini)</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Basic scheduling</span>
+                  <span className="text-sm">Custom templates & styles</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Google Sheets integration</span>
+                  <span className="text-sm">Email support</span>
                 </li>
               </ul>
 
@@ -184,25 +178,19 @@ export default function PricingPage() {
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Unlimited platforms</span>
+                  <span className="text-sm">Bulk article generation</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">Advanced scheduling</span>
+                  <span className="text-sm">Advanced analytics</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">3 team seats</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm">Priority queue</span>
+                  <span className="text-sm">Priority support</span>
                 </li>
               </ul>
 
@@ -242,25 +230,19 @@ export default function PricingPage() {
                   <svg className="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">White-label options</span>
+                  <span className="text-sm">Dedicated account manager</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">10 team seats</span>
+                  <span className="text-sm">Custom integrations</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm">API access</span>
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm">Advanced analytics</span>
+                  <span className="text-sm">SLA guarantee</span>
                 </li>
               </ul>
 
@@ -317,10 +299,10 @@ export default function PricingPage() {
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Which platforms can I publish to?
+                  What AI models are supported?
                 </h3>
                 <p className="text-gray-600">
-                  Currently we support LinkedIn, Dev.to, Medium, and Hashnode. More platforms coming soon!
+                  We currently support Claude (Anthropic) and Gemini (Google). You can bring your own API keys or purchase credits from us.
                 </p>
               </CardContent>
             </Card>
