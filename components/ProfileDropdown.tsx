@@ -84,6 +84,8 @@ export function ProfileDropdown() {
             alt="Profile"
             width={40}
             height={40}
+            priority
+            unoptimized
             className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-blue-400 transition-colors"
           />
         ) : (

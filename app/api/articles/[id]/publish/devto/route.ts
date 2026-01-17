@@ -41,10 +41,12 @@ export async function POST(
       .single()
 
     if (existingPublication) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedPub = existingPublication as any
       return NextResponse.json(
         {
           error: 'Article already published to Dev.to',
-          published_url: (existingPublication as any).published_url,
+          published_url: typedPub.published_url,
         },
         { status: 409 }
       )

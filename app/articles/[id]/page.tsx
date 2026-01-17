@@ -18,8 +18,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
 import { CarouselViewer } from '@/components/CarouselViewer'
+import { PublishToDevToModal } from '@/components/PublishToDevToModal'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
+import { ArticlePublication } from '@/lib/types/database'
 
 interface Profile {
   full_name?: string | null
@@ -53,9 +55,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [copiedTldr, setCopiedTldr] = useState(false)
   const [diagramErrors, setDiagramErrors] = useState<Map<string, boolean>>(new Map())
   const [hasCriticalErrors, setHasCriticalErrors] = useState(false)
+  const [showPublishModal, setShowPublishModal] = useState(false)
+  const [publications, setPublications] = useState<ArticlePublication[]>([])
+  const [loadingPublications, setLoadingPublications] = useState(true)
 
   useEffect(() => {
     loadArticle()
+    loadPublications()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
@@ -281,6 +287,32 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
     setHasUnsavedChanges(false)
   }
 
+  const loadPublications = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('article_publications')
+        .select('*')
+        .eq('article_id', params.id)
+
+      if (error) throw error
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setPublications((data as any) || [])
+    } catch (err) {
+      console.error('Error loading publications:', err)
+    } finally {
+      setLoadingPublications(false)
+    }
+  }
+
+  const handlePublishSuccess = (publishedUrl: string) => {
+    setShowPublishModal(false)
+    toast.success('Article published to Dev.to successfully!')
+    window.open(publishedUrl, '_blank')
+    // Reload publications to show the new one
+    loadPublications()
+  }
 
   const handleTabChange = (newTab: 'preview' | 'markdown' | 'carousel') => {
     if (hasUnsavedChanges && isEditingMarkdown) {
@@ -428,6 +460,13 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         cancelText="Stay"
         variant="warning"
       />
+      {showPublishModal && article && (
+        <PublishToDevToModal
+          article={article}
+          onClose={() => setShowPublishModal(false)}
+          onSuccess={handlePublishSuccess}
+        />
+      )}
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -439,7 +478,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
         {/* Article Metadata Card */}
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
                 <CardTitle className="text-2xl mb-2">{article.title}</CardTitle>
                 {article.description && (
@@ -521,7 +560,46 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                   <span>{format(new Date(article.created_at), 'MMM dd, yyyy')}</span>
                   <span>•</span>
                   <StatusBadge status={article.status as 'draft' | 'generated' | 'published' | 'failed'} />
+                  {!loadingPublications && publications.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-2">
+                        {publications.map((pub) => (
+                          <a
+                            key={pub.id}
+                            href={pub.published_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-black text-white hover:bg-gray-800 transition-colors"
+                            title={`View on ${pub.platform}`}
+                          >
+                            {pub.platform === 'devto' && (
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6l.02 2.44.04 2.45.56-.02c.41 0 .63-.07.83-.26.24-.24.26-.36.26-2.2 0-1.91-.02-1.96-.29-2.18zM0 4.94v14.12h24V4.94H0zM8.56 15.3c-.44.58-1.06.77-2.53.77H4.71V8.53h1.4c1.67 0 2.16.18 2.6.9.27.43.29.6.32 2.57.05 2.23-.02 2.73-.47 3.3zm5.09-5.47h-2.47v1.77h1.52v1.28l-.72.04-.75.03v1.77l1.22.03 1.2.04v1.28h-1.6c-1.53 0-1.6-.01-1.87-.3l-.3-.28v-3.16c0-3.02.01-3.18.25-3.48.23-.31.25-.31 1.88-.31h1.64v1.3zm4.68 5.45c-.17.43-.64.79-1 .79-.18 0-.45-.15-.67-.39-.32-.32-.45-.63-.82-2.08l-.9-3.39-.45-1.67h.76c.4 0 .75.02.75.05 0 .06 1.16 4.54 1.26 4.83.04.15.32-.7.73-2.3l.66-2.52.74-.04c.4-.02.73 0 .73.04 0 .14-1.67 6.38-1.8 6.68z" />
+                              </svg>
+                            )}
+                            Published on {pub.platform === 'devto' ? 'Dev.to' : pub.platform}
+                          </a>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
+              {/* Actions Button */}
+              <div className="flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPublishModal(true)}
+                  disabled={publications.some(p => p.platform === 'devto')}
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6l.02 2.44.04 2.45.56-.02c.41 0 .63-.07.83-.26.24-.24.26-.36.26-2.2 0-1.91-.02-1.96-.29-2.18zM0 4.94v14.12h24V4.94H0zM8.56 15.3c-.44.58-1.06.77-2.53.77H4.71V8.53h1.4c1.67 0 2.16.18 2.6.9.27.43.29.6.32 2.57.05 2.23-.02 2.73-.47 3.3zm5.09-5.47h-2.47v1.77h1.52v1.28l-.72.04-.75.03v1.77l1.22.03 1.2.04v1.28h-1.6c-1.53 0-1.6-.01-1.87-.3l-.3-.28v-3.16c0-3.02.01-3.18.25-3.48.23-.31.25-.31 1.88-.31h1.64v1.3zm4.68 5.45c-.17.43-.64.79-1 .79-.18 0-.45-.15-.67-.39-.32-.32-.45-.63-.82-2.08l-.9-3.39-.45-1.67h.76c.4 0 .75.02.75.05 0 .06 1.16 4.54 1.26 4.83.04.15.32-.7.73-2.3l.66-2.52.74-.04c.4-.02.73 0 .73.04 0 .14-1.67 6.38-1.8 6.68z" />
+                  </svg>
+                  {publications.some(p => p.platform === 'devto') ? 'Published' : 'Publish to Dev.to'}
+                </Button>
               </div>
             </div>
           </CardHeader>

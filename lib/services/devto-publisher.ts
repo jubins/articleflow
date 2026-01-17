@@ -104,9 +104,17 @@ export async function publishToDevTo(options: DevToPublishOptions): Promise<DevT
 
     const result = await response.json()
 
+    // For drafts, Dev.to returns a public URL that shows 404
+    // We need to construct the edit/dashboard URL instead
+    let articleUrl = result.url
+    if (!publishAsLive && result.id) {
+      // Use the dashboard edit URL for drafts
+      articleUrl = `https://dev.to/dashboard/posts/${result.id}/edit`
+    }
+
     return {
       success: true,
-      articleUrl: result.url,
+      articleUrl,
       articleId: result.id,
     }
   } catch (error) {

@@ -20,6 +20,7 @@ export default function PublishingPage() {
 
   useEffect(() => {
     loadSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadSettings = async () => {
@@ -244,7 +245,7 @@ export default function PublishingPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600">
-              We're working on integrations with Medium, Hashnode, and other popular publishing platforms.
+              We&apos;re working on integrations with Medium, Hashnode, and other popular publishing platforms.
               Stay tuned for updates!
             </p>
           </CardContent>
