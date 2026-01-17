@@ -769,7 +769,14 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
-          processed = processed.replace(matches[i][0], `<div class="text-red-500">Error rendering diagram</div>`)
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          processed = processed.replace(
+            matches[i][0],
+            `<div class="bg-red-50 border border-red-200 rounded p-3 text-red-700">
+              <p class="font-semibold text-sm">⚠️ Diagram Error</p>
+              <p class="text-xs mt-1">Failed to render: ${errorMessage}</p>
+            </div>`
+          )
         }
       }
 
@@ -967,7 +974,9 @@ function SlideThumbnail({ slide, slideNumber }: { slide: string; slideNumber: nu
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid thumbnail rendering error:', err)
-          processed = processed.replace(matches[i][0], '')
+          // For thumbnails, show a simple error indicator
+          const errorPlaceholder = `<div class="bg-red-100 border border-red-300 rounded p-2 text-red-600 text-xs text-center">Diagram Error</div>`
+          processed = processed.replace(matches[i][0], errorPlaceholder)
         }
       }
 
