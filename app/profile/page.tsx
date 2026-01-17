@@ -362,32 +362,71 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                label="LinkedIn Username"
-                type="text"
-                value={profile.linkedin_handle || ''}
-                onChange={(e) => setProfile({ ...profile, linkedin_handle: e.target.value })}
-                placeholder="johndoe"
-                helperText="Just your username (not the full URL). Example: johndoe"
-              />
+              {/* LinkedIn */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  LinkedIn Username
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.linkedin_handle || ''}
+                    onChange={(e) => setProfile({ ...profile, linkedin_handle: e.target.value })}
+                    placeholder="johndoe"
+                    className="pl-10 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">Just your username (not the full URL). Example: johndoe</p>
+              </div>
 
-              <Input
-                label="Twitter/X Handle"
-                type="text"
-                value={profile.twitter_handle || ''}
-                onChange={(e) => setProfile({ ...profile, twitter_handle: e.target.value })}
-                placeholder="@johndoe or johndoe"
-                helperText="Your Twitter/X username (with or without @)"
-              />
+              {/* Twitter/X */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Twitter/X Handle
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.twitter_handle || ''}
+                    onChange={(e) => setProfile({ ...profile, twitter_handle: e.target.value })}
+                    placeholder="@johndoe or johndoe"
+                    className="pl-10 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">Your Twitter/X username (with or without @)</p>
+              </div>
 
-              <Input
-                label="GitHub Username"
-                type="text"
-                value={profile.github_handle || ''}
-                onChange={(e) => setProfile({ ...profile, github_handle: e.target.value })}
-                placeholder="johndoe"
-                helperText="Your GitHub username"
-              />
+              {/* GitHub */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  GitHub Username
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.github_handle || ''}
+                    onChange={(e) => setProfile({ ...profile, github_handle: e.target.value })}
+                    placeholder="johndoe"
+                    className="pl-10 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">Your GitHub username</p>
+              </div>
             </CardContent>
           </Card>
 
@@ -419,35 +458,60 @@ export default function ProfilePage() {
                   {(profile.linkedin_handle || profile.twitter_handle || profile.github_handle || profile.website) && (
                     <>
                       <p className="font-semibold mb-2 text-gray-900">Connect with me:</p>
-                      <p className="text-gray-900">
-                        {[
-                          profile.linkedin_handle && (
-                            <span key="linkedin">
-                              🔗 <a href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">LinkedIn</a>
-                            </span>
-                          ),
-                          profile.twitter_handle && (
-                            <span key="twitter">
-                              🐦 <a href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">Twitter/X</a>
-                            </span>
-                          ),
-                          profile.github_handle && (
-                            <span key="github">
-                              💻 <a href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`} className="text-blue-600 font-medium hover:underline">GitHub</a>
-                            </span>
-                          ),
-                          profile.website && (
-                            <span key="website">
-                              🌐 <a href={profile.website} className="text-blue-600 font-medium hover:underline">Website</a>
-                            </span>
-                          ),
-                        ].filter(Boolean).map((item, index, array) => (
-                          <span key={index}>
-                            {item}
-                            {index < array.length - 1 && <span className="mx-2">|</span>}
-                          </span>
-                        ))}
-                      </p>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        {profile.linkedin_handle && (
+                          <a
+                            href={`https://linkedin.com/in/${profile.linkedin_handle.replace(/^@/, '')}`}
+                            className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <svg className="w-4 h-4 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                            {profile.linkedin_handle.replace(/^@/, '')}
+                          </a>
+                        )}
+                        {profile.twitter_handle && (
+                          <a
+                            href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
+                            className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            @{profile.twitter_handle.replace(/^@/, '')}
+                          </a>
+                        )}
+                        {profile.github_handle && (
+                          <a
+                            href={`https://github.com/${profile.github_handle.replace(/^@/, '')}`}
+                            className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <svg className="w-4 h-4 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            {profile.github_handle.replace(/^@/, '')}
+                          </a>
+                        )}
+                        {profile.website && (
+                          <a
+                            href={profile.website}
+                            className="inline-flex items-center gap-1.5 text-blue-600 font-medium hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                            Website
+                          </a>
+                        )}
+                      </div>
                     </>
                   )}
 

@@ -17,9 +17,22 @@ export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
+  const [mounted, setMounted] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    setMounted(true)
+    // Load from localStorage on client-side only
+    if (typeof window !== 'undefined') {
+      const cachedProfile = localStorage.getItem('user_profile')
+      const cachedEmail = localStorage.getItem('user_email')
+      if (cachedProfile) {
+        setProfile(JSON.parse(cachedProfile))
+      }
+      if (cachedEmail) {
+        setUserEmail(cachedEmail)
+      }
+    }
     loadProfile()
 
     // Close dropdown when clicking outside
@@ -39,7 +52,9 @@ export function ProfileDropdown() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      setUserEmail(user.email || '')
+      const email = user.email || ''
+      setUserEmail(email)
+      localStorage.setItem('user_email', email)
 
       const { data } = await supabase
         .from('profiles')
@@ -49,6 +64,8 @@ export function ProfileDropdown() {
 
       if (data) {
         setProfile(data)
+        // Cache in localStorage
+        localStorage.setItem('user_profile', JSON.stringify(data))
       }
     } catch (err) {
       console.error('Error loading profile:', err)
@@ -56,6 +73,10 @@ export function ProfileDropdown() {
   }
 
   const handleLogout = async () => {
+    // Clear cached profile data
+    localStorage.removeItem('user_profile')
+    localStorage.removeItem('user_email')
+
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -70,6 +91,17 @@ export function ProfileDropdown() {
       return names[0][0].toUpperCase()
     }
     return userEmail.charAt(0).toUpperCase()
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <div className="relative">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-gray-200">
+          <span className="text-white text-sm font-semibold">?</span>
+        </div>
+      </div>
+    )
   }
 
   return (
