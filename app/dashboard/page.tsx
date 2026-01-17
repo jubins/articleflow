@@ -467,7 +467,6 @@ export default function DashboardPage() {
                     {/* Hover tooltip */}
                     {hoveredPoint && (() => {
                       // Calculate tooltip position and ensure it stays within bounds
-                      const tooltipWidth = 120 // estimated width in pixels
                       const leftPercent = (hoveredPoint.x / 800) * 100
                       const topPercent = (hoveredPoint.y / 240) * 100
 
