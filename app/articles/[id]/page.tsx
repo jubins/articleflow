@@ -17,11 +17,9 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Mermaid } from '@/components/Mermaid'
-import { RichTextEditor } from '@/components/RichTextEditor'
 import { CarouselViewer } from '@/components/CarouselViewer'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { replaceMermaidWithCachedImages } from '@/lib/utils/diagram-processor'
-import TurndownService from 'turndown'
 
 interface Profile {
   full_name?: string | null
@@ -43,9 +41,7 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [activeTab, setActiveTab] = useState<'preview' | 'markdown' | 'carousel'>('preview')
   const [copySuccess, setCopySuccess] = useState(false)
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false)
-  const [isEditingRichText, setIsEditingRichText] = useState(false)
   const [editedContent, setEditedContent] = useState('')
-  const [richTextHtml, setRichTextHtml] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [pendingTab, setPendingTab] = useState<'preview' | 'markdown' | 'carousel' | null>(null)
@@ -55,6 +51,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const [copiedDescription, setCopiedDescription] = useState(false)
   const [copiedTags, setCopiedTags] = useState(false)
   const [copiedTldr, setCopiedTldr] = useState(false)
+  const [diagramErrors, setDiagramErrors] = useState<Map<string, boolean>>(new Map())
+  const [hasCriticalErrors, setHasCriticalErrors] = useState(false)
 
   useEffect(() => {
     loadArticle()
@@ -68,8 +66,32 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
       const processedContent = replaceMermaidWithCachedImages(article.content, cachedDiagrams)
       setDisplayContent(processedContent)
       setMarkdownContent(processedContent)
+
+      // Check if article has mermaid diagrams that need rendering
+      const hasMermaid = article.content.includes('```mermaid')
+      const hasCachedImages = cachedDiagrams && Object.keys(cachedDiagrams).length > 0
+
+      // If there are mermaid diagrams and no cached images, they will be rendered and might have errors
+      if (hasMermaid && !hasCachedImages) {
+        // Errors will be detected during rendering via onError callbacks
+      }
     }
   }, [article])
+
+  // Track diagram errors
+  const handleDiagramError = (diagramId: string, hasError: boolean) => {
+    setDiagramErrors(prev => {
+      const newMap = new Map(prev)
+      newMap.set(diagramId, hasError)
+      return newMap
+    })
+  }
+
+  // Check for critical errors (any diagram has an error)
+  useEffect(() => {
+    const hasErrors = Array.from(diagramErrors.values()).some(error => error)
+    setHasCriticalErrors(hasErrors)
+  }, [diagramErrors])
 
   // Process diagrams when switching to markdown tab
   useEffect(() => {
@@ -243,7 +265,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
       setArticle({ ...article, content: editedContent, rich_text_content: richTextHtml })
       setIsEditingMarkdown(false)
-      setIsEditingRichText(false)
       setHasUnsavedChanges(false)
       setError('')
       toast.success('Changes saved successfully!')
@@ -256,10 +277,8 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
 
   const handleCancelEdit = () => {
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setEditedContent('')
     setHasUnsavedChanges(false)
-    // Don't clear richTextHtml here - it will be regenerated when switching to richtext tab
   }
 
 
@@ -275,7 +294,6 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
   const confirmTabChange = () => {
     // Reset editing states if user confirms
     setIsEditingMarkdown(false)
-    setIsEditingRichText(false)
     setHasUnsavedChanges(false)
     setEditedContent('')
     if (pendingTab) {
@@ -343,6 +361,50 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
               <Button className="mt-4" onClick={() => router.push('/dashboard')}>
                 Back to Dashboard
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  // Show error if article has critical diagram errors
+  if (hasCriticalErrors) {
+    return (
+      <AuthLayout>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Article Contains Errors</h2>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                  This article contains Mermaid diagrams with syntax errors that prevent it from being displayed correctly.
+                  The diagrams need to be corrected before the article can be viewed.
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+                  <p className="text-yellow-800 text-sm font-medium mb-2">What you can do:</p>
+                  <ul className="text-yellow-700 text-sm text-left list-disc list-inside space-y-1">
+                    <li>Generate a new article with the same topic</li>
+                    <li>Contact support if this issue persists</li>
+                  </ul>
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={() => router.push('/dashboard')}>
+                    Back to Dashboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push('/dashboard?action=new')}
+                  >
+                    Create New Article
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -557,10 +619,12 @@ export default function ArticleViewPage({ params }: { params: { id: string } }) 
                     // Render Mermaid diagrams (only if not replaced by cached images)
                     // If diagram_images exist, mermaid blocks will already be replaced with images
                     if (!inline && language === 'mermaid') {
+                      const diagramId = Math.random().toString(36).substring(7)
                       return (
                         <Mermaid
                           chart={code}
-                          id={Math.random().toString(36).substring(7)}
+                          id={diagramId}
+                          onError={(hasError) => handleDiagramError(diagramId, hasError)}
                         />
                       )
                     }

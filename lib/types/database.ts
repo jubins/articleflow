@@ -16,6 +16,7 @@ export interface Database {
           id: string
           email: string
           full_name: string | null
+          avatar_url: string | null
           linkedin_handle: string | null
           twitter_handle: string | null
           github_handle: string | null
@@ -28,6 +29,7 @@ export interface Database {
           id: string
           email: string
           full_name?: string | null
+          avatar_url?: string | null
           linkedin_handle?: string | null
           twitter_handle?: string | null
           github_handle?: string | null
@@ -40,6 +42,7 @@ export interface Database {
           id?: string
           email?: string
           full_name?: string | null
+          avatar_url?: string | null
           linkedin_handle?: string | null
           twitter_handle?: string | null
           github_handle?: string | null
@@ -113,6 +116,7 @@ export interface Database {
           content: string
           rich_text_content: string | null
           description: string | null
+          tldr: string | null
           tags: string[]
           word_count: number | null
           platform: 'medium' | 'devto' | 'dzone' | 'all'
@@ -137,6 +141,7 @@ export interface Database {
           content: string
           rich_text_content?: string | null
           description?: string | null
+          tldr?: string | null
           tags?: string[]
           word_count?: number | null
           platform: 'medium' | 'devto' | 'dzone' | 'all'
@@ -161,6 +166,7 @@ export interface Database {
           content?: string
           rich_text_content?: string | null
           description?: string | null
+          tldr?: string | null
           tags?: string[]
           word_count?: number | null
           platform?: 'medium' | 'devto' | 'dzone' | 'all'

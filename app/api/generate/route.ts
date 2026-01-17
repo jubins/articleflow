@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
 import { markdownToHtml } from '@/lib/utils/markdown'
+import { validateAllMermaidDiagrams } from '@/lib/utils/mermaid-validator'
 // import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
 import { z } from 'zod'
 
@@ -185,6 +186,34 @@ export async function POST(request: NextRequest) {
         apiKey,
         profile: profile || null,
       })
+
+      // Validate Mermaid diagrams in the generated content
+      const diagramValidation = await validateAllMermaidDiagrams(generatedArticle.content)
+
+      if (!diagramValidation.allValid) {
+        // Log validation errors
+        const errors = diagramValidation.results
+          .filter(r => !r.validation.isValid)
+          .map(r => ({
+            index: r.index,
+            errors: r.validation.errors
+          }))
+
+        console.warn('Generated article contains invalid Mermaid diagrams:', errors)
+
+        // Log the validation failure
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Supabase type inference issue
+        await supabase.from('generation_logs').insert({
+          user_id: user.id,
+          article_id: typedArticle.id,
+          action: 'validate_diagrams',
+          status: 'warning',
+          metadata: {
+            diagram_errors: errors,
+          },
+        })
+      }
 
       // Convert Mermaid diagrams to WebP images
       // TODO: Mermaid requires browser environment - implement using Puppeteer for server-side rendering

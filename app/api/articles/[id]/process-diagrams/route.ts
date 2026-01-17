@@ -40,18 +40,15 @@ export async function POST(
       )
     }
 
-    // Check if diagrams are already cached using diagram_images_url
-    if (typedArticle.diagram_images_url) {
-      // Diagrams already processed and uploaded
-      const cachedDiagrams = typedArticle.diagram_images as Record<string, string> | null
-      if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
-        return NextResponse.json({
-          success: true,
-          diagrams: cachedDiagrams,
-          content: replaceMermaidWithImages(typedArticle.content, cachedDiagrams),
-          cached: true
-        })
-      }
+    // Check if diagrams are already cached
+    const cachedDiagrams = typedArticle.diagram_images as Record<string, string> | null
+    if (cachedDiagrams && Object.keys(cachedDiagrams).length > 0) {
+      return NextResponse.json({
+        success: true,
+        diagrams: cachedDiagrams,
+        content: replaceMermaidWithImages(typedArticle.content, cachedDiagrams),
+        cached: true
+      })
     }
 
     // Extract all Mermaid diagrams
@@ -100,7 +97,7 @@ export async function POST(
 
         // Upload from URL to R2 as PNG
         const result = await r2.uploadFromUrl(mermaidInkUrl, {
-          folder: `articlegpt/articles/${typedArticle.id}/diagrams`,
+          folder: `articles/${typedArticle.id}/diagrams`,
           fileName: `diagram-${diagram.index}.png`,
           convertToWebP: false,
         })

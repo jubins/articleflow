@@ -1,4 +1,5 @@
 import { Navigation } from './Navigation'
+import { Sidebar } from './Sidebar'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -8,9 +9,14 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 mt-16">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
