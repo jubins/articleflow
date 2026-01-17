@@ -97,7 +97,7 @@ export async function POST(
 
         // Upload from URL to R2 as PNG
         const result = await r2.uploadFromUrl(mermaidInkUrl, {
-          folder: `articlegpt/articles/${typedArticle.id}/diagrams`,
+          folder: `articles/${typedArticle.id}/diagrams`,
           fileName: `diagram-${diagram.index}.png`,
           convertToWebP: false,
         })

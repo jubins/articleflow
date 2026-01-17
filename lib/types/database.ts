@@ -16,6 +16,7 @@ export interface Database {
           id: string
           email: string
           full_name: string | null
+          avatar_url: string | null
           linkedin_handle: string | null
           twitter_handle: string | null
           github_handle: string | null
@@ -28,6 +29,7 @@ export interface Database {
           id: string
           email: string
           full_name?: string | null
+          avatar_url?: string | null
           linkedin_handle?: string | null
           twitter_handle?: string | null
           github_handle?: string | null
@@ -40,6 +42,7 @@ export interface Database {
           id?: string
           email?: string
           full_name?: string | null
+          avatar_url?: string | null
           linkedin_handle?: string | null
           twitter_handle?: string | null
           github_handle?: string | null

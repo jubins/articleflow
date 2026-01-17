@@ -22,19 +22,20 @@ function Toast({ toast, onClose }: ToastProps) {
 
   useEffect(() => {
     const startTime = Date.now()
-    const timer = setInterval(() => {
+    const interval = setInterval(() => {
       const elapsed = Date.now() - startTime
       const remaining = Math.max(0, 100 - (elapsed / duration) * 100)
       setProgress(remaining)
 
       if (remaining === 0) {
-        clearInterval(timer)
+        clearInterval(interval)
         onClose(toast.id)
       }
-    }, 16) // ~60fps
+    }, 50) // Update every 50ms for smooth animation
 
-    return () => clearInterval(timer)
-  }, [toast.id, duration, onClose])
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const icons = {
     success: (

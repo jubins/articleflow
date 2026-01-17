@@ -2,82 +2,34 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
+import { ProfileDropdown } from '@/components/ProfileDropdown'
 
 export function Navigation() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
-
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/articles', label: 'Articles' },
-    { href: '/generate', label: 'Generate' },
-    { href: '/integrations', label: 'Integrations' },
-    { href: '/profile', label: 'Profile' },
-  ]
-
   return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+      <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex">
+          <div className="flex items-center gap-2">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Image src="/logo.svg" alt="ArticleFlow" width={32} height={32} className="h-8 w-8" />
               <span className="text-2xl font-bold text-blue-600">ArticleFlow</span>
             </Link>
-            <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    pathname === item.href
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
           </div>
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
+          <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <button
+              className="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
+              title="Notifications"
             >
-              Sign out
-            </Button>
-          </div>
-        </div>
-      </div>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+            </button>
 
-      {/* Mobile menu */}
-      <div className="sm:hidden">
-        <div className="pt-2 pb-3 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname === item.href
-                  ? 'border-blue-500 text-blue-700 bg-blue-50'
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+            {/* Profile Dropdown */}
+            <ProfileDropdown />
+          </div>
         </div>
       </div>
     </nav>

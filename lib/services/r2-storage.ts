@@ -186,4 +186,71 @@ export class R2StorageService {
       folder,
     })
   }
+
+  /**
+   * Upload image from buffer and convert to WebP format
+   */
+  async uploadImageAsWebP(options: {
+    buffer: Buffer
+    userId: string
+    fileName?: string
+    quality?: number
+  }): Promise<R2UploadResult> {
+    try {
+      // Convert image to WebP format
+      const webpBuffer = await sharp(options.buffer)
+        .webp({ quality: options.quality || 90 })
+        .toBuffer()
+
+      // Generate filename with .webp extension
+      const fileName = options.fileName
+        ? options.fileName.replace(/\.(png|jpg|jpeg|gif)$/i, '.webp')
+        : `image-${Date.now()}.webp`
+
+      const folder = `${options.userId}/images`
+
+      return await this.upload({
+        buffer: webpBuffer,
+        contentType: 'image/webp',
+        fileName,
+        folder,
+      })
+    } catch (error) {
+      console.error('WebP conversion error:', error)
+      throw new Error(`Failed to convert and upload image as WebP: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Upload avatar/profile image as WebP
+   */
+  async uploadAvatar(options: {
+    buffer: Buffer
+    userId: string
+    quality?: number
+  }): Promise<R2UploadResult> {
+    try {
+      // Resize and convert to WebP (square, 400x400)
+      const webpBuffer = await sharp(options.buffer)
+        .resize(400, 400, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .webp({ quality: options.quality || 90 })
+        .toBuffer()
+
+      const fileName = `avatar-${Date.now()}.webp`
+      const folder = `avatars/${options.userId}`
+
+      return await this.upload({
+        buffer: webpBuffer,
+        contentType: 'image/webp',
+        fileName,
+        folder,
+      })
+    } catch (error) {
+      console.error('Avatar upload error:', error)
+      throw new Error(`Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 }

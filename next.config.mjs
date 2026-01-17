@@ -6,6 +6,20 @@ const nextConfig = {
       allowedOrigins: undefined,
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-*.r2.dev',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

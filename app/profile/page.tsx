@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
@@ -10,16 +10,22 @@ import { Input } from '@/components/ui/Input'
 import { TextArea } from '@/components/ui/TextArea'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { ToastContainer, useToast } from '@/components/ui/Toast'
 import { Profile } from '@/lib/types/database'
+import Image from 'next/image'
 
 export default function ProfilePage() {
+  const toast = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
   const [profile, setProfile] = useState<Partial<Profile>>({
     full_name: '',
+    avatar_url: '',
     bio: '',
     linkedin_handle: '',
     twitter_handle: '',
@@ -53,6 +59,7 @@ export default function ProfilePage() {
         const typedData = data as any
         setProfile({
           full_name: typedData.full_name || '',
+          avatar_url: typedData.avatar_url || '',
           bio: typedData.bio || '',
           linkedin_handle: typedData.linkedin_handle || '',
           twitter_handle: typedData.twitter_handle || '',
@@ -65,6 +72,60 @@ export default function ProfilePage() {
       setError('Failed to load profile')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 5MB.')
+      return
+    }
+
+    setUploadingAvatar(true)
+    toast.info('Uploading avatar...')
+
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+
+      const response = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload avatar')
+      }
+
+      const data = await response.json()
+      setProfile({ ...profile, avatar_url: data.avatar_url })
+      toast.success('Avatar uploaded successfully!')
+    } catch (err) {
+      console.error('Avatar upload error:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to upload avatar')
+    } finally {
+      setUploadingAvatar(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -88,6 +149,7 @@ export default function ProfilePage() {
           id: user.id,
           email: user.email,
           full_name: profile.full_name || null,
+          avatar_url: profile.avatar_url || null,
           bio: profile.bio || null,
           linkedin_handle: profile.linkedin_handle || null,
           twitter_handle: profile.twitter_handle || null,
@@ -99,10 +161,13 @@ export default function ProfilePage() {
       if (error) throw error
 
       setSuccess('Profile updated successfully!')
+      toast.success('Profile updated successfully!')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       console.error('Error saving profile:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save profile')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save profile'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -118,6 +183,7 @@ export default function ProfilePage() {
 
   return (
     <AuthLayout>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
@@ -139,6 +205,62 @@ export default function ProfilePage() {
         )}
 
         <form onSubmit={handleSave} className="space-y-6">
+          {/* Avatar Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Picture</CardTitle>
+              <CardDescription>
+                Upload your profile picture (max 5MB, JPEG/PNG/WebP/GIF)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  {profile.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt="Profile avatar"
+                      width={128}
+                      height={128}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center border-4 border-gray-200">
+                      <span className="text-white text-4xl font-bold">
+                        {profile.full_name?.charAt(0).toUpperCase() || '?'}
+                      </span>
+                    </div>
+                  )}
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <LoadingSpinner size="md" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAvatarClick}
+                    disabled={uploadingAvatar}
+                  >
+                    {uploadingAvatar ? 'Uploading...' : 'Change Avatar'}
+                  </Button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Recommended: Square image, at least 400x400px
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Personal Information */}
           <Card>
             <CardHeader>
