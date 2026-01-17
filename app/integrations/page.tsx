@@ -130,23 +130,47 @@ export default function IntegrationsPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSaveAPIKeys} className="space-y-6">
-              <PasswordInput
-                id="anthropic_api_key"
-                label="Claude API Key (Anthropic)"
-                value={settings.anthropic_api_key}
-                onChange={(value) => setSettings({ ...settings, anthropic_api_key: value })}
-                placeholder="sk-ant-..."
-                helperText="Get your API key from https://console.anthropic.com"
-              />
+              <div>
+                <PasswordInput
+                  id="anthropic_api_key"
+                  label="Claude API Key (Anthropic)"
+                  value={settings.anthropic_api_key}
+                  onChange={(value) => setSettings({ ...settings, anthropic_api_key: value })}
+                  placeholder="sk-ant-..."
+                />
+                <p className="mt-2 text-sm text-gray-600">
+                  Get your API key from{' '}
+                  <a
+                    href="https://console.anthropic.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-medium underline"
+                  >
+                    Claude Console
+                  </a>
+                </p>
+              </div>
 
-              <PasswordInput
-                id="google_ai_api_key"
-                label="Gemini API Key (Google AI)"
-                value={settings.google_ai_api_key}
-                onChange={(value) => setSettings({ ...settings, google_ai_api_key: value })}
-                placeholder="AIza..."
-                helperText="Get your API key from https://makersuite.google.com/app/apikey"
-              />
+              <div>
+                <PasswordInput
+                  id="google_ai_api_key"
+                  label="Gemini API Key (Google AI)"
+                  value={settings.google_ai_api_key}
+                  onChange={(value) => setSettings({ ...settings, google_ai_api_key: value })}
+                  placeholder="AIza..."
+                />
+                <p className="mt-2 text-sm text-gray-600">
+                  Get your API key from{' '}
+                  <a
+                    href="https://makersuite.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-medium underline"
+                  >
+                    Google AI Studio
+                  </a>
+                </p>
+              </div>
 
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
                 <div className="flex items-start space-x-3">

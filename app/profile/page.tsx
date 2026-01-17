@@ -79,6 +79,32 @@ export default function ProfilePage() {
     fileInputRef.current?.click()
   }
 
+  const handleRemoveAvatar = async () => {
+    if (!profile.avatar_url) return
+
+    setUploadingAvatar(true)
+    toast.info('Removing avatar...')
+
+    try {
+      const response = await fetch('/api/profile/avatar/delete', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to remove avatar')
+      }
+
+      setProfile({ ...profile, avatar_url: '' })
+      toast.success('Avatar removed successfully!')
+    } catch (err) {
+      console.error('Avatar removal error:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to remove avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -217,13 +243,28 @@ export default function ProfilePage() {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   {profile.avatar_url ? (
-                    <Image
-                      src={profile.avatar_url}
-                      alt="Profile avatar"
-                      width={128}
-                      height={128}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                    />
+                    <>
+                      <Image
+                        src={profile.avatar_url}
+                        alt="Profile avatar"
+                        width={128}
+                        height={128}
+                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+                      />
+                      {/* Remove Avatar Button */}
+                      {!uploadingAvatar && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                          title="Remove avatar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center border-4 border-gray-200">
                       <span className="text-white text-4xl font-bold">

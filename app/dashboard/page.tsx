@@ -8,26 +8,23 @@ import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
-import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ConfirmModal } from '@/components/ui/Modal'
-import { ToastContainer, useToast } from '@/components/ui/Toast'
 import { Article } from '@/lib/types/database'
-import { format } from 'date-fns'
 
 export default function DashboardPage() {
-  const toast = useToast()
-  const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [articleToDelete, setArticleToDelete] = useState<string | null>(null)
   const [stats, setStats] = useState({
     total: 0,
     generated: 0,
     failed: 0,
     draft: 0,
+    totalWords: 0,
+    avgWords: 0,
+    thisWeek: 0,
+    thisMonth: 0,
   })
+  const [articleTypeStats, setArticleTypeStats] = useState<Record<string, number>>({})
+  const [platformStats, setPlatformStats] = useState<Record<string, number>>({})
 
   useEffect(() => {
     loadArticles()
@@ -50,7 +47,6 @@ export default function DashboardPage() {
       if (error) throw error
 
       const typedArticles = (articlesData || []) as Article[]
-      setArticles(typedArticles)
 
       // Calculate stats
       const total = typedArticles.length
@@ -58,54 +54,38 @@ export default function DashboardPage() {
       const failed = typedArticles.filter(a => a.status === 'failed').length
       const draft = typedArticles.filter(a => a.status === 'draft').length
 
-      setStats({ total, generated, failed, draft })
+      // Word count stats
+      const totalWords = typedArticles.reduce((sum, a) => sum + (a.word_count || 0), 0)
+      const avgWords = total > 0 ? Math.round(totalWords / total) : 0
+
+      // Time-based stats
+      const now = new Date()
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const thisWeek = typedArticles.filter(a => new Date(a.created_at) > oneWeekAgo).length
+      const thisMonth = typedArticles.filter(a => new Date(a.created_at) > oneMonthAgo).length
+
+      setStats({ total, generated, failed, draft, totalWords, avgWords, thisWeek, thisMonth })
+
+      // Article type distribution
+      const typeStats: Record<string, number> = {}
+      typedArticles.forEach(a => {
+        const type = a.article_type || 'technical'
+        typeStats[type] = (typeStats[type] || 0) + 1
+      })
+      setArticleTypeStats(typeStats)
+
+      // Platform distribution
+      const platformDist: Record<string, number> = {}
+      typedArticles.forEach(a => {
+        const platform = a.platform || 'all'
+        platformDist[platform] = (platformDist[platform] || 0) + 1
+      })
+      setPlatformStats(platformDist)
     } catch (error) {
       console.error('Error loading articles:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleDeleteClick = (articleId: string, event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
-    setArticleToDelete(articleId)
-    setShowDeleteModal(true)
-  }
-
-  const confirmDelete = async () => {
-    if (!articleToDelete) return
-
-    setDeleting(articleToDelete)
-    setShowDeleteModal(false)
-
-    try {
-      const response = await fetch(`/api/articles/${articleToDelete}/delete`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete article')
-      }
-
-      // Remove from local state
-      setArticles(articles.filter(a => a.id !== articleToDelete))
-
-      // Recalculate stats
-      const newArticles = articles.filter(a => a.id !== articleToDelete)
-      const total = newArticles.length
-      const generated = newArticles.filter(a => a.status === 'generated').length
-      const failed = newArticles.filter(a => a.status === 'failed').length
-      const draft = newArticles.filter(a => a.status === 'draft').length
-      setStats({ total, generated, failed, draft })
-
-      toast.success('Article deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting article:', error)
-      toast.error('Failed to delete article. Please try again.')
-    } finally {
-      setDeleting(null)
-      setArticleToDelete(null)
     }
   }
 
@@ -119,20 +99,6 @@ export default function DashboardPage() {
 
   return (
     <AuthLayout>
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false)
-          setArticleToDelete(null)
-        }}
-        onConfirm={confirmDelete}
-        title="Delete Article"
-        message="Are you sure you want to delete this article? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-      />
       <div className="px-4 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -213,151 +179,145 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Articles */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Recent Articles</CardTitle>
-                <CardDescription>Your most recently generated articles</CardDescription>
-              </div>
-              {articles.length > 0 && (
-                <Link href="/articles">
-                  <Button variant="outline" size="sm">View All</Button>
-                </Link>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {articles.length === 0 ? (
-              <div className="text-center py-12">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No articles yet</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by generating your first article.</p>
-                <div className="mt-6">
-                  <Link href="/generate">
-                    <Button>Generate Article</Button>
-                  </Link>
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Words</p>
+                  <p className="text-3xl font-bold text-purple-600 mt-2">{stats.totalWords.toLocaleString()}</p>
+                </div>
+                <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
                 </div>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        AI Provider
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {articles.slice(0, 10).map((article) => (
-                      <tr key={article.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900 max-w-md truncate">{article.title}</div>
-                          {article.word_count && (
-                            <div className="text-sm text-gray-500">{article.word_count} words</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                          {article.article_type || 'technical'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <StatusBadge status={article.status as 'draft' | 'generated' | 'published' | 'failed'} />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                          {article.ai_provider}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {format(new Date(article.created_at), 'MMM dd, yyyy')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-2">
-                            {article.status !== 'failed' && (
-                              <Link
-                                href={`/articles/${article.id}`}
-                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
-                                title="View article"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              </Link>
-                            )}
-                            {article.google_doc_url && (
-                              <a
-                                href={article.google_doc_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors"
-                                title="Open in Google Docs"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </a>
-                            )}
-                            <button
-                              onClick={(e) => handleDeleteClick(article.id, e)}
-                              disabled={deleting === article.id}
-                              className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              title="Delete article"
-                            >
-                              {deleting === article.id ? (
-                                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {articles.length > 10 && (
-                  <div className="mt-4 text-center">
-                    <Link href="/articles">
-                      <Button variant="outline">View All {articles.length} Articles</Button>
-                    </Link>
-                  </div>
-                )}
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg Words/Article</p>
+                  <p className="text-3xl font-bold text-indigo-600 mt-2">{stats.avgWords.toLocaleString()}</p>
+                </div>
+                <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">This Week</p>
+                  <p className="text-3xl font-bold text-cyan-600 mt-2">{stats.thisWeek}</p>
+                </div>
+                <div className="h-12 w-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">This Month</p>
+                  <p className="text-3xl font-bold text-orange-600 mt-2">{stats.thisMonth}</p>
+                </div>
+                <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Article Types Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Article Types</CardTitle>
+              <CardDescription>Distribution by article type</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(articleTypeStats).length > 0 ? (
+                <div className="space-y-3">
+                  {Object.entries(articleTypeStats).map(([type, count]) => {
+                    const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0
+                    return (
+                      <div key={type}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium text-gray-700 capitalize">{type}</span>
+                          <span className="text-sm text-gray-600">{count} ({percentage.toFixed(0)}%)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-8">No data available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Platform Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Target Platforms</CardTitle>
+              <CardDescription>Distribution by publishing platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(platformStats).length > 0 ? (
+                <div className="space-y-3">
+                  {Object.entries(platformStats).map(([platform, count]) => {
+                    const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0
+                    const platformColors = {
+                      medium: 'from-green-500 to-emerald-600',
+                      devto: 'from-purple-500 to-pink-600',
+                      dzone: 'from-red-500 to-orange-600',
+                      all: 'from-blue-500 to-cyan-600',
+                    }
+                    const color = platformColors[platform as keyof typeof platformColors] || 'from-gray-500 to-gray-600'
+                    return (
+                      <div key={platform}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium text-gray-700 capitalize">{platform}</span>
+                          <span className="text-sm text-gray-600">{count} ({percentage.toFixed(0)}%)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`bg-gradient-to-r ${color} h-2 rounded-full transition-all`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-8">No data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AuthLayout>
   )
