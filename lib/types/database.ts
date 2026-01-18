@@ -58,6 +58,7 @@ export interface Database {
           user_id: string
           anthropic_api_key: string | null
           google_ai_api_key: string | null
+          devto_api_key: string | null
           google_sheets_id: string | null
           default_ai_provider: 'claude' | 'gemini'
           default_word_count: number
@@ -76,6 +77,7 @@ export interface Database {
           user_id: string
           anthropic_api_key?: string | null
           google_ai_api_key?: string | null
+          devto_api_key?: string | null
           google_sheets_id?: string | null
           default_ai_provider?: 'claude' | 'gemini'
           default_word_count?: number
@@ -94,6 +96,7 @@ export interface Database {
           user_id?: string
           anthropic_api_key?: string | null
           google_ai_api_key?: string | null
+          devto_api_key?: string | null
           google_sheets_id?: string | null
           default_ai_provider?: 'claude' | 'gemini'
           default_word_count?: number
@@ -104,6 +107,44 @@ export interface Database {
           google_connected?: boolean
           google_connected_at?: string | null
           carousel_theme?: 'classic' | 'academic' | 'modern'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      article_publications: {
+        Row: {
+          id: string
+          article_id: string
+          user_id: string
+          platform: string
+          published_url: string
+          platform_article_id: string | null
+          published_at: string
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          user_id: string
+          platform: string
+          published_url: string
+          platform_article_id?: string | null
+          published_at?: string
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          user_id?: string
+          platform?: string
+          published_url?: string
+          platform_article_id?: string | null
+          published_at?: string
+          metadata?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -232,16 +273,19 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type UserSettings = Database['public']['Tables']['user_settings']['Row']
 export type Article = Database['public']['Tables']['articles']['Row']
 export type GenerationLog = Database['public']['Tables']['generation_logs']['Row']
+export type ArticlePublication = Database['public']['Tables']['article_publications']['Row']
 
 export type InsertProfile = Database['public']['Tables']['profiles']['Insert']
 export type InsertUserSettings = Database['public']['Tables']['user_settings']['Insert']
 export type InsertArticle = Database['public']['Tables']['articles']['Insert']
 export type InsertGenerationLog = Database['public']['Tables']['generation_logs']['Insert']
+export type InsertArticlePublication = Database['public']['Tables']['article_publications']['Insert']
 
 export type UpdateProfile = Database['public']['Tables']['profiles']['Update']
 export type UpdateUserSettings = Database['public']['Tables']['user_settings']['Update']
 export type UpdateArticle = Database['public']['Tables']['articles']['Update']
 export type UpdateGenerationLog = Database['public']['Tables']['generation_logs']['Update']
+export type UpdateArticlePublication = Database['public']['Tables']['article_publications']['Update']
 
 // Enum types for better type safety
 export const AI_PROVIDERS = ['claude', 'gemini'] as const

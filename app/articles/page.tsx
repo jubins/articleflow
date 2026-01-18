@@ -18,6 +18,10 @@ export default function ArticlesPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'generated' | 'draft' | 'failed'>('all')
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadArticles()
@@ -73,9 +77,74 @@ export default function ArticlesPage() {
     }
   }
 
+  const handleBulkDelete = async () => {
+    if (selectedArticles.size === 0) return
+
+    if (!confirm(`Are you sure you want to delete ${selectedArticles.size} article(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    setBulkDeleting(true)
+    try {
+      // Delete all selected articles in parallel
+      await Promise.all(
+        Array.from(selectedArticles).map(articleId =>
+          fetch(`/api/articles/${articleId}/delete`, {
+            method: 'DELETE',
+          })
+        )
+      )
+
+      // Remove deleted articles from state
+      setArticles(articles.filter(a => !selectedArticles.has(a.id)))
+      setSelectedArticles(new Set())
+    } catch (error) {
+      console.error('Error deleting articles:', error)
+      alert('Failed to delete some articles. Please try again.')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  const toggleSelectArticle = (articleId: string) => {
+    const newSelected = new Set(selectedArticles)
+    if (newSelected.has(articleId)) {
+      newSelected.delete(articleId)
+    } else {
+      newSelected.add(articleId)
+    }
+    setSelectedArticles(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedArticles.size === filteredArticles.length) {
+      setSelectedArticles(new Set())
+    } else {
+      setSelectedArticles(new Set(filteredArticles.map(a => a.id)))
+    }
+  }
+
   const filteredArticles = filter === 'all'
     ? articles
     : articles.filter(a => a.status === filter)
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredArticles.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedArticles = filteredArticles.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filter changes
+  const handleFilterChange = (newFilter: 'all' | 'generated' | 'draft' | 'failed') => {
+    setFilter(newFilter)
+    setCurrentPage(1)
+  }
+
+  // Reset to page 1 when items per page changes
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1)
+  }
 
   if (loading) {
     return (
@@ -91,9 +160,36 @@ export default function ArticlesPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">All Articles</h1>
-            <p className="text-gray-600 mt-1">{filteredArticles.length} total articles</p>
+            <p className="text-gray-600 mt-1">
+              {filteredArticles.length} total articles
+              {selectedArticles.size > 0 && ` • ${selectedArticles.size} selected`}
+            </p>
           </div>
           <div className="flex gap-3">
+            {selectedArticles.size > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+              >
+                {bulkDeleting ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete {selectedArticles.size} {selectedArticles.size === 1 ? 'Article' : 'Articles'}
+                  </>
+                )}
+              </Button>
+            )}
             <Link href="/dashboard">
               <Button variant="outline">Dashboard</Button>
             </Link>
@@ -108,7 +204,7 @@ export default function ArticlesPage() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setFilter('all')}
+                onClick={() => handleFilterChange('all')}
                 className={`${
                   filter === 'all'
                     ? 'border-blue-500 text-blue-600'
@@ -121,7 +217,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('generated')}
+                onClick={() => handleFilterChange('generated')}
                 className={`${
                   filter === 'generated'
                     ? 'border-green-500 text-green-600'
@@ -134,7 +230,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('draft')}
+                onClick={() => handleFilterChange('draft')}
                 className={`${
                   filter === 'draft'
                     ? 'border-gray-500 text-gray-600'
@@ -147,7 +243,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('failed')}
+                onClick={() => handleFilterChange('failed')}
                 className={`${
                   filter === 'failed'
                     ? 'border-red-500 text-red-600'
@@ -162,6 +258,80 @@ export default function ArticlesPage() {
             </nav>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredArticles.length > 0 && (
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600">items</span>
+            </div>
+
+            {totalPages > 1 && (
+              <nav className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+
+                    if (!showPage) {
+                      if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <span key={page} className="px-3 py-1 text-gray-500 text-sm">
+                            ...
+                          </span>
+                        )
+                      }
+                      return null
+                    }
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
 
         {/* Articles List */}
         <Card>
@@ -200,6 +370,14 @@ export default function ArticlesPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedArticles.size === filteredArticles.length && filteredArticles.length > 0}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Title
                       </th>
@@ -221,12 +399,31 @@ export default function ArticlesPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredArticles.map((article) => (
+                    {paginatedArticles.map((article) => (
                       <tr key={article.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900 max-w-md truncate">
-                            {article.title}
-                          </div>
+                          <input
+                            type="checkbox"
+                            checked={selectedArticles.has(article.id)}
+                            onChange={() => toggleSelectArticle(article.id)}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          {article.status !== 'failed' ? (
+                            <Link
+                              href={`/articles/${article.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 max-w-md truncate block hover:underline"
+                            >
+                              {article.title}
+                            </Link>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 max-w-md truncate">
+                              {article.title}
+                            </div>
+                          )}
                           {article.word_count && (
                             <div className="text-sm text-gray-500">{article.word_count} words</div>
                           )}
@@ -245,18 +442,6 @@ export default function ArticlesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
-                            {article.status !== 'failed' && (
-                              <Link
-                                href={`/articles/${article.id}`}
-                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
-                                title="View article"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              </Link>
-                            )}
                             {article.google_doc_url && (
                               <a
                                 href={article.google_doc_url}
@@ -296,6 +481,15 @@ export default function ArticlesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Results Summary */}
+        {!loading && filteredArticles.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600 text-center">
+            Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+            <span className="font-medium">{Math.min(endIndex, filteredArticles.length)}</span> of{' '}
+            <span className="font-medium">{filteredArticles.length}</span> results
+          </div>
+        )}
       </div>
     </AuthLayout>
   )

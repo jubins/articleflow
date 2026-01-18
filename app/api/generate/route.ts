@@ -4,7 +4,7 @@ import { ArticleGeneratorService } from '@/lib/services/article-generator'
 import { GoogleDocsService } from '@/lib/services/google-docs'
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { validateAllMermaidDiagrams } from '@/lib/utils/mermaid-validator'
-// import { convertMermaidToImages } from '@/lib/utils/mermaid-converter'
+import { processMermaidDiagrams } from '@/lib/services/diagram-processor'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -215,14 +215,54 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Convert Mermaid diagrams to WebP images
-      // TODO: Mermaid requires browser environment - implement using Puppeteer for server-side rendering
-      // const contentWithImages = await convertMermaidToImages(generatedArticle.content)
+      // Process Mermaid diagrams - convert to images and upload to R2
+      let processedContent = generatedArticle.content
+      let diagramImages: Record<string, string> = {}
+
+      try {
+        const diagramResult = await processMermaidDiagrams(typedArticle.id, generatedArticle.content)
+
+        if (diagramResult.success && diagramResult.content) {
+          processedContent = diagramResult.content
+          diagramImages = diagramResult.diagrams
+
+          console.log(`Successfully processed ${Object.keys(diagramImages).length} Mermaid diagrams`)
+
+          // Log success
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore - Supabase type inference issue
+          await supabase.from('generation_logs').insert({
+            user_id: user.id,
+            article_id: typedArticle.id,
+            action: 'process_diagrams',
+            status: 'success',
+            metadata: {
+              diagrams_count: Object.keys(diagramImages).length,
+            },
+          })
+        } else {
+          console.warn('Failed to process diagrams:', diagramResult.error)
+          // Continue with original content if diagram processing fails
+        }
+      } catch (diagramError) {
+        console.error('Error processing diagrams:', diagramError)
+        // Continue with original content if diagram processing fails
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Supabase type inference issue
+        await supabase.from('generation_logs').insert({
+          user_id: user.id,
+          article_id: typedArticle.id,
+          action: 'process_diagrams',
+          status: 'failed',
+          error_message: diagramError instanceof Error ? diagramError.message : 'Unknown error',
+        })
+      }
 
       const generationTime = Date.now() - startTime
 
       // Convert markdown to rich text HTML for storage
-      const richTextHtml = markdownToHtml(generatedArticle.content)
+      // Use processed content if diagrams were successfully converted
+      const richTextHtml = markdownToHtml(processedContent)
 
       // Helper function to generate hashtags
       const generateHashtags = (title: string, tags: string[]): string => {
@@ -277,13 +317,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Update article with generated content (store both markdown and rich text in database)
+      // Include processed content with diagram images
       const { error: updateError } = await supabase
         .from('articles')
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore - Supabase type inference issue
         .update({
           title: generatedArticle.title,
-          content: generatedArticle.content,
+          content: processedContent, // Use processed content with diagram images
           rich_text_content: richTextHtml,
           description: generatedArticle.description,
           tldr: generatedArticle.tldr,
@@ -293,6 +334,8 @@ export async function POST(request: NextRequest) {
           generated_at: new Date().toISOString(),
           linkedin_teaser: linkedinTeaser,
           generation_metadata: generatedArticle.metadata,
+          diagram_images: Object.keys(diagramImages).length > 0 ? diagramImages : null,
+          diagram_images_url: Object.keys(diagramImages).length > 0 ? new Date().toISOString() : null,
         })
         .eq('id', typedArticle.id)
 

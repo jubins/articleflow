@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 
 interface GenerateSuccess {
   article: {
+    id: string
     title: string
     word_count: number
     google_doc_url?: string
@@ -86,10 +87,10 @@ export default function GeneratePage() {
 
       setSuccess(data)
 
-      // Redirect to dashboard after 3 seconds
+      // Redirect to the generated article after 2 seconds
       setTimeout(() => {
-        router.push('/dashboard')
-      }, 3000)
+        router.push(`/articles/${data.article.id}`)
+      }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -141,8 +142,8 @@ export default function GeneratePage() {
                     Open Google Doc
                   </Button>
                 )}
-                <Button onClick={() => router.push('/dashboard')} className="px-8">
-                  View Dashboard
+                <Button onClick={() => router.push(`/articles/${success.article.id}`)} className="px-8">
+                  View Article
                 </Button>
               </div>
             </CardContent>
