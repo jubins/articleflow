@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 
 interface GenerateSuccess {
   article: {
+    id: string
     title: string
     word_count: number
     google_doc_url?: string
