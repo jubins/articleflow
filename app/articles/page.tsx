@@ -13,6 +13,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 
+const ITEMS_PER_PAGE = 10
+
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,6 +22,7 @@ export default function ArticlesPage() {
   const [filter, setFilter] = useState<'all' | 'generated' | 'draft' | 'failed'>('all')
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     loadArticles()
@@ -126,6 +129,18 @@ export default function ArticlesPage() {
     ? articles
     : articles.filter(a => a.status === filter)
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedArticles = filteredArticles.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filter changes
+  const handleFilterChange = (newFilter: 'all' | 'generated' | 'draft' | 'failed') => {
+    setFilter(newFilter)
+    setCurrentPage(1)
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -184,7 +199,7 @@ export default function ArticlesPage() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setFilter('all')}
+                onClick={() => handleFilterChange('all')}
                 className={`${
                   filter === 'all'
                     ? 'border-blue-500 text-blue-600'
@@ -197,7 +212,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('generated')}
+                onClick={() => handleFilterChange('generated')}
                 className={`${
                   filter === 'generated'
                     ? 'border-green-500 text-green-600'
@@ -210,7 +225,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('draft')}
+                onClick={() => handleFilterChange('draft')}
                 className={`${
                   filter === 'draft'
                     ? 'border-gray-500 text-gray-600'
@@ -223,7 +238,7 @@ export default function ArticlesPage() {
                 </span>
               </button>
               <button
-                onClick={() => setFilter('failed')}
+                onClick={() => handleFilterChange('failed')}
                 className={`${
                   filter === 'failed'
                     ? 'border-red-500 text-red-600'
@@ -305,7 +320,7 @@ export default function ArticlesPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredArticles.map((article) => (
+                    {paginatedArticles.map((article) => (
                       <tr key={article.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <input
@@ -387,6 +402,72 @@ export default function ArticlesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {!loading && filteredArticles.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+              <span className="font-medium">{Math.min(endIndex, filteredArticles.length)}</span> of{' '}
+              <span className="font-medium">{filteredArticles.length}</span> results
+            </div>
+            <nav className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  const showPage =
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+
+                  if (!showPage) {
+                    // Show ellipsis
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span key={page} className="px-3 py-1 text-gray-500">
+                          ...
+                        </span>
+                      )
+                    }
+                    return null
+                  }
+
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </nav>
+          </div>
+        )}
       </div>
     </AuthLayout>
   )
