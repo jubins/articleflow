@@ -13,8 +13,6 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Article } from '@/lib/types/database'
 import { format } from 'date-fns'
 
-const ITEMS_PER_PAGE = 10
-
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,6 +21,7 @@ export default function ArticlesPage() {
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadArticles()
@@ -130,14 +129,20 @@ export default function ArticlesPage() {
     : articles.filter(a => a.status === filter)
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE)
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const endIndex = startIndex + ITEMS_PER_PAGE
+  const totalPages = Math.ceil(filteredArticles.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
   const paginatedArticles = filteredArticles.slice(startIndex, endIndex)
 
   // Reset to page 1 when filter changes
   const handleFilterChange = (newFilter: 'all' | 'generated' | 'draft' | 'failed') => {
     setFilter(newFilter)
+    setCurrentPage(1)
+  }
+
+  // Reset to page 1 when items per page changes
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
     setCurrentPage(1)
   }
 
@@ -253,6 +258,80 @@ export default function ArticlesPage() {
             </nav>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredArticles.length > 0 && (
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600">items</span>
+            </div>
+
+            {totalPages > 1 && (
+              <nav className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+
+                    if (!showPage) {
+                      if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <span key={page} className="px-3 py-1 text-gray-500 text-sm">
+                            ...
+                          </span>
+                        )
+                      }
+                      return null
+                    }
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
 
         {/* Articles List */}
         <Card>
@@ -403,69 +482,12 @@ export default function ArticlesPage() {
           </CardContent>
         </Card>
 
-        {/* Pagination */}
-        {!loading && filteredArticles.length > 0 && totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-              <span className="font-medium">{Math.min(endIndex, filteredArticles.length)}</span> of{' '}
-              <span className="font-medium">{filteredArticles.length}</span> results
-            </div>
-            <nav className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  // Show first page, last page, current page, and pages around current
-                  const showPage =
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-
-                  if (!showPage) {
-                    // Show ellipsis
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <span key={page} className="px-3 py-1 text-gray-500">
-                          ...
-                        </span>
-                      )
-                    }
-                    return null
-                  }
-
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                        currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </nav>
+        {/* Results Summary */}
+        {!loading && filteredArticles.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600 text-center">
+            Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+            <span className="font-medium">{Math.min(endIndex, filteredArticles.length)}</span> of{' '}
+            <span className="font-medium">{filteredArticles.length}</span> results
           </div>
         )}
       </div>
