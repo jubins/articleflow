@@ -12,11 +12,16 @@ import mermaid from 'mermaid'
 import { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastContainer } from './ui/Toast'
+import md5 from 'md5'
+
+import { toPng } from 'html-to-image'
 
 interface CarouselViewerProps {
   content: string
   title?: string
   linkedinTeaser?: string
+  articleId?: string
+  cachedDiagrams?: Record<string, string> // Map of diagram cache keys to URLs
 }
 
 // Theme definitions
@@ -90,7 +95,235 @@ const THEMES: Record<CarouselTheme, ThemeStyle> = {
 // Initialize mermaid once
 let isMermaidInitialized = false
 
-export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewerProps) {
+// Helper function to inline all computed styles for SVG elements
+function inlineSvgStyles(svg: SVGElement): { svg: SVGElement; hasContent: boolean } {
+  const clone = svg.cloneNode(true) as SVGElement
+
+  // Check if SVG has any text content (SVG text elements OR foreignObject HTML content)
+  const textElements = clone.querySelectorAll('text, tspan')
+  const foreignObjects = clone.querySelectorAll('foreignObject')
+
+  const hasSvgText = Array.from(textElements).some(el => el.textContent?.trim())
+  const hasForeignObjectText = Array.from(foreignObjects).some(el => el.textContent?.trim())
+
+  const hasTextContent = hasSvgText || hasForeignObjectText
+
+  if (!hasTextContent) {
+    console.warn('SVG has no text content - may be incomplete')
+    return { svg: clone, hasContent: false }
+  }
+
+  // Process all style tags and apply inline
+  const styleTags = clone.querySelectorAll('style')
+  const cssRules: { selector: string; rules: string }[] = []
+
+  styleTags.forEach(styleTag => {
+    const cssText = styleTag.textContent || ''
+    // Parse CSS rules (basic parser for simple selectors)
+    const ruleMatches = Array.from(cssText.matchAll(/([^{]+)\{([^}]+)\}/g))
+    for (const match of ruleMatches) {
+      const selector = match[1].trim()
+      const rules = match[2].trim()
+      cssRules.push({ selector, rules })
+    }
+  })
+
+  // Get all elements and inline their computed styles
+  const allElements = clone.querySelectorAll('*')
+  const sourceElements = svg.querySelectorAll('*')
+
+  allElements.forEach((element, index) => {
+    const sourceElement = sourceElements[index]
+    if (!sourceElement) return
+
+    const computedStyle = window.getComputedStyle(sourceElement)
+    const tagName = element.tagName.toLowerCase()
+
+    // Comprehensive list of SVG properties to preserve
+    const svgProperties = [
+      // Text properties
+      'font-family', 'font-size', 'font-weight', 'font-style',
+      'text-anchor', 'dominant-baseline', 'text-decoration',
+      'letter-spacing', 'word-spacing', 'line-height',
+      // Color and fill
+      'fill', 'stroke', 'color',
+      // Stroke properties
+      'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+      'stroke-dasharray', 'stroke-opacity',
+      // General properties
+      'opacity', 'visibility', 'display',
+      // Transform
+      'transform', 'transform-origin',
+    ]
+
+    const styles: Record<string, string> = {}
+
+    // Get computed styles
+    svgProperties.forEach(prop => {
+      const value = computedStyle.getPropertyValue(prop)
+      if (value && value !== '' && value !== 'none' && value !== 'normal') {
+        styles[prop] = value
+      }
+    })
+
+    // Apply CSS rules that match this element
+    cssRules.forEach(({ selector, rules }) => {
+      // Simple selector matching (handles .class, #id, tag)
+      if (
+        (selector.startsWith('.') && element.classList.contains(selector.slice(1))) ||
+        (selector.startsWith('#') && element.id === selector.slice(1)) ||
+        (selector === tagName)
+      ) {
+        const rulePairs = rules.split(';').filter(r => r.trim())
+        rulePairs.forEach(pair => {
+          const [prop, value] = pair.split(':').map(s => s.trim())
+          if (prop && value) {
+            styles[prop] = value
+          }
+        })
+      }
+    })
+
+    // Build style string
+    const existingStyle = (element as HTMLElement).getAttribute('style') || ''
+    const newStyles = Object.entries(styles)
+      .map(([prop, value]) => `${prop}:${value}`)
+      .join(';')
+
+    if (newStyles) {
+      (element as HTMLElement).setAttribute('style',
+        existingStyle ? `${existingStyle};${newStyles}` : newStyles
+      )
+    }
+
+    // Ensure text elements have explicit fill color
+    if (tagName === 'text' || tagName === 'tspan') {
+      const currentStyle = (element as HTMLElement).getAttribute('style') || ''
+      if (!currentStyle.includes('fill:')) {
+        const fillColor = computedStyle.fill || computedStyle.color || '#000000'
+        ;(element as HTMLElement).setAttribute('style', `${currentStyle};fill:${fillColor}`)
+      }
+    }
+  })
+
+  // Remove style tags as they're now inlined
+  styleTags.forEach(tag => tag.remove())
+
+  return { svg: clone, hasContent: true }
+}
+
+// Helper function to upload diagram to R2 immediately after rendering
+async function uploadDiagramToR2(
+  svgString: string,
+  mermaidCode: string,
+  slideIndex: number,
+  articleId: string
+): Promise<void> {
+  try {
+    console.log(`[Diagram Upload] Starting PNG conversion for slide ${slideIndex + 1}`)
+
+    // Create a temporary VISIBLE container for rendering (needed for computed styles)
+    const tempContainer = document.createElement('div')
+    tempContainer.style.position = 'fixed'
+    tempContainer.style.left = '-9999px'
+    tempContainer.style.top = '0'
+    tempContainer.style.width = 'auto'
+    tempContainer.style.height = 'auto'
+    tempContainer.style.zIndex = '-9999'
+    tempContainer.style.pointerEvents = 'none'
+    // NOTE: NOT setting opacity or visibility so styles can be computed
+    document.body.appendChild(tempContainer)
+
+    // Insert the SVG so it gets styled by the page
+    tempContainer.innerHTML = svgString
+
+    const svgElement = tempContainer.querySelector('svg')
+    if (!svgElement) {
+      console.error('[Diagram Upload] Failed to find SVG element')
+      document.body.removeChild(tempContainer)
+      return
+    }
+
+    // Wait for the DOM to render and fonts to load
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Wait for fonts to load if available
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready
+    }
+
+    console.log(`[Diagram Upload] Cleaning up SVG and inlining styles...`)
+
+    // Use the existing cleanupSvgForExport function to inline all styles
+    const { svg: cleanedSvg, hasContent } = cleanupSvgForExport(svgElement)
+
+    if (!hasContent) {
+      console.warn('[Diagram Upload] Skipping - no text content found')
+      document.body.removeChild(tempContainer)
+      return
+    }
+
+    // Create a new container for the cleaned SVG
+    const cleanContainer = document.createElement('div')
+    cleanContainer.style.position = 'fixed'
+    cleanContainer.style.left = '-9999px'
+    cleanContainer.style.top = '0'
+    cleanContainer.appendChild(cleanedSvg)
+    document.body.appendChild(cleanContainer)
+
+    // Remove original container
+    document.body.removeChild(tempContainer)
+
+    // Give it a moment to ensure the cleaned SVG is in the DOM
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    console.log(`[Diagram Upload] Converting to PNG...`)
+
+    // Convert to PNG using html-to-image with better settings
+    const dataUrl = await toPng(cleanedSvg as unknown as HTMLElement, {
+      quality: 0.95,
+      pixelRatio: 2, // Higher resolution for better quality
+      cacheBust: true, // Prevent caching issues
+      backgroundColor: '#ffffff', // Ensure white background
+    })
+
+    // Remove clean container
+    document.body.removeChild(cleanContainer)
+
+    // Convert data URL to blob
+    const response = await fetch(dataUrl)
+    const blob = await response.blob()
+
+    console.log(`[Diagram Upload] PNG size: ${blob.size} bytes`)
+
+    // Create FormData for upload
+    const formData = new FormData()
+    formData.append('image', blob, 'diagram.png')
+    formData.append('slideIndex', slideIndex.toString())
+    formData.append('articleId', articleId)
+    formData.append('mermaidCode', mermaidCode)
+
+    // Upload to R2
+    const uploadResponse = await fetch('/api/carousel/diagrams/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (uploadResponse.ok) {
+      const { url, key } = await uploadResponse.json()
+      console.log(`[Diagram Upload] ✓ Successfully uploaded PNG to R2`)
+      console.log(`[Diagram Upload]   URL: ${url}`)
+      console.log(`[Diagram Upload]   Key: ${key}`)
+    } else {
+      const errorText = await uploadResponse.text()
+      console.error(`[Diagram Upload] ✗ Upload failed (${uploadResponse.status}): ${errorText}`)
+    }
+  } catch (error) {
+    console.error('[Diagram Upload] ✗ Error:', error)
+  }
+}
+
+export function CarouselViewer({ content, title, linkedinTeaser, articleId, cachedDiagrams = {} }: CarouselViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [downloadingCurrent, setDownloadingCurrent] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
@@ -256,70 +489,157 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         // Upload all diagrams to R2 in parallel
         const uploadPromises = Array.from(svgElements).map(async (svg, svgIndex) => {
           try {
-            // Serialize SVG to string
-            const serializer = new XMLSerializer()
-            const svgString = serializer.serializeToString(svg)
+            // Clone SVG and inline all computed styles
+            const { svg: styledSvg, hasContent } = inlineSvgStyles(svg)
 
-            // Upload to R2
-            const response = await fetch('/api/carousel/diagrams/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                svg: svgString,
-                slideIndex: index,
-              }),
-            })
-
-            if (!response.ok) {
-              throw new Error(`Failed to upload diagram: ${response.statusText}`)
+            // Skip uploading if diagram has no content
+            if (!hasContent) {
+              console.warn(`Skipping diagram ${svgIndex + 1} - no text content found`)
+              return null
             }
 
-            const { url } = await response.json()
-            console.log(`Uploaded diagram ${svgIndex + 1} to R2:`, url)
+            // Get mermaid code from SVG data attribute for consistent hashing
+            const mermaidCode = svg.getAttribute('data-mermaid-code')
+            if (mermaidCode) {
+              // Decode the mermaid code
+              const decodedCode = decodeURIComponent(mermaidCode)
+              console.log(`Found mermaid code for diagram ${svgIndex + 1}, will use for consistent naming`)
 
-            // Create img element to replace SVG
-            const img = document.createElement('img')
-            img.src = url
+              // Serialize SVG to string
+              const serializer = new XMLSerializer()
+              const svgString = serializer.serializeToString(styledSvg)
 
-            // Get computed dimensions from SVG
-            const computedMaxWidth = svg.style.maxWidth || '70%'
-            const computedMaxHeight = svg.style.maxHeight || '200px'
+              // Upload to R2 with mermaid code for hash generation
+              const response = await fetch('/api/carousel/diagrams/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  svg: svgString,
+                  slideIndex: index,
+                  articleId,
+                  mermaidCode: decodedCode, // Pass mermaid code for consistent hash
+                }),
+              })
 
-            // Set dimensions explicitly for better rendering
-            img.style.maxWidth = computedMaxWidth
-            img.style.maxHeight = computedMaxHeight
-            img.style.width = 'auto'
-            img.style.height = 'auto'
-            img.style.display = 'block'
-            img.style.margin = '0 auto'
-            img.style.objectFit = 'contain'
-
-            // Copy other styles if present
-            if (svg.style.background) img.style.background = svg.style.background
-            if (svg.style.padding) img.style.padding = svg.style.padding
-            if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
-
-            // Wait for image to load with proper timeout handling
-            await new Promise<void>((resolve, reject) => {
-              const timeoutId = setTimeout(() => {
-                console.error(`Image ${svgIndex + 1} load timeout`)
-                reject(new Error('Image load timeout'))
-              }, 10000)
-
-              img.onload = () => {
-                clearTimeout(timeoutId)
-                console.log(`Image ${svgIndex + 1} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`)
-                resolve()
+              if (!response.ok) {
+                throw new Error(`Failed to upload diagram: ${response.statusText}`)
               }
 
-              img.onerror = (err) => {
-                clearTimeout(timeoutId)
-                console.error(`Image ${svgIndex + 1} failed to load:`, err)
-                reject(new Error('Image load failed'))
-              }
-            })
+              const { url } = await response.json()
+              console.log(`Uploaded diagram ${svgIndex + 1} to R2:`, url)
 
-            return { svg, img, url }
+              // Create img element to replace SVG
+              const img = document.createElement('img')
+              img.src = url
+
+              // Get computed dimensions from SVG
+              const computedMaxWidth = svg.style.maxWidth || '70%'
+              const computedMaxHeight = svg.style.maxHeight || '200px'
+
+              // Set dimensions explicitly for better rendering
+              img.style.maxWidth = computedMaxWidth
+              img.style.maxHeight = computedMaxHeight
+              img.style.width = 'auto'
+              img.style.height = 'auto'
+              img.style.display = 'block'
+              img.style.margin = '0 auto'
+              img.style.objectFit = 'contain'
+
+              // Copy other styles if present
+              if (svg.style.background) img.style.background = svg.style.background
+              if (svg.style.padding) img.style.padding = svg.style.padding
+              if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
+
+              // Wait for image to load with proper timeout handling
+              await new Promise<void>((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                  console.error(`Image ${svgIndex + 1} load timeout`)
+                  reject(new Error('Image load timeout'))
+                }, 10000)
+
+                img.onload = () => {
+                  clearTimeout(timeoutId)
+                  console.log(`Image ${svgIndex + 1} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`)
+                  resolve()
+                }
+
+                img.onerror = (err) => {
+                  clearTimeout(timeoutId)
+                  console.error(`Image ${svgIndex + 1} failed to load:`, err)
+                  reject(new Error('Image load failed'))
+                }
+              })
+
+              return { svg, img, url }
+            } else {
+              console.warn(`No mermaid code found for diagram ${svgIndex + 1}, falling back to SVG hash`)
+
+              // Fallback: use SVG string for hash
+              const serializer = new XMLSerializer()
+              const svgString = serializer.serializeToString(styledSvg)
+
+              // Upload to R2
+              const response = await fetch('/api/carousel/diagrams/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  svg: svgString,
+                  slideIndex: index,
+                  articleId,
+                }),
+              })
+
+              if (!response.ok) {
+                throw new Error(`Failed to upload diagram: ${response.statusText}`)
+              }
+
+              const { url } = await response.json()
+              console.log(`Uploaded diagram ${svgIndex + 1} to R2:`, url)
+
+              // Create img element to replace SVG
+              const img = document.createElement('img')
+              img.src = url
+
+              // Get computed dimensions from SVG
+              const computedMaxWidth = svg.style.maxWidth || '70%'
+              const computedMaxHeight = svg.style.maxHeight || '200px'
+
+              // Set dimensions explicitly for better rendering
+              img.style.maxWidth = computedMaxWidth
+              img.style.maxHeight = computedMaxHeight
+              img.style.width = 'auto'
+              img.style.height = 'auto'
+              img.style.display = 'block'
+              img.style.margin = '0 auto'
+              img.style.objectFit = 'contain'
+
+              // Copy other styles if present
+              if (svg.style.background) img.style.background = svg.style.background
+              if (svg.style.padding) img.style.padding = svg.style.padding
+              if (svg.style.borderRadius) img.style.borderRadius = svg.style.borderRadius
+
+              // Wait for image to load with proper timeout handling
+              await new Promise<void>((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                  console.error(`Image ${svgIndex + 1} load timeout`)
+                  reject(new Error('Image load timeout'))
+                }, 10000)
+
+                img.onload = () => {
+                  clearTimeout(timeoutId)
+                  console.log(`Image ${svgIndex + 1} loaded successfully (${img.naturalWidth}x${img.naturalHeight})`)
+                  resolve()
+                }
+
+                img.onerror = (err) => {
+                  clearTimeout(timeoutId)
+                  console.error(`Image ${svgIndex + 1} failed to load:`, err)
+                  reject(new Error('Image load failed'))
+                }
+              })
+
+              return { svg, img, url }
+            }
           } catch (error) {
             console.error(`Failed to upload diagram ${svgIndex + 1}:`, error)
             return null
@@ -359,15 +679,23 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
         })
       }
 
-      // Step 3: Capture slide with html2canvas
+      // Step 3: Get the element's actual dimensions for consistent capture
+      const rect = slideElement.getBoundingClientRect()
+
+      // Use the actual rendered dimensions of the slide element
+      // This ensures we capture exactly what's visible without excess whitespace
+      const targetWidth = Math.round(rect.width)
+      const targetHeight = Math.round(rect.height)
+
+      // Step 4: Capture slide with html2canvas using actual dimensions
       const canvas = await html2canvas(slideElement, {
         backgroundColor: '#ffffff',
         scale: 3, // Higher scale for better quality (3x native resolution)
         logging: false,
         useCORS: true,
         allowTaint: true,
-        // Don't use windowWidth/windowHeight - they cause zooming issues
-        // Let html2canvas capture the element at its natural size
+        width: targetWidth,
+        height: targetHeight,
         onclone: (clonedDoc) => {
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector('[data-slide-content]') as HTMLElement
@@ -392,11 +720,27 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               img.style.display = 'block'
               img.style.opacity = '1'
             })
+
+            // Ensure tables are visible with proper styling
+            const tableElements = clonedElement.querySelectorAll('table')
+            tableElements.forEach((table: HTMLTableElement) => {
+              table.style.visibility = 'visible'
+              table.style.display = 'table'
+              table.style.opacity = '1'
+            })
+
+            // Ensure SVG diagrams (if any remain) are visible
+            const svgElements = clonedElement.querySelectorAll('svg')
+            svgElements.forEach((svg: SVGElement) => {
+              svg.style.visibility = 'visible'
+              svg.style.display = 'block'
+              svg.style.opacity = '1'
+            })
           }
         }
       })
 
-      // Step 4: Restore original SVGs
+      // Step 5: Restore original SVGs
       svgReplacements.forEach(({ container, originalSvg, img }) => {
         container.replaceChild(originalSvg, img)
       })
@@ -480,6 +824,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
           theme: selectedTheme,
           title: title || 'LinkedIn Carousel',
           linkedinTeaser: displayTeaser,
+          articleId,
         }),
       })
 
@@ -677,7 +1022,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               width: '100%',
               maxWidth: '1280px',
               aspectRatio: '16/9', // Enforce 16:9 landscape ratio
-              background: THEMES[selectedTheme].background,
+              backgroundImage: THEMES[selectedTheme].background,
               backgroundSize: '100%, 100%, 100%, 100%, 20px 20px, 100%',
             }}
           >
@@ -686,6 +1031,8 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
               slideNumber={index + 1}
               totalSlides={slides.length}
               theme={THEMES[selectedTheme]}
+              cachedDiagrams={cachedDiagrams}
+              articleId={articleId}
             />
           </div>
         ))}
@@ -723,7 +1070,7 @@ export function CarouselViewer({ content, title, linkedinTeaser }: CarouselViewe
 }
 
 // Separate component for slide content rendering
-function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle }) {
+function SlideContent({ slide, slideNumber, totalSlides, theme, cachedDiagrams = {}, articleId }: { slide: string; slideNumber: number; totalSlides: number; theme: ThemeStyle; cachedDiagrams?: Record<string, string>; articleId?: string }) {
   const [processedContent, setProcessedContent] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(true)
 
@@ -746,8 +1093,24 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
       // Replace each mermaid block with a placeholder div
       for (let i = 0; i < matches.length; i++) {
         const diagramId = `diagram-${slideNumber}-${i}`
+        const diagramCode = matches[i][1]
+
+        // Check if we have a cached diagram URL
+        // Use MD5 hash (matching server-side implementation)
+        const hash = md5(diagramCode).substring(0, 8)
+        const cacheKey = `mermaid-${hash}`
+        const cachedUrl = cachedDiagrams[cacheKey]
+
+        if (cachedUrl) {
+          console.log(`✓ Using cached diagram URL for ${cacheKey}:`, cachedUrl)
+          // Replace with cached image instead of rendering
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="" data-cached-url="${encodeURIComponent(cachedUrl)}" data-mermaid-code="${encodeURIComponent(diagramCode)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="false"></div>`
+          processed = processed.replace(matches[i][0], placeholder)
+          continue
+        }
+
         try {
-          const { svg } = await mermaid.render(`mermaid-${diagramId}`, matches[i][1])
+          const { svg } = await mermaid.render(`mermaid-${diagramId}`, diagramCode)
 
           // Parse SVG to detect orientation
           const parser = new DOMParser()
@@ -764,8 +1127,15 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
             }
           }
 
-          // Store SVG and create placeholder with orientation data
-          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="${isPortrait}"></div>`
+          // Upload diagram to R2 immediately after rendering (when we have full SVG with text)
+          if (articleId && svgElement) {
+            uploadDiagramToR2(svg, diagramCode, slideNumber - 1, articleId).catch(error => {
+              console.error('[Diagram Upload] Failed to upload:', error)
+            })
+          }
+
+          // Store SVG and create placeholder with orientation data and original mermaid code
+          const placeholder = `<div id="${diagramId}" class="mermaid-rendered" data-svg="${encodeURIComponent(svg)}" data-mermaid-code="${encodeURIComponent(diagramCode)}" data-is-dark="${theme.isDark}" data-needs-white-bg="${theme.needsWhiteDiagramBg || false}" data-is-portrait="${isPortrait}"></div>`
           processed = processed.replace(matches[i][0], placeholder)
         } catch (err) {
           console.error('Mermaid rendering error:', err)
@@ -785,6 +1155,9 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
     }
 
     processSlide()
+    // Note: cachedDiagrams is intentionally NOT in dependencies to avoid infinite re-renders
+    // It's only used as a lookup during processing, not as a render trigger
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide, slideNumber, theme])
 
   if (isProcessing) {
@@ -796,10 +1169,10 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
   }
 
   return (
-    <div className="h-full flex flex-col p-8" data-slide-content>
+    <div className="h-full flex flex-col p-12" data-slide-content>
       {/* Content area with constrained height */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="h-full overflow-hidden">
+      <div className="flex-1 overflow-visible flex flex-col">
+        <div className="h-full overflow-visible">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -886,15 +1259,56 @@ function SlideContent({ slide, slideNumber, totalSlides, theme }: { slide: strin
                 )
               },
               // Render HTML divs (for mermaid placeholders)
-              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
+              div({ className, ...props }: { className?: string; 'data-svg'?: string; 'data-cached-url'?: string; 'data-mermaid-code'?: string; 'data-is-dark'?: string; 'data-needs-white-bg'?: string; 'data-is-portrait'?: string }) {
                 if (className === 'mermaid-rendered') {
                   const svgData = props['data-svg']
+                  const cachedUrl = props['data-cached-url']
+                  const mermaidCode = props['data-mermaid-code']
                   const isDark = props['data-is-dark'] === 'true'
                   const needsWhiteBg = props['data-needs-white-bg'] === 'true'
                   const isPortrait = props['data-is-portrait'] === 'true'
 
+                  // If we have a cached URL, render img tag instead of SVG
+                  if (cachedUrl) {
+                    const url = decodeURIComponent(cachedUrl)
+                    const maxWidth = isPortrait ? '55%' : '70%'
+                    const maxHeight = isPortrait ? '240px' : '200px'
+
+                    return (
+                      <div className="flex justify-center items-center my-2" style={{ maxHeight: isPortrait ? '260px' : '220px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt="Diagram"
+                          data-mermaid-code={mermaidCode}
+                          style={{
+                            maxWidth,
+                            maxHeight,
+                            height: 'auto',
+                            width: 'auto',
+                            display: 'block',
+                            margin: '0 auto',
+                            ...(isDark || needsWhiteBg ? {
+                              background: 'white',
+                              padding: '8px',
+                              borderRadius: '6px',
+                            } : {})
+                          }}
+                        />
+                      </div>
+                    )
+                  }
+
                   if (svgData) {
                     let svg = decodeURIComponent(svgData)
+
+                    // Add mermaid code as data attribute to SVG for later use during download
+                    if (mermaidCode) {
+                      svg = svg.replace(
+                        '<svg',
+                        `<svg data-mermaid-code="${mermaidCode}"`
+                      )
+                    }
 
                     // Portrait diagrams: smaller size for text balance
                     // Landscape diagrams: wider but shorter for better fit

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { R2StorageService } from '@/lib/services/r2-storage'
-import sharp from 'sharp'
 import crypto from 'crypto'
+import { saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,67 +17,66 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { svg, slideIndex } = await request.json()
+    // Parse FormData
+    const formData = await request.formData()
+    const imageFile = formData.get('image') as File
+    const slideIndex = formData.get('slideIndex') as string
+    const articleId = formData.get('articleId') as string
+    const mermaidCode = formData.get('mermaidCode') as string
 
-    if (!svg) {
+    if (!imageFile) {
       return NextResponse.json(
-        { error: 'SVG data is required' },
+        { error: 'Image file is required' },
         { status: 400 }
       )
     }
 
-    // Clean and prepare SVG
-    let cleanSvg = svg.trim()
-
-    // Check if SVG has dimensions, if not add default ones
-    if (!cleanSvg.includes('width=') || !cleanSvg.includes('height=')) {
-      // Extract viewBox if present to determine dimensions
-      const viewBoxMatch = cleanSvg.match(/viewBox="([^"]+)"/)
-      let width = 800
-      let height = 600
-
-      if (viewBoxMatch) {
-        const viewBox = viewBoxMatch[1].split(' ')
-        width = parseInt(viewBox[2]) || 800
-        height = parseInt(viewBox[3]) || 600
-      }
-
-      // Add dimensions to SVG
-      cleanSvg = cleanSvg.replace(
-        /<svg/,
-        `<svg width="${width}" height="${height}"`
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
+        { status: 400 }
       )
     }
 
-    console.log('Converting carousel diagram to WebP. SVG length:', cleanSvg.length)
+    console.log('Uploading carousel diagram as PNG. Size:', imageFile.size, 'bytes')
 
-    // Convert SVG string to buffer with UTF-8 encoding
-    const svgBuffer = Buffer.from(cleanSvg, 'utf-8')
+    // Convert File to Buffer
+    const arrayBuffer = await imageFile.arrayBuffer()
+    const pngBuffer = Buffer.from(arrayBuffer)
 
-    // Convert SVG to WebP using sharp with proper density for better quality
-    const webpBuffer = await sharp(svgBuffer, {
-      density: 150 // Higher DPI for better quality
-    })
-      .webp({ quality: 90 })
-      .toBuffer()
-
-    console.log('Successfully converted to WebP. Size:', webpBuffer.length, 'bytes')
+    console.log('PNG buffer size:', pngBuffer.length, 'bytes')
 
     // Upload to R2
     const r2Service = new R2StorageService()
 
-    // Generate unique filename
-    const hash = crypto.createHash('md5').update(cleanSvg).digest('hex').substring(0, 8)
-    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.webp`
+    // Generate unique filename using mermaidCode if available
+    const hash = mermaidCode
+      ? crypto.createHash('md5').update(mermaidCode).digest('hex').substring(0, 8)
+      : crypto.createHash('md5').update(pngBuffer).digest('hex').substring(0, 8)
+    const fileName = `carousel-diagram-${slideIndex || 0}-${hash}.png`
+
+    console.log(`Generated filename: ${fileName}${mermaidCode ? ' (using mermaid code hash)' : ' (using image hash)'}`)
 
     const uploadResult = await r2Service.upload({
-      buffer: webpBuffer,
-      contentType: 'image/webp',
+      buffer: pngBuffer,
+      contentType: 'image/png',
       fileName,
-      folder: `${user.id}/carousel-diagrams`,
+      folder: `articles/${articleId}/diagrams`,
     })
 
     console.log('Uploaded diagram to R2:', uploadResult.url)
+
+    // Save diagram URL to cache if mermaidCode is provided
+    if (mermaidCode) {
+      const cached = await saveDiagramToCache(articleId, mermaidCode, uploadResult.url)
+      if (cached) {
+        console.log('✓ Diagram URL saved to articles.diagram_images cache')
+      } else {
+        console.warn('⚠ Failed to save diagram URL to cache, but upload succeeded')
+      }
+    } else {
+      console.log('ℹ No mermaid code provided, skipping cache save')
+    }
 
     return NextResponse.json({
       success: true,

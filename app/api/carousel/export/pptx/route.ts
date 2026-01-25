@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PPTXGeneratorService } from '@/lib/services/pptx-generator'
-import { R2StorageService } from '@/lib/services/r2-storage'
-import sharp from 'sharp'
 import crypto from 'crypto'
-import mermaid from 'mermaid'
+import { getCachedDiagramUrl, saveDiagramToCache } from '@/lib/utils/diagram-cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { content, theme, title, linkedinTeaser } = await request.json()
+    const { content, theme, title, linkedinTeaser, articleId } = await request.json()
 
     if (!content) {
       return NextResponse.json(
@@ -28,10 +26,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!articleId) {
+      return NextResponse.json(
+        { error: 'Article ID is required' },
+        { status: 400 }
+      )
+    }
+
     console.log('Generating PPTX for carousel...')
 
     // Step 1: Extract and upload all Mermaid diagrams to R2
-    const diagramUrls = await extractAndUploadDiagrams(content, user.id)
+    const diagramUrls = await extractAndUploadDiagrams(content, articleId)
 
     console.log(`Uploaded ${diagramUrls.size} diagrams to R2`)
 
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
  * Extract Mermaid diagrams from content and upload to R2
  * Returns a map of slide index to diagram URLs
  */
-async function extractAndUploadDiagrams(content: string, userId: string): Promise<Map<number, string[]>> {
+async function extractAndUploadDiagrams(content: string, articleId: string): Promise<Map<number, string[]>> {
   const diagramUrls = new Map<number, string[]>()
 
   try {
@@ -95,16 +100,6 @@ async function extractAndUploadDiagrams(content: string, userId: string): Promis
       slides = altSlides.length > 1 ? altSlides : [content]
     }
 
-    // Initialize mermaid
-    if (typeof mermaid !== 'undefined') {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose',
-      })
-    }
-
-    const r2Service = new R2StorageService()
 
     // Extract and upload diagrams from each slide
     for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
@@ -119,40 +114,48 @@ async function extractAndUploadDiagrams(content: string, userId: string): Promis
           try {
             const diagramCode = matches[diagramIndex][1]
 
-            // Render Mermaid diagram to SVG using mermaid.ink API
-            const mermaidInkUrl = `https://mermaid.ink/img/${Buffer.from(diagramCode).toString('base64')}`
+            // Step 1: Check database cache first
+            console.log(`Checking database cache for diagram ${diagramIndex + 1} on slide ${slideIndex + 1}...`)
+            const cachedUrl = await getCachedDiagramUrl(articleId, diagramCode)
 
-            console.log(`Fetching diagram ${diagramIndex + 1} for slide ${slideIndex + 1} from mermaid.ink...`)
-
-            // Fetch and convert to WebP
-            const response = await fetch(mermaidInkUrl)
-            if (!response.ok) {
-              console.error(`Failed to fetch diagram from mermaid.ink: ${response.statusText}`)
-              continue
+            if (cachedUrl) {
+              console.log(`✓ Found diagram in database cache, reusing it`)
+              urls.push(cachedUrl)
+              continue // Skip to next diagram
             }
 
-            const arrayBuffer = await response.arrayBuffer()
-            const buffer = Buffer.from(arrayBuffer)
+            console.log(`✗ Diagram not in database cache, checking R2...`)
 
-            // Convert to WebP for better quality and smaller size
-            const webpBuffer = await sharp(buffer)
-              .webp({ quality: 90 })
-              .toBuffer()
-
-            // Generate unique filename
+            // Step 2: Check R2 storage
             const hash = crypto.createHash('md5').update(diagramCode).digest('hex').substring(0, 8)
-            const fileName = `carousel-diagram-slide${slideIndex + 1}-${diagramIndex + 1}-${hash}.webp`
+            const fileName = `carousel-diagram-${slideIndex}-${hash}.png`
 
-            // Upload to R2
-            const uploadResult = await r2Service.upload({
-              buffer: webpBuffer,
-              contentType: 'image/webp',
-              fileName,
-              folder: `${userId}/carousel-diagrams`,
-            })
+            // Construct expected R2 URL using R2_PUBLIC_URL
+            const r2PublicUrl = process.env.R2_PUBLIC_URL
+            if (!r2PublicUrl) {
+              console.error('R2_PUBLIC_URL environment variable not set')
+              continue
+            }
+            const expectedUrl = `${r2PublicUrl}/articles/${articleId}/diagrams/${fileName}`
 
-            console.log(`Uploaded diagram to R2: ${uploadResult.url}`)
-            urls.push(uploadResult.url)
+            console.log(`Checking if diagram exists in R2: ${expectedUrl}`)
+
+            // Try to fetch existing diagram from R2
+            try {
+              const headResponse = await fetch(expectedUrl, { method: 'HEAD' })
+              if (headResponse.ok) {
+                console.log(`✓ Diagram found in R2, reusing it`)
+                // Save to cache for future use
+                await saveDiagramToCache(articleId, diagramCode, expectedUrl)
+                urls.push(expectedUrl)
+              } else {
+                console.warn(`⚠ Diagram not found in R2 (${headResponse.status}). Please view the carousel first to generate diagrams.`)
+                // Skip this diagram - it needs to be generated client-side first
+              }
+            } catch (error) {
+              console.warn(`⚠ Error checking R2 for diagram ${diagramIndex + 1} on slide ${slideIndex + 1}:`, error)
+              // Skip this diagram
+            }
           } catch (error) {
             console.error(`Failed to process diagram ${diagramIndex + 1} for slide ${slideIndex + 1}:`, error)
           }
