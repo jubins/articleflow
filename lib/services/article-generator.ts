@@ -334,7 +334,7 @@ Topic: {{topic}}
 
 Requirements:
 - Create a complete systems design framework article following the interview approach
-- Target word count: 2500-3000 words
+- Target word count: 3500-4500 words (comprehensive coverage with detailed examples)
 - Follow the logical order used in real systems design interviews
 - Include HIGH-LEVEL DESIGN (HLD) diagrams showing complete system architecture
 - Include detailed API/endpoint definitions
@@ -344,18 +344,120 @@ Requirements:
 - Address scaling, reliability, fault tolerance, security, and trade-offs
 
 CRITICAL - Interview Framework Structure (follow this exact order):
-1. **Requirements Clarification** (~300 words)
-   - Functional requirements (what the system must do)
-   - Non-functional requirements (scalability, availability, latency, consistency)
-   - Constraints and assumptions (budget, timeline, team size, existing infrastructure)
+1. **Requirements Clarification** (~350 words)
+   - Present requirements in TABLES for clarity and scannability
 
-2. **API / Endpoint Definitions** (~200 words)
-   - Define REST or GraphQL APIs with request/response examples
-   - Include HTTP methods, paths, request bodies, and response formats
-   - Example:
-     POST /api/posts
-     Request: { "title": "...", "content": "...", "userId": "..." }
-     Response: { "postId": "...", "status": "published", "timestamp": "..." }
+   **Functional Requirements Table:**
+   | Requirement ID | Feature | Description | Priority |
+   |----------------|---------|-------------|----------|
+   | FR-1 | User Registration | Users can sign up with email/password | High |
+   | FR-2 | Content Creation | Users can create and publish posts | High |
+   | FR-3 | Search | Full-text search across content | Medium |
+   (Include 5-7 functional requirements relevant to the system)
+
+   **Non-Functional Requirements Table:**
+   | Category | Requirement | Target Metric |
+   |----------|-------------|---------------|
+   | Scalability | Support growth | Handle 10M+ users |
+   | Availability | High uptime | 99.9% availability |
+   | Latency | Fast response | <200ms API response |
+   | Consistency | Data accuracy | Eventual consistency acceptable |
+   | Durability | Data persistence | Zero data loss |
+   (Include 4-6 non-functional requirements)
+
+   **Constraints & Assumptions Table:**
+   | Category | Constraint/Assumption | Details |
+   |----------|----------------------|---------|
+   | Budget | Infrastructure cost | $X/month cloud budget |
+   | Timeline | Development time | 6 months to MVP |
+   | Team | Engineering resources | 5 backend, 3 frontend engineers |
+   | Technology | Existing stack | Must integrate with existing auth system |
+   (Include 3-5 constraints)
+
+2. **API / Endpoint Definitions** (~400 words)
+   - Define 7-9 COMPLETE REST APIs with detailed request/response examples
+   - Cover all CRUD operations and key system operations
+   - Include HTTP methods, paths, headers, request bodies, response formats, and status codes
+   - Group endpoints logically (e.g., User APIs, Content APIs, Analytics APIs)
+
+   **Example Format (provide 7-9 endpoints like this):**
+
+   **1. Create User Account**
+   POST /api/v1/users/register
+   Headers: Content-Type: application/json
+
+   Request Body:
+   {
+     "email": "user@example.com",
+     "password": "securePass123",
+     "username": "johndoe",
+     "fullName": "John Doe"
+   }
+
+   Response (201 Created):
+   {
+     "userId": "usr_abc123",
+     "email": "user@example.com",
+     "username": "johndoe",
+     "createdAt": "2024-01-15T10:30:00Z",
+     "authToken": "eyJhbGc..."
+   }
+
+   Error (400 Bad Request):
+   {
+     "error": "EMAIL_EXISTS",
+     "message": "An account with this email already exists"
+   }
+
+   **2. User Login**
+   POST /api/v1/auth/login
+   Headers: Content-Type: application/json
+
+   Request Body:
+   {
+     "email": "user@example.com",
+     "password": "securePass123"
+   }
+
+   Response (200 OK):
+   {
+     "userId": "usr_abc123",
+     "authToken": "eyJhbGc...",
+     "refreshToken": "refresh_xyz789",
+     "expiresIn": 3600
+   }
+
+   **3. Create Post/Content**
+   POST /api/v1/posts
+   Headers: Authorization: Bearer eyJhbGc..., Content-Type: application/json
+
+   Request Body:
+   {
+     "title": "My First Post",
+     "content": "This is the post content...",
+     "tags": ["tech", "programming"],
+     "visibility": "public"
+   }
+
+   Response (201 Created):
+   {
+     "postId": "post_xyz456",
+     "title": "My First Post",
+     "authorId": "usr_abc123",
+     "createdAt": "2024-01-15T11:00:00Z",
+     "status": "published",
+     "url": "https://example.com/posts/post_xyz456"
+   }
+
+   **Continue with 4-6 more endpoints covering:**
+   - GET /api/v1/posts/{postId} - Retrieve a post
+   - PUT /api/v1/posts/{postId} - Update a post
+   - DELETE /api/v1/posts/{postId} - Delete a post
+   - GET /api/v1/posts?page=1&limit=20 - List posts with pagination
+   - GET /api/v1/users/{userId}/profile - Get user profile
+   - POST /api/v1/search - Search content
+
+   Include full request/response examples for ALL 7-9 endpoints.
 
 3. **Scale & Traffic Estimation** (~250 words)
    - DAU (Daily Active Users) assumptions
@@ -370,12 +472,156 @@ CRITICAL - Interview Framework Structure (follow this exact order):
    - Show data flow between components
    - Label connections with protocols and data types
 
-5. **Data Models & Storage Design** (~300 words)
-   - Define database schemas (SQL or NoSQL)
-   - Include tables/collections with columns/fields and data types
-   - Explain choice of database (SQL vs NoSQL, why?)
-   - Include indexing strategies
-   - Show data relationships with simple ER diagrams if needed
+5. **Data Models & Storage Design** (~450 words)
+   - Cover ALL storage types used in the system: Relational DB, NoSQL, Redis/Cache, Object Storage
+   - Provide detailed schemas for each storage type
+   - Explain WHY each storage type is chosen for specific use cases
+
+   **A. Relational Database (PostgreSQL/MySQL) - Primary Data Store**
+   - Define complete table schemas with columns, data types, and constraints
+   - Include Entity Relationship Diagram (ERD) using Mermaid
+   - Show relationships: one-to-one, one-to-many, many-to-many
+   - Include indexing strategies for performance
+
+   **Example Table Schemas (use proper SQL formatting in article):**
+
+   -- Users Table
+   CREATE TABLE users (
+     user_id UUID PRIMARY KEY,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     username VARCHAR(50) UNIQUE NOT NULL,
+     password_hash VARCHAR(255) NOT NULL,
+     full_name VARCHAR(100),
+     created_at TIMESTAMP DEFAULT NOW(),
+     updated_at TIMESTAMP DEFAULT NOW(),
+     INDEX idx_email (email),
+     INDEX idx_username (username)
+   );
+
+   -- Posts Table
+   CREATE TABLE posts (
+     post_id UUID PRIMARY KEY,
+     author_id UUID NOT NULL,
+     title VARCHAR(500) NOT NULL,
+     content TEXT NOT NULL,
+     status VARCHAR(20) DEFAULT 'draft',
+     created_at TIMESTAMP DEFAULT NOW(),
+     updated_at TIMESTAMP DEFAULT NOW(),
+     FOREIGN KEY (author_id) REFERENCES users(user_id) ON DELETE CASCADE,
+     INDEX idx_author (author_id),
+     INDEX idx_status (status),
+     INDEX idx_created (created_at)
+   );
+
+   **ERD Diagram (using Mermaid - wrap in proper mermaid code block in article):**
+
+   erDiagram
+     USERS ||--o{ POSTS : creates
+     USERS ||--o{ COMMENTS : writes
+     POSTS ||--o{ COMMENTS : has
+     POSTS }o--o{ TAGS : tagged_with
+     USERS {
+       uuid user_id PK
+       string email UK
+       string username UK
+       string password_hash
+       timestamp created_at
+     }
+     POSTS {
+       uuid post_id PK
+       uuid author_id FK
+       string title
+       text content
+       string status
+       timestamp created_at
+     }
+     COMMENTS {
+       uuid comment_id PK
+       uuid post_id FK
+       uuid user_id FK
+       text content
+       timestamp created_at
+     }
+     TAGS {
+       uuid tag_id PK
+       string name UK
+     }
+
+   **B. NoSQL Database (MongoDB/DynamoDB) - For Flexible/High-Write Data**
+   - Use for data that needs flexible schema or high write throughput
+   - Define document/item structures with nested fields
+
+   **Example Document Schemas (format as JSON in article):**
+
+   // User Activity Log Collection (MongoDB)
+   {
+     "_id": "log_abc123",
+     "userId": "usr_abc123",
+     "eventType": "page_view",
+     "timestamp": "2024-01-15T10:30:00Z",
+     "metadata": {
+       "pageUrl": "/posts/post_xyz456",
+       "referrer": "https://google.com",
+       "deviceType": "mobile",
+       "location": {
+         "country": "US",
+         "city": "San Francisco"
+       }
+     }
+   }
+
+   // Analytics Aggregations (DynamoDB)
+   {
+     "PK": "ANALYTICS#2024-01-15",
+     "SK": "POST#post_xyz456",
+     "views": 1250,
+     "likes": 45,
+     "comments": 12,
+     "shares": 8
+   }
+
+   **C. Redis Cache - For Hot Data & Session Storage**
+   - Define caching strategies with TTL (Time To Live)
+   - Show key patterns and data structures used
+
+   **Redis Key Patterns & Structures:**
+
+   // User Session (Hash) - TTL: 24 hours
+   Key: session:{sessionId}
+   Value: {"userId": "usr_abc123", "authToken": "eyJhbGc...", "loginTime": "2024-01-15T10:00:00Z"}
+
+   // Hot Posts Cache (String) - TTL: 5 minutes
+   Key: post:{postId}
+   Value: <JSON string of post data>
+
+   // User Feed Cache (List) - TTL: 10 minutes
+   Key: feed:{userId}
+   Value: [postId1, postId2, postId3, ...]
+
+   // Post View Counter (String) - TTL: 1 hour
+   Key: post:views:{postId}
+   Value: 1250
+
+   // Rate Limiting (String with expiry)
+   Key: ratelimit:{userId}:{endpoint}
+   Value: 45 (request count)
+   TTL: 60 seconds
+
+   **D. Object Storage (S3/GCS) - For Media Files**
+
+   Structure:
+   /uploads/{userId}/{fileId}.{ext}
+   /thumbnails/{postId}/{size}.jpg
+   /avatars/{userId}/profile.jpg
+
+   Metadata stored in relational DB:
+   - file_id, user_id, file_path, file_size, mime_type, uploaded_at
+
+   **Why This Storage Architecture?**
+   - **Relational DB**: Transactional consistency for core data (users, posts, relationships)
+   - **NoSQL**: Flexible schema for analytics, logs, and time-series data
+   - **Redis**: Ultra-fast access for sessions, hot data, rate limiting, counters
+   - **Object Storage**: Cost-effective storage for large binary files (images, videos)
 
 6. **Component-Level Design** (~400 words)
    - Deep dive into 2-3 critical components
