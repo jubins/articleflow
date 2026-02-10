@@ -44,6 +44,7 @@ Requirements:
 - Explain complex concepts clearly
 - Structure with clear headings and subheadings
 - Ensure technical accuracy
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Architecture Diagrams:
 - Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
@@ -110,6 +111,7 @@ Requirements:
 - Use numbered steps or clear section headings
 - Include a "What you'll build" or "What you'll learn" section
 - End with "Next steps" or "Conclusion"
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Step-by-Step Format:
 - Number each major step clearly
@@ -172,6 +174,7 @@ Requirements:
 - Include use case recommendations
 - Structure with clear sections for each option being compared
 - Provide objective analysis with data/examples
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Comparison Tables:
 - Use Markdown table syntax
@@ -221,6 +224,7 @@ Requirements:
 - Explain WHY each practice is important
 - Include common pitfalls to avoid
 - Structure with clear sections for each best practice
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Code Examples:
 - Show both good and bad examples
@@ -270,6 +274,7 @@ Requirements:
 - Include performance metrics, results, or outcomes
 - Structure: Problem → Solution → Implementation → Results → Lessons Learned
 - Make it engaging and narrative-driven
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Architecture Diagrams:
 - Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
@@ -342,6 +347,7 @@ Requirements:
 - Include data models and storage design
 - Include component-level design details
 - Address scaling, reliability, fault tolerance, security, and trade-offs
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Interview Framework Structure (follow this exact order):
 1. **Requirements Clarification** (~350 words)
@@ -1038,6 +1044,9 @@ flowchart TD
 
 CRITICAL - Complexity Analysis:
 - Always provide Big-O notation for time and space
+- Use PLAIN TEXT notation: O(n), O(log n), O(n²), O(1) - NOT LaTeX format
+- DO NOT use dollar signs or LaTeX delimiters like $O(n)$ or \\(O(n)\\)
+- Write complexity as plain text: "Time Complexity: O(n log n)" or just "O(n log n)"
 - Explain WHY the complexity is what it is
 - Compare complexities across approaches
 - Mention best case, average case, worst case if relevant
