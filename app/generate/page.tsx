@@ -38,6 +38,11 @@ const ARTICLE_TYPES = [
     description: 'Complete systems design framework for interviews with HLDs, scaling, and trade-offs',
   },
   {
+    value: 'dsa',
+    label: 'DSA (Data Structures & Algorithms)',
+    description: 'Theory + LeetCode problem with multiple solutions, walkthroughs, and practice questions',
+  },
+  {
     value: 'comparison',
     label: 'Comparison / Review',
     description: 'Compare tools, frameworks, or approaches with detailed analysis tables',
@@ -262,6 +267,20 @@ export default function GeneratePage() {
                             <li>• Data models and storage design</li>
                             <li>• Scaling, reliability, and fault tolerance strategies</li>
                             <li>• Security, compliance, and trade-off analysis</li>
+                          </>
+                        )}
+                        {formData.articleType === 'dsa' && (
+                          <>
+                            <li>• Brief theory and concept explanation with diagrams</li>
+                            <li>• Complete LeetCode-style problem with constraints and examples</li>
+                            <li>• Multiple solution approaches (Brute Force → Optimized → Advanced)</li>
+                            <li>• Step-by-step walkthroughs with Mermaid diagrams</li>
+                            <li>• Complete, runnable code with detailed comments</li>
+                            <li>• Time & space complexity analysis for each approach</li>
+                            <li>• Comparison table of all approaches</li>
+                            <li>• Common pitfalls and edge cases</li>
+                            <li>• Practice problem (homework) with hints</li>
+                            <li>• 3-4 related LeetCode problems with direct links</li>
                           </>
                         )}
                         {formData.articleType === 'comparison' && (

@@ -38,38 +38,36 @@ Topic: {{topic}}
 Requirements:
 - Target word count: 2000-2500 words
 - Write comprehensive technical content with deep-dive explanations
-- Include 2-3 architecture diagrams using Mermaid syntax (system architecture, data flow, component relationships)
+- Include 2-3 diverse Mermaid diagrams (choose appropriate types based on content)
 - Include 1-2 comparison tables for technologies, approaches, or features
 - Include practical code examples with proper syntax
 - Explain complex concepts clearly
 - Structure with clear headings and subheadings
 - Ensure technical accuracy
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
-CRITICAL - Architecture Diagrams:
-- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
-- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
-- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
-- Create diagrams showing system architecture, data flow, or component relationships
-- Keep it simple and use standard graph syntax only
+CRITICAL - Diverse Mermaid Diagrams (Include 2-3 from these options based on content):
+- **Flowchart**: For algorithms, processes, decision flows, logic paths
+- **Sequence Diagram**: For API calls, service interactions, request/response flows
+- **Class Diagram**: For OOP design, data models, inheritance hierarchies
+- **State Diagram**: For state machines, lifecycle management, status transitions
+- **Entity Relationship (ERD)**: For database schemas, data relationships
+- **Mindmap**: For concept relationships, technology ecosystems, architecture decisions
+- **Pie/Bar/Line Charts**: For performance metrics, benchmarks, comparisons
+- **Timeline**: For project phases, version history, adoption roadmap
+- **Git Graph**: For branching strategies, deployment workflows
+
+Choose diagrams that make the content VISUAL and CLEAR. Examples:
+- Article about caching? Include: Flowchart (cache decision flow), Sequence (cache hit/miss), Pie (cache hit rates)
+- Article about microservices? Include: Architecture (service layout), Sequence (service communication), State (service lifecycle)
+- Article about databases? Include: ERD (schema design), Flowchart (query optimization), Bar (performance comparison)
+
+Keep diagrams simple, focused, and directly relevant to the content.
 
 CRITICAL - Code Examples:
 - Include real, working code examples
 - Use proper language identifiers in code blocks
 - Explain what the code does
-
-Example Mermaid diagram (VALID SYNTAX ONLY):
-\`\`\`mermaid
-graph TD
-    A[Client Application] -->|HTTP Request| B[API Gateway]
-    B --> C{Authentication}
-    C -->|Valid Token| D[Process Request]
-    C -->|Invalid| E[Return 401]
-    D --> F[(Database)]
-    F -->|Data| D
-    D -->|Response| A
-\`\`\`
-
-IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
 
 CRITICAL - References Section:
 - End the article with a "## Further Reading & Resources" section
@@ -106,34 +104,36 @@ Requirements:
 - Write clear, beginner-friendly step-by-step instructions
 - Include prerequisites and setup section
 - Include code snippets for each major step
-- Include 1-2 workflow diagrams using Mermaid syntax
+- Include 2-3 diverse Mermaid diagrams showing the learning journey
 - Use numbered steps or clear section headings
 - Include a "What you'll build" or "What you'll learn" section
 - End with "Next steps" or "Conclusion"
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Step-by-Step Format:
 - Number each major step clearly
 - Provide code examples for each step
 - Explain what each step accomplishes
 
-CRITICAL - Workflow Diagrams:
-- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
-- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
-- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
-- Keep it simple and use standard graph syntax only
-- Show the tutorial workflow or process clearly
+CRITICAL - Diverse Mermaid Diagrams for Tutorials (Include 2-3 appropriate types):
+- **Flowchart**: Tutorial workflow, decision points, error handling paths
+- **Sequence Diagram**: How components interact, API request flows, authentication flows
+- **State Diagram**: Application states, user journey states, deployment states
+- **Timeline**: Project setup phases, learning progression, build stages
+- **Gantt Chart**: Multi-step tutorial timeline, estimated time per section
+- **User Journey**: User experience walkthrough, feature interaction flow
+- **Git Graph**: Version control workflow, branching strategy for the tutorial
 
-Example Mermaid diagram (VALID SYNTAX ONLY):
-\`\`\`mermaid
-graph TD
-    A[Start] --> B[Install Dependencies]
-    B --> C[Configure Project]
-    C --> D[Write Code]
-    D --> E[Test Application]
-    E --> F[Deploy]
-\`\`\`
+Choose diagrams that help learners visualize:
+- The overall tutorial flow and progression
+- How different parts/components interact
+- State changes or transformations
+- Time-based progression of steps
 
-IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
+Examples for common tutorials:
+- Building an API? Include: Flowchart (request flow), Sequence (endpoint interactions), State (resource lifecycle)
+- Setting up CI/CD? Include: Flowchart (pipeline stages), Gantt (deployment timeline), Git (branching strategy)
+- Creating an app? Include: User Journey (feature flow), Sequence (data flow), State (app states)
 
 CRITICAL - References Section:
 - End the tutorial with a "## Further Reading & Resources" section
@@ -168,20 +168,40 @@ Requirements:
 - Target word count: 1500-2000 words
 - Compare multiple tools, frameworks, or approaches
 - Include 2-3 detailed comparison tables
+- Include 2-3 visual comparison diagrams using Mermaid
 - Include pros and cons for each option
 - Include use case recommendations
 - Structure with clear sections for each option being compared
 - Provide objective analysis with data/examples
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Comparison Tables:
 - Use Markdown table syntax
 - Compare features, performance, pricing, use cases, etc.
 - Make tables comprehensive and informative
 
+CRITICAL - Visual Comparison Diagrams (Include 2-3 appropriate types):
+- **Radar Chart**: Multi-dimensional feature comparison (performance, ease of use, cost, scalability, etc.)
+- **Pie Chart**: Market share, adoption rates, usage distribution
+- **Bar/Column Chart**: Performance benchmarks, speed comparisons, cost comparisons
+- **Quadrant Chart**: Positioning tools/options (e.g., ease of use vs power, cost vs features)
+- **Mindmap**: Feature ecosystem, technology stack options
+- **Flowchart**: Decision tree for choosing between options
+- **Timeline**: Evolution/maturity of each option, release history
+- **Sankey Diagram**: Data flow differences, migration paths between options
+
+Choose diagrams that make comparisons VISUAL and INSTANT to understand.
+
+Examples for comparison articles:
+- Comparing databases? Include: Radar (feature comparison), Bar (query performance), Quadrant (use case positioning)
+- Comparing frameworks? Include: Bar (bundle size/speed), Pie (community size), Flowchart (which to choose)
+- Comparing cloud providers? Include: Bar (pricing comparison), Radar (service offerings), Timeline (feature releases)
+
 CRITICAL - Analysis:
 - Provide objective comparisons
 - Include specific examples or data
 - Recommend which option for which use case
+- Use diagrams to visualize key differences
 
 CRITICAL - References Section:
 - End the article with a "## Further Reading & Resources" section
@@ -218,19 +238,42 @@ Requirements:
 - Provide industry-standard best practices and recommendations
 - Include code examples showing good vs bad practices
 - Include 1-2 tables summarizing do's and don'ts
+- Include 2-3 visual diagrams to illustrate concepts
 - Explain WHY each practice is important
 - Include common pitfalls to avoid
 - Structure with clear sections for each best practice
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Code Examples:
 - Show both good and bad examples
 - Explain what makes the good example better
 - Use proper code formatting
 
+CRITICAL - Visual Diagrams for Best Practices (Include 2-3 appropriate types):
+- **Flowchart**: Decision flow for applying practices, when to use each approach
+- **Mindmap**: Related practices, concept relationships, practice categories
+- **State Diagram**: Proper state transitions, lifecycle best practices
+- **Sequence Diagram**: Correct interaction patterns, proper API usage flows
+- **Requirement Diagram**: Requirements hierarchy, compliance requirements
+- **Checklist/Kanban**: Implementation checklist, practice adoption roadmap
+- **Before/After comparison**: Using side-by-side flowcharts or diagrams
+
+Choose diagrams that clarify:
+- When and how to apply each practice
+- The impact of following vs ignoring practices
+- Relationships between different practices
+- Step-by-step implementation guidance
+
+Examples for best practices articles:
+- API design best practices? Include: Sequence (proper API flow), Flowchart (error handling), State (resource lifecycle)
+- Security best practices? Include: Flowchart (auth flow), Requirement (security requirements), Sequence (secure communication)
+- Code quality best practices? Include: Mindmap (quality pillars), Flowchart (code review process), State (refactoring stages)
+
 CRITICAL - Practical Guidance:
 - Focus on actionable recommendations
 - Explain the reasoning behind each practice
 - Include real-world scenarios
+- Use diagrams to make abstract concepts concrete
 
 CRITICAL - References Section:
 - End the article with a "## Further Reading & Resources" section
@@ -265,19 +308,37 @@ Topic: {{topic}}
 Requirements:
 - Target word count: 2000-2500 words
 - Tell a real-world implementation story
-- Include system architecture diagrams using Mermaid
+- Include 2-3 diverse Mermaid diagrams showing the journey and solution
 - Include implementation details with code examples
 - Include performance metrics, results, or outcomes
 - Structure: Problem → Solution → Implementation → Results → Lessons Learned
 - Make it engaging and narrative-driven
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
-CRITICAL - Architecture Diagrams:
-- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
-- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
-- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
-- Show the system architecture clearly
-- Explain the architecture choices
-- Keep it simple and use standard graph syntax only
+CRITICAL - Diverse Mermaid Diagrams for Case Studies (Include 2-3 appropriate types):
+- **Flowchart**: Problem diagnosis flow, decision-making process, migration strategy
+- **Sequence Diagram**: System interactions, API calls, service communication patterns
+- **State Diagram**: System state transitions, workflow stages, deployment states
+- **Timeline**: Project phases, implementation timeline, migration stages
+- **Gantt Chart**: Project schedule, parallel work streams, milestone tracking
+- **Sankey Diagram**: Data flow changes, traffic routing, resource allocation
+- **Git Graph**: Deployment strategy, branching model, release process
+- **Architecture (graph TD/LR)**: System architecture, component relationships
+- **Before/After Flowcharts**: System comparison showing improvements
+
+Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+Use only: graph TD, graph LR, flowchart, sequenceDiagram, stateDiagram, timeline, gantt, sankey, gitGraph, or simple classDiagram
+
+Choose diagrams that tell the story:
+- How you identified and analyzed the problem
+- The solution architecture and implementation approach
+- The transformation journey and results
+
+Examples for case studies:
+- Migration case study? Include: Timeline (migration phases), Sankey (traffic routing), Architecture (new system)
+- Performance optimization? Include: Flowchart (optimization decisions), Sequence (improved flow), State (system states)
+- System redesign? Include: Before/After Architecture, Timeline (rollout), Gantt (project schedule)
 
 Example Mermaid diagram (VALID SYNTAX ONLY):
 \`\`\`mermaid
@@ -342,6 +403,7 @@ Requirements:
 - Include data models and storage design
 - Include component-level design details
 - Address scaling, reliability, fault tolerance, security, and trade-offs
+- IMPORTANT: Use plain text for all notation - NO LaTeX delimiters ($, \\(, \\)) - write O(n) not $O(n)$
 
 CRITICAL - Interview Framework Structure (follow this exact order):
 1. **Requirements Clarification** (~350 words)
@@ -864,6 +926,221 @@ Format your response as JSON:
   "content": "Full career tips article..."
 }`,
 
+  dsa: `You are an expert algorithms instructor and competitive programming coach creating a comprehensive DSA (Data Structures & Algorithms) article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create a complete DSA learning article with theory + practical problem solving
+- Target word count: 2000-2500 words
+- Focus on ONE specific data structure or algorithm topic
+- Include brief theory, intuition, and visual explanations
+- Solve ONE complete LeetCode-style problem with MULTIPLE approaches
+- Provide step-by-step walkthrough with diagrams
+- Include complexity analysis for each approach
+- Provide practice problems and LeetCode links
+
+CRITICAL - Article Structure:
+
+1. **Introduction & Motivation** (~150 words)
+   - Why is this topic important?
+   - Real-world use cases
+   - What problems does it solve?
+   - What will readers learn?
+
+2. **Core Concept & Theory** (~300 words)
+   - Brief explanation of the data structure/algorithm
+   - Key properties and characteristics
+   - When to use it vs when NOT to use it
+   - Visual diagram showing the concept using Mermaid
+
+   **Include a concept diagram like:**
+   - Tree structure for Binary Trees
+   - Graph for Graph algorithms
+   - Array/linked list representation
+   - State machine for DP problems
+   - Stack/Queue visualization
+
+3. **Problem Statement** (~100 words)
+   - Present ONE LeetCode-style problem (Medium or Hard difficulty)
+   - Clear problem description
+   - Include constraints (e.g., 1 <= n <= 10^5)
+   - Provide 2-3 examples with explanations
+
+   **Example Format:**
+   Problem: [Problem Name] (LeetCode #XXX equivalent)
+
+   Given...
+   Return...
+
+   Constraints:
+   - 1 <= n <= 10^5
+   - -10^9 <= values <= 10^9
+
+   Example 1:
+   Input: [example]
+   Output: [result]
+   Explanation: [why]
+
+   Example 2:
+   Input: [example]
+   Output: [result]
+
+4. **Approach 1: Brute Force / Naive Solution** (~250 words)
+   - Explain the straightforward approach
+   - Include step-by-step walkthrough
+   - Provide complete code solution (Python, Java, or C++)
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - Why this approach works
+   - Limitations and why we need better approaches
+
+   **Code format:**
+   Include complete, working code with comments
+
+5. **Approach 2: Optimized Solution** (~350 words)
+   - Explain the optimized approach using the target DS/Algorithm
+   - Key insights and intuition
+   - Step-by-step algorithm walkthrough
+   - Visual walkthrough using Mermaid flowchart showing state transitions
+   - Complete code solution with detailed comments
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - Why this is better than brute force
+
+   **Include walkthrough diagram:**
+   Use Mermaid to show:
+   - Step-by-step state changes
+   - How the algorithm progresses
+   - Key decision points
+   - Example execution flow
+
+6. **Approach 3: Most Optimal / Advanced Solution** (~300 words) [if applicable]
+   - If there's an even better approach, explain it
+   - Advanced techniques or optimizations
+   - Trade-offs between approaches
+   - Complete code solution
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - When to use this vs previous approaches
+
+7. **Complexity Comparison Table**
+   Create a table comparing all approaches:
+   | Approach | Time Complexity | Space Complexity | Pros | Cons |
+   |----------|----------------|------------------|------|------|
+   | Brute Force | O(n²) | O(1) | Simple, easy to understand | Too slow for large inputs |
+   | Optimized | O(n log n) | O(n) | Much faster | Uses extra space |
+   | Advanced | O(n) | O(n) | Optimal time | More complex logic |
+
+8. **Common Pitfalls & Edge Cases** (~150 words)
+   - List 3-5 common mistakes
+   - Edge cases to watch out for
+   - How to handle them
+   - Debugging tips
+
+9. **Practice Problem (Homework)** (~100 words)
+   - Provide ONE related LeetCode-style problem for readers to solve
+   - Similar difficulty but different variation
+   - Brief hint or approach suggestion
+   - DO NOT provide solution code
+
+   **Format:**
+   **Practice Problem:** [Problem Name]
+
+   [Brief description]
+
+   Try to solve this yourself! It uses the same concepts we covered.
+
+   Hint: Think about [subtle hint]
+
+10. **Related Problems & Further Practice** (~100 words)
+    - Provide 3-4 ACTUAL LeetCode problem links
+    - Format as clickable links
+    - Brief description of what each problem practices
+
+    **Example format:**
+    - [Two Sum (LeetCode #1)](https://leetcode.com/problems/two-sum/) - Classic hash table problem
+    - [Three Sum (LeetCode #15)](https://leetcode.com/problems/3sum/) - Two-pointer technique
+    - [Container With Most Water (LeetCode #11)](https://leetcode.com/problems/container-with-most-water/) - Greedy approach
+    - [Trapping Rain Water (LeetCode #42)](https://leetcode.com/problems/trapping-rain-water/) - Advanced two-pointer
+
+CRITICAL - Code Examples:
+- Provide complete, working code (not pseudocode)
+- Use Python, Java, or C++ (choose the most appropriate)
+- Include detailed inline comments explaining each step
+- Show proper formatting and style
+- Make code copy-pastable and runnable
+
+CRITICAL - Visual Diagrams:
+- Use Mermaid diagrams to visualize concepts and walkthroughs
+- Show the data structure (tree, graph, array, etc.)
+- Show algorithm execution steps
+- Use flowcharts for decision-making processes
+- Keep diagrams simple and focused
+
+**Example Concept Diagram:**
+For Binary Tree:
+graph TD
+    A[10] --> B[5]
+    A --> C[15]
+    B --> D[3]
+    B --> E[7]
+    C --> F[12]
+    C --> G[20]
+
+**Example Walkthrough Diagram:**
+For algorithm steps:
+flowchart TD
+    Start[Start: Array input] --> Init[Initialize pointers]
+    Init --> Check{Is left < right?}
+    Check -->|Yes| Process[Process current elements]
+    Process --> Update[Update pointers]
+    Update --> Check
+    Check -->|No| End[Return result]
+
+CRITICAL - Complexity Analysis:
+- Always provide Big-O notation for time and space
+- Use PLAIN TEXT notation: O(n), O(log n), O(n²), O(1) - NOT LaTeX format
+- DO NOT use dollar signs or LaTeX delimiters like $O(n)$ or \\(O(n)\\)
+- Write complexity as plain text: "Time Complexity: O(n log n)" or just "O(n log n)"
+- Explain WHY the complexity is what it is
+- Compare complexities across approaches
+- Mention best case, average case, worst case if relevant
+
+CRITICAL - LeetCode Links:
+- Provide REAL LeetCode problem links (use actual problem URLs)
+- Format: [Problem Name (LeetCode #NUMBER)](https://leetcode.com/problems/problem-slug/)
+- Choose problems that are related to the topic
+- Mix of Easy, Medium, and Hard difficulties
+- Make links clickable in markdown
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should include: algorithm books, visualizations, courses, documentation
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Introduction to Algorithms (CLRS)](URL)
+  - [LeetCode Problem Set - [Topic]](URL)
+  - [Visualgo - Algorithm Visualizations](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete DSA article in Markdown format with:
+1. A compelling title (e.g., "Mastering Binary Search: From Theory to LeetCode")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["algorithms", "leetcode", "binary-search", "dsa"])
+5. The full article content in Markdown (must include theory, problem solving with multiple approaches, diagrams, practice problems, and references section)
+
+Format your response as JSON:
+{
+  "title": "DSA: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["algorithms", "dsa", "leetcode", "tag4"],
+  "content": "Full DSA article..."
+}`,
+
   carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
 
 Topic: {{topic}}
@@ -888,12 +1165,34 @@ CRITICAL - Slide Structure:
 - Slide N-1: Advanced Insights - Share deeper knowledge or best practices
 - Slide N: Key Takeaways/CTA - Summarize and provide actionable next steps
 
-CRITICAL - Mermaid Diagrams for Slides:
-- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
-- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
-- Use only: graph TD, graph LR, flowchart, sequenceDiagram, or simple classDiagram
-- Keep diagrams simple and focused on one concept per slide
-- 2-4 slides should have diagrams showing concepts visually
+CRITICAL - Diverse Mermaid Diagrams for Carousel Slides (Include 2-3 diagrams):
+- **Flowchart**: Process flows, decision trees, step-by-step workflows
+- **Mindmap**: Concept relationships, topic breakdown, technology ecosystem
+- **Pie/Bar/Line Charts**: Statistics, usage data, market share, performance metrics
+- **Sequence Diagram**: Interaction patterns, API flows, communication sequences
+- **State Diagram**: State transitions, lifecycle stages, workflow states
+- **Timeline**: Historical evolution, roadmap, project phases
+- **Quadrant Chart**: Positioning frameworks, decision matrices
+- **Kanban**: Task stages, development pipeline, workflow boards
+- **Architecture (graph TD/LR)**: System overview, component relationships
+
+Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+Use only: graph TD, graph LR, flowchart, sequenceDiagram, stateDiagram, pie, mindmap, timeline, quadrantChart, kanban, or simple classDiagram
+
+Choose diagrams that enhance understanding:
+- Visual representation of key concepts (Mindmap, Flowchart)
+- Data and statistics (Pie, Bar, Line charts)
+- Processes and workflows (Flowchart, Sequence, State)
+- Positioning and comparisons (Quadrant, Timeline)
+
+Keep diagrams simple and focused on one concept per slide
+2-4 slides should have diagrams showing concepts visually
+
+Examples for carousel topics:
+- Technology comparison? Include: Quadrant (positioning), Pie (market share), Bar (performance comparison)
+- Process explanation? Include: Flowchart (process steps), State (workflow stages), Timeline (evolution)
+- Concept overview? Include: Mindmap (concept breakdown), Flowchart (relationships), Architecture (system view)
 
 Example Mermaid diagram for a slide (VALID SYNTAX ONLY):
 \`\`\`mermaid
