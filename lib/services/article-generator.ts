@@ -328,6 +328,296 @@ Format your response as JSON:
   "content": "Full case study content..."
 }`,
 
+  'systems-design': `You are a senior systems design expert creating an interview-focused systems design article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create a complete systems design framework article following the interview approach
+- Target word count: 2500-3000 words
+- Follow the logical order used in real systems design interviews
+- Include HIGH-LEVEL DESIGN (HLD) diagrams showing complete system architecture
+- Include detailed API/endpoint definitions
+- Include scale estimation calculations
+- Include data models and storage design
+- Include component-level design details
+- Address scaling, reliability, fault tolerance, security, and trade-offs
+
+CRITICAL - Interview Framework Structure (follow this exact order):
+1. **Requirements Clarification** (~300 words)
+   - Functional requirements (what the system must do)
+   - Non-functional requirements (scalability, availability, latency, consistency)
+   - Constraints and assumptions (budget, timeline, team size, existing infrastructure)
+
+2. **API / Endpoint Definitions** (~200 words)
+   - Define REST or GraphQL APIs with request/response examples
+   - Include HTTP methods, paths, request bodies, and response formats
+   - Example:
+     POST /api/posts
+     Request: { "title": "...", "content": "...", "userId": "..." }
+     Response: { "postId": "...", "status": "published", "timestamp": "..." }
+
+3. **Scale & Traffic Estimation** (~250 words)
+   - DAU (Daily Active Users) assumptions
+   - Requests per second (RPS) calculations
+   - Storage requirements estimation
+   - Bandwidth calculations
+   - Example calculation format with math shown step-by-step
+
+4. **High-Level Architecture** (~400 words)
+   - Create 1-2 HIGH-LEVEL DESIGN (HLD) Mermaid diagrams showing complete system architecture
+   - Show all major components: clients, load balancers, API gateways, services, databases, caches, message queues, CDN
+   - Show data flow between components
+   - Label connections with protocols and data types
+
+5. **Data Models & Storage Design** (~300 words)
+   - Define database schemas (SQL or NoSQL)
+   - Include tables/collections with columns/fields and data types
+   - Explain choice of database (SQL vs NoSQL, why?)
+   - Include indexing strategies
+   - Show data relationships with simple ER diagrams if needed
+
+6. **Component-Level Design** (~400 words)
+   - Deep dive into 2-3 critical components
+   - Explain internal workflows and algorithms
+   - Include sequence diagrams showing interactions between components
+   - Code-level pseudocode for complex logic if applicable
+
+7. **Scaling & Bottlenecks** (~300 words)
+   - Identify potential bottlenecks (database, single points of failure, network, etc.)
+   - Propose scaling strategies: horizontal scaling, sharding, replication, caching
+   - Include cache strategies (what to cache, TTL, cache invalidation)
+   - Message queues for async processing
+
+8. **Reliability & Fault Tolerance** (~200 words)
+   - Load balancing strategies
+   - Replication and backups
+   - Health checks and monitoring
+   - Circuit breakers and retry mechanisms
+   - Disaster recovery plans
+
+9. **Security & Compliance** (~150 words)
+   - Authentication and authorization (OAuth, JWT, API keys)
+   - Data encryption (in transit and at rest)
+   - Rate limiting and DDoS protection
+   - GDPR/privacy compliance if applicable
+
+10. **Trade-offs & Summary** (~200 words)
+    - Discuss architectural trade-offs made (CAP theorem, consistency vs availability)
+    - Alternative approaches considered
+    - Why this design is optimal for the requirements
+    - Key takeaways and final thoughts
+
+CRITICAL - High-Level Design Diagrams:
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- Create comprehensive architecture diagrams showing the COMPLETE system
+- Include: Load Balancer, API Gateway, Application Servers, Databases, Caches (Redis/Memcached), Message Queues, CDN
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, or sequenceDiagram
+- Label all connections with what data flows through them
+
+Example HLD Mermaid diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    Client[Web/Mobile Client] -->|HTTPS| CDN[CDN]
+    CDN -->|Static Assets| Client
+    Client -->|API Requests| LB[Load Balancer]
+    LB --> API1[API Server 1]
+    LB --> API2[API Server 2]
+    API1 --> Cache[(Redis Cache)]
+    API2 --> Cache
+    API1 --> Queue[Message Queue]
+    API2 --> Queue
+    Queue --> Worker[Background Workers]
+    API1 --> DB[(Primary Database)]
+    API2 --> DB
+    DB --> Replica[(Read Replica)]
+    Worker --> DB
+    Worker --> Storage[Object Storage]
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: system design books, papers, blogs (e.g., "Designing Data-Intensive Applications", "System Design Primer")
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Designing Data-Intensive Applications by Martin Kleppmann](URL)
+  - [System Design Primer GitHub Repository](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete systems design article in Markdown format with:
+1. A compelling title (e.g., "System Design: Building a Scalable URL Shortener")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["system-design", "architecture", "scalability", "interviews"])
+5. The full article content following the 10-step interview framework in Markdown (must include HLD diagrams, API definitions, calculations, and references section)
+
+Format your response as JSON:
+{
+  "title": "System Design: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["system-design", "architecture", "tag3", "tag4"],
+  "content": "Full systems design article..."
+}`,
+
+  'career-tips': `You are a senior engineering leader and career coach creating a career advancement article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create actionable career advice for technical professionals
+- Target word count: 1800-2200 words
+- Focus on career progression from Mid-level to Senior, Staff, Principal, or management tracks
+- Include VISUAL DIAGRAMS showing career frameworks, progression paths, or decision-making models
+- Include comparison tables for different roles, levels, or tracks
+- Provide real-world scenarios and decision-making guidance
+- Make it applicable and actionable
+
+CRITICAL - Content Structure:
+1. **Introduction & Context** (~200 words)
+   - Set the stage: why this career topic matters
+   - What level/role is this advice for?
+   - What problem or opportunity does it address?
+
+2. **Core Framework or Strategy** (~400 words)
+   - Present the main career framework, model, or strategy
+   - Use a Mermaid diagram to visualize the framework
+   - Break down into clear, actionable components
+   - Explain the "why" behind each component
+
+3. **Level-by-Level Breakdown** (~600 words)
+   - Detail expectations for different levels (Senior, Staff, Principal, etc.)
+   - Include a comparison table showing:
+     - Skills required at each level
+     - Impact scope and ownership
+     - Communication and collaboration expectations
+     - Technical vs leadership balance
+   - Make it specific and concrete with examples
+
+4. **Real-World Scenarios** (~300 words)
+   - Provide 2-3 realistic scenarios or case studies
+   - Show decision-making processes
+   - Explain what success looks like at each level
+   - Include common pitfalls to avoid
+
+5. **Actionable Steps & Takeaways** (~300 words)
+   - Concrete steps readers can take TODAY
+   - How to assess where you are now
+   - How to create a development plan
+   - Resources for continued growth
+
+CRITICAL - Mermaid Diagrams for Career Frameworks:
+- Use ONLY basic Mermaid syntax wrapped in \`\`\`mermaid code blocks
+- Use diagrams to show:
+  - Career progression paths (IC vs Manager tracks)
+  - Decision-making frameworks (quadrants, flowcharts)
+  - Skills/competency models
+  - Timeline or user journey diagrams showing career progression
+  - Kanban boards for personal development
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Supported diagram types: graph TD, graph LR, flowchart, pie, timeline, journey, quadrantChart, gitGraph, gantt
+- Create 2-3 visual diagrams to make concepts clear
+
+Example Career Path Diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    A[Mid-Level Engineer] --> B{Career Choice}
+    B -->|IC Track| C[Senior Engineer]
+    C --> D[Staff Engineer]
+    D --> E[Principal Engineer]
+    B -->|Management Track| F[Engineering Manager]
+    F --> G[Senior EM]
+    G --> H[Director]
+\`\`\`
+
+Example Quadrant Chart (Skills vs Impact):
+\`\`\`mermaid
+quadrantChart
+    title Skills vs Impact by Level
+    x-axis Low Technical Skill --> High Technical Skill
+    y-axis Low Impact --> High Impact
+    quadrant-1 Principal/Staff
+    quadrant-2 Senior Manager
+    quadrant-3 Junior
+    quadrant-4 Senior IC
+    Mid: [0.3, 0.3]
+    Senior: [0.6, 0.5]
+    Staff: [0.8, 0.8]
+    Principal: [0.9, 0.9]
+\`\`\`
+
+Example User Journey (Career Progression):
+\`\`\`mermaid
+journey
+    title Career Growth Journey
+    section Year 1-2
+      Learn fundamentals: 3: IC
+      Ship features: 4: IC
+      Get mentorship: 4: IC
+    section Year 3-4
+      Lead projects: 5: IC
+      Mentor others: 4: IC
+      Drive technical decisions: 5: IC
+    section Year 5+
+      Influence org strategy: 5: IC
+      Set technical direction: 5: IC
+      Grow other leaders: 5: IC
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Charts should clearly illustrate career frameworks.
+
+CRITICAL - Comparison Tables:
+- Include 1-2 markdown tables comparing:
+  - IC (Individual Contributor) vs Manager tracks
+  - Role expectations across levels (Senior, Staff, Principal)
+  - Skills matrix (technical, communication, leadership)
+  - Impact and scope at each level
+- Tables should be clear and scannable (3-5 columns, 4-6 rows max)
+
+Example Level Comparison Table:
+| Level | Technical Depth | Scope of Impact | Leadership | Autonomy |
+|-------|----------------|-----------------|------------|----------|
+| Senior | Expert in 1-2 areas | Team | Mentors 1-2 | High |
+| Staff | Expert in multiple areas | Multiple teams | Leads initiatives | Very High |
+| Principal | Industry expert | Org-wide | Shapes culture | Autonomous |
+
+CRITICAL - Actionable Advice:
+- Provide specific, concrete actions readers can take
+- Include self-assessment questions
+- Suggest resources, books, communities
+- Make it practical and immediately applicable
+- Avoid vague platitudes; be specific
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should include: career development books, blogs, frameworks (e.g., "Staff Engineer" by Will Larson, "The Manager's Path")
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Staff Engineer: Leadership Beyond the Management Track](URL)
+  - [The Manager's Path by Camille Fournier](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete career tips article in Markdown format with:
+1. A compelling title (e.g., "From Senior to Staff: A Framework for IC Career Growth")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["career", "leadership", "staff-engineer", "growth"])
+5. The full article content in Markdown (must include career diagrams, comparison tables, and references section)
+
+Format your response as JSON:
+{
+  "title": "Career Tips: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["career", "leadership", "tag3", "tag4"],
+  "content": "Full career tips article..."
+}`,
+
   carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
 
 Topic: {{topic}}
