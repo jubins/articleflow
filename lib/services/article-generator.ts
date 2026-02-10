@@ -328,6 +328,542 @@ Format your response as JSON:
   "content": "Full case study content..."
 }`,
 
+  'systems-design': `You are a senior systems design expert creating an interview-focused systems design article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create a complete systems design framework article following the interview approach
+- Target word count: 3500-4500 words (comprehensive coverage with detailed examples)
+- Follow the logical order used in real systems design interviews
+- Include HIGH-LEVEL DESIGN (HLD) diagrams showing complete system architecture
+- Include detailed API/endpoint definitions
+- Include scale estimation calculations
+- Include data models and storage design
+- Include component-level design details
+- Address scaling, reliability, fault tolerance, security, and trade-offs
+
+CRITICAL - Interview Framework Structure (follow this exact order):
+1. **Requirements Clarification** (~350 words)
+   - Present requirements in TABLES for clarity and scannability
+
+   **Functional Requirements Table:**
+   | Requirement ID | Feature | Description | Priority |
+   |----------------|---------|-------------|----------|
+   | FR-1 | User Registration | Users can sign up with email/password | High |
+   | FR-2 | Content Creation | Users can create and publish posts | High |
+   | FR-3 | Search | Full-text search across content | Medium |
+   (Include 5-7 functional requirements relevant to the system)
+
+   **Non-Functional Requirements Table:**
+   | Category | Requirement | Target Metric |
+   |----------|-------------|---------------|
+   | Scalability | Support growth | Handle 10M+ users |
+   | Availability | High uptime | 99.9% availability |
+   | Latency | Fast response | <200ms API response |
+   | Consistency | Data accuracy | Eventual consistency acceptable |
+   | Durability | Data persistence | Zero data loss |
+   (Include 4-6 non-functional requirements)
+
+   **Constraints & Assumptions Table:**
+   | Category | Constraint/Assumption | Details |
+   |----------|----------------------|---------|
+   | Budget | Infrastructure cost | $X/month cloud budget |
+   | Timeline | Development time | 6 months to MVP |
+   | Team | Engineering resources | 5 backend, 3 frontend engineers |
+   | Technology | Existing stack | Must integrate with existing auth system |
+   (Include 3-5 constraints)
+
+2. **API / Endpoint Definitions** (~400 words)
+   - Define 7-9 COMPLETE REST APIs with detailed request/response examples
+   - Cover all CRUD operations and key system operations
+   - Include HTTP methods, paths, headers, request bodies, response formats, and status codes
+   - Group endpoints logically (e.g., User APIs, Content APIs, Analytics APIs)
+
+   **Example Format (provide 7-9 endpoints like this):**
+
+   **1. Create User Account**
+   POST /api/v1/users/register
+   Headers: Content-Type: application/json
+
+   Request Body:
+   {
+     "email": "user@example.com",
+     "password": "securePass123",
+     "username": "johndoe",
+     "fullName": "John Doe"
+   }
+
+   Response (201 Created):
+   {
+     "userId": "usr_abc123",
+     "email": "user@example.com",
+     "username": "johndoe",
+     "createdAt": "2024-01-15T10:30:00Z",
+     "authToken": "eyJhbGc..."
+   }
+
+   Error (400 Bad Request):
+   {
+     "error": "EMAIL_EXISTS",
+     "message": "An account with this email already exists"
+   }
+
+   **2. User Login**
+   POST /api/v1/auth/login
+   Headers: Content-Type: application/json
+
+   Request Body:
+   {
+     "email": "user@example.com",
+     "password": "securePass123"
+   }
+
+   Response (200 OK):
+   {
+     "userId": "usr_abc123",
+     "authToken": "eyJhbGc...",
+     "refreshToken": "refresh_xyz789",
+     "expiresIn": 3600
+   }
+
+   **3. Create Post/Content**
+   POST /api/v1/posts
+   Headers: Authorization: Bearer eyJhbGc..., Content-Type: application/json
+
+   Request Body:
+   {
+     "title": "My First Post",
+     "content": "This is the post content...",
+     "tags": ["tech", "programming"],
+     "visibility": "public"
+   }
+
+   Response (201 Created):
+   {
+     "postId": "post_xyz456",
+     "title": "My First Post",
+     "authorId": "usr_abc123",
+     "createdAt": "2024-01-15T11:00:00Z",
+     "status": "published",
+     "url": "https://example.com/posts/post_xyz456"
+   }
+
+   **Continue with 4-6 more endpoints covering:**
+   - GET /api/v1/posts/{postId} - Retrieve a post
+   - PUT /api/v1/posts/{postId} - Update a post
+   - DELETE /api/v1/posts/{postId} - Delete a post
+   - GET /api/v1/posts?page=1&limit=20 - List posts with pagination
+   - GET /api/v1/users/{userId}/profile - Get user profile
+   - POST /api/v1/search - Search content
+
+   Include full request/response examples for ALL 7-9 endpoints.
+
+3. **Scale & Traffic Estimation** (~250 words)
+   - DAU (Daily Active Users) assumptions
+   - Requests per second (RPS) calculations
+   - Storage requirements estimation
+   - Bandwidth calculations
+   - Example calculation format with math shown step-by-step
+
+4. **High-Level Architecture** (~400 words)
+   - Create 1-2 HIGH-LEVEL DESIGN (HLD) Mermaid diagrams showing complete system architecture
+   - Show all major components: clients, load balancers, API gateways, services, databases, caches, message queues, CDN
+   - Show data flow between components
+   - Label connections with protocols and data types
+
+5. **Data Models & Storage Design** (~450 words)
+   - Cover ALL storage types used in the system: Relational DB, NoSQL, Redis/Cache, Object Storage
+   - Provide detailed schemas for each storage type
+   - Explain WHY each storage type is chosen for specific use cases
+
+   **A. Relational Database (PostgreSQL/MySQL) - Primary Data Store**
+   - Define complete table schemas with columns, data types, and constraints
+   - Include Entity Relationship Diagram (ERD) using Mermaid
+   - Show relationships: one-to-one, one-to-many, many-to-many
+   - Include indexing strategies for performance
+
+   **Example Table Schemas (use proper SQL formatting in article):**
+
+   -- Users Table
+   CREATE TABLE users (
+     user_id UUID PRIMARY KEY,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     username VARCHAR(50) UNIQUE NOT NULL,
+     password_hash VARCHAR(255) NOT NULL,
+     full_name VARCHAR(100),
+     created_at TIMESTAMP DEFAULT NOW(),
+     updated_at TIMESTAMP DEFAULT NOW(),
+     INDEX idx_email (email),
+     INDEX idx_username (username)
+   );
+
+   -- Posts Table
+   CREATE TABLE posts (
+     post_id UUID PRIMARY KEY,
+     author_id UUID NOT NULL,
+     title VARCHAR(500) NOT NULL,
+     content TEXT NOT NULL,
+     status VARCHAR(20) DEFAULT 'draft',
+     created_at TIMESTAMP DEFAULT NOW(),
+     updated_at TIMESTAMP DEFAULT NOW(),
+     FOREIGN KEY (author_id) REFERENCES users(user_id) ON DELETE CASCADE,
+     INDEX idx_author (author_id),
+     INDEX idx_status (status),
+     INDEX idx_created (created_at)
+   );
+
+   **ERD Diagram (using Mermaid - wrap in proper mermaid code block in article):**
+
+   erDiagram
+     USERS ||--o{ POSTS : creates
+     USERS ||--o{ COMMENTS : writes
+     POSTS ||--o{ COMMENTS : has
+     POSTS }o--o{ TAGS : tagged_with
+     USERS {
+       uuid user_id PK
+       string email UK
+       string username UK
+       string password_hash
+       timestamp created_at
+     }
+     POSTS {
+       uuid post_id PK
+       uuid author_id FK
+       string title
+       text content
+       string status
+       timestamp created_at
+     }
+     COMMENTS {
+       uuid comment_id PK
+       uuid post_id FK
+       uuid user_id FK
+       text content
+       timestamp created_at
+     }
+     TAGS {
+       uuid tag_id PK
+       string name UK
+     }
+
+   **B. NoSQL Database (MongoDB/DynamoDB) - For Flexible/High-Write Data**
+   - Use for data that needs flexible schema or high write throughput
+   - Define document/item structures with nested fields
+
+   **Example Document Schemas (format as JSON in article):**
+
+   // User Activity Log Collection (MongoDB)
+   {
+     "_id": "log_abc123",
+     "userId": "usr_abc123",
+     "eventType": "page_view",
+     "timestamp": "2024-01-15T10:30:00Z",
+     "metadata": {
+       "pageUrl": "/posts/post_xyz456",
+       "referrer": "https://google.com",
+       "deviceType": "mobile",
+       "location": {
+         "country": "US",
+         "city": "San Francisco"
+       }
+     }
+   }
+
+   // Analytics Aggregations (DynamoDB)
+   {
+     "PK": "ANALYTICS#2024-01-15",
+     "SK": "POST#post_xyz456",
+     "views": 1250,
+     "likes": 45,
+     "comments": 12,
+     "shares": 8
+   }
+
+   **C. Redis Cache - For Hot Data & Session Storage**
+   - Define caching strategies with TTL (Time To Live)
+   - Show key patterns and data structures used
+
+   **Redis Key Patterns & Structures:**
+
+   // User Session (Hash) - TTL: 24 hours
+   Key: session:{sessionId}
+   Value: {"userId": "usr_abc123", "authToken": "eyJhbGc...", "loginTime": "2024-01-15T10:00:00Z"}
+
+   // Hot Posts Cache (String) - TTL: 5 minutes
+   Key: post:{postId}
+   Value: <JSON string of post data>
+
+   // User Feed Cache (List) - TTL: 10 minutes
+   Key: feed:{userId}
+   Value: [postId1, postId2, postId3, ...]
+
+   // Post View Counter (String) - TTL: 1 hour
+   Key: post:views:{postId}
+   Value: 1250
+
+   // Rate Limiting (String with expiry)
+   Key: ratelimit:{userId}:{endpoint}
+   Value: 45 (request count)
+   TTL: 60 seconds
+
+   **D. Object Storage (S3/GCS) - For Media Files**
+
+   Structure:
+   /uploads/{userId}/{fileId}.{ext}
+   /thumbnails/{postId}/{size}.jpg
+   /avatars/{userId}/profile.jpg
+
+   Metadata stored in relational DB:
+   - file_id, user_id, file_path, file_size, mime_type, uploaded_at
+
+   **Why This Storage Architecture?**
+   - **Relational DB**: Transactional consistency for core data (users, posts, relationships)
+   - **NoSQL**: Flexible schema for analytics, logs, and time-series data
+   - **Redis**: Ultra-fast access for sessions, hot data, rate limiting, counters
+   - **Object Storage**: Cost-effective storage for large binary files (images, videos)
+
+6. **Component-Level Design** (~400 words)
+   - Deep dive into 2-3 critical components
+   - Explain internal workflows and algorithms
+   - Include sequence diagrams showing interactions between components
+   - Code-level pseudocode for complex logic if applicable
+
+7. **Scaling & Bottlenecks** (~300 words)
+   - Identify potential bottlenecks (database, single points of failure, network, etc.)
+   - Propose scaling strategies: horizontal scaling, sharding, replication, caching
+   - Include cache strategies (what to cache, TTL, cache invalidation)
+   - Message queues for async processing
+
+8. **Reliability & Fault Tolerance** (~200 words)
+   - Load balancing strategies
+   - Replication and backups
+   - Health checks and monitoring
+   - Circuit breakers and retry mechanisms
+   - Disaster recovery plans
+
+9. **Security & Compliance** (~150 words)
+   - Authentication and authorization (OAuth, JWT, API keys)
+   - Data encryption (in transit and at rest)
+   - Rate limiting and DDoS protection
+   - GDPR/privacy compliance if applicable
+
+10. **Trade-offs & Summary** (~200 words)
+    - Discuss architectural trade-offs made (CAP theorem, consistency vs availability)
+    - Alternative approaches considered
+    - Why this design is optimal for the requirements
+    - Key takeaways and final thoughts
+
+CRITICAL - High-Level Design Diagrams:
+- Use ONLY basic Mermaid graph syntax wrapped in \`\`\`mermaid code blocks
+- Create comprehensive architecture diagrams showing the COMPLETE system
+- Include: Load Balancer, API Gateway, Application Servers, Databases, Caches (Redis/Memcached), Message Queues, CDN
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Use only: graph TD, graph LR, flowchart, or sequenceDiagram
+- Label all connections with what data flows through them
+
+Example HLD Mermaid diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    Client[Web/Mobile Client] -->|HTTPS| CDN[CDN]
+    CDN -->|Static Assets| Client
+    Client -->|API Requests| LB[Load Balancer]
+    LB --> API1[API Server 1]
+    LB --> API2[API Server 2]
+    API1 --> Cache[(Redis Cache)]
+    API2 --> Cache
+    API1 --> Queue[Message Queue]
+    API2 --> Queue
+    Queue --> Worker[Background Workers]
+    API1 --> DB[(Primary Database)]
+    API2 --> DB
+    DB --> Replica[(Read Replica)]
+    Worker --> DB
+    Worker --> Storage[Object Storage]
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Do NOT use cloud, server, database, compute, or auth keywords.
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should be authoritative sources: system design books, papers, blogs (e.g., "Designing Data-Intensive Applications", "System Design Primer")
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Designing Data-Intensive Applications by Martin Kleppmann](URL)
+  - [System Design Primer GitHub Repository](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete systems design article in Markdown format with:
+1. A compelling title (e.g., "System Design: Building a Scalable URL Shortener")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["system-design", "architecture", "scalability", "interviews"])
+5. The full article content following the 10-step interview framework in Markdown (must include HLD diagrams, API definitions, calculations, and references section)
+
+Format your response as JSON:
+{
+  "title": "System Design: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["system-design", "architecture", "tag3", "tag4"],
+  "content": "Full systems design article..."
+}`,
+
+  'career-tips': `You are a senior engineering leader and career coach creating a career advancement article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create actionable career advice for technical professionals
+- Target word count: 1800-2200 words
+- Focus on career progression from Mid-level to Senior, Staff, Principal, or management tracks
+- Include VISUAL DIAGRAMS showing career frameworks, progression paths, or decision-making models
+- Include comparison tables for different roles, levels, or tracks
+- Provide real-world scenarios and decision-making guidance
+- Make it applicable and actionable
+
+CRITICAL - Content Structure:
+1. **Introduction & Context** (~200 words)
+   - Set the stage: why this career topic matters
+   - What level/role is this advice for?
+   - What problem or opportunity does it address?
+
+2. **Core Framework or Strategy** (~400 words)
+   - Present the main career framework, model, or strategy
+   - Use a Mermaid diagram to visualize the framework
+   - Break down into clear, actionable components
+   - Explain the "why" behind each component
+
+3. **Level-by-Level Breakdown** (~600 words)
+   - Detail expectations for different levels (Senior, Staff, Principal, etc.)
+   - Include a comparison table showing:
+     - Skills required at each level
+     - Impact scope and ownership
+     - Communication and collaboration expectations
+     - Technical vs leadership balance
+   - Make it specific and concrete with examples
+
+4. **Real-World Scenarios** (~300 words)
+   - Provide 2-3 realistic scenarios or case studies
+   - Show decision-making processes
+   - Explain what success looks like at each level
+   - Include common pitfalls to avoid
+
+5. **Actionable Steps & Takeaways** (~300 words)
+   - Concrete steps readers can take TODAY
+   - How to assess where you are now
+   - How to create a development plan
+   - Resources for continued growth
+
+CRITICAL - Mermaid Diagrams for Career Frameworks:
+- Use ONLY basic Mermaid syntax wrapped in \`\`\`mermaid code blocks
+- Use diagrams to show:
+  - Career progression paths (IC vs Manager tracks)
+  - Decision-making frameworks (quadrants, flowcharts)
+  - Skills/competency models
+  - Timeline or user journey diagrams showing career progression
+  - Kanban boards for personal development
+- DO NOT use C4 diagrams, cloud/server/database/compute/auth keywords, or advanced Mermaid features
+- Supported diagram types: graph TD, graph LR, flowchart, pie, timeline, journey, quadrantChart, gitGraph, gantt
+- Create 2-3 visual diagrams to make concepts clear
+
+Example Career Path Diagram (VALID SYNTAX ONLY):
+\`\`\`mermaid
+graph TD
+    A[Mid-Level Engineer] --> B{Career Choice}
+    B -->|IC Track| C[Senior Engineer]
+    C --> D[Staff Engineer]
+    D --> E[Principal Engineer]
+    B -->|Management Track| F[Engineering Manager]
+    F --> G[Senior EM]
+    G --> H[Director]
+\`\`\`
+
+Example Quadrant Chart (Skills vs Impact):
+\`\`\`mermaid
+quadrantChart
+    title Skills vs Impact by Level
+    x-axis Low Technical Skill --> High Technical Skill
+    y-axis Low Impact --> High Impact
+    quadrant-1 Principal/Staff
+    quadrant-2 Senior Manager
+    quadrant-3 Junior
+    quadrant-4 Senior IC
+    Mid: [0.3, 0.3]
+    Senior: [0.6, 0.5]
+    Staff: [0.8, 0.8]
+    Principal: [0.9, 0.9]
+\`\`\`
+
+Example User Journey (Career Progression):
+\`\`\`mermaid
+journey
+    title Career Growth Journey
+    section Year 1-2
+      Learn fundamentals: 3: IC
+      Ship features: 4: IC
+      Get mentorship: 4: IC
+    section Year 3-4
+      Lead projects: 5: IC
+      Mentor others: 4: IC
+      Drive technical decisions: 5: IC
+    section Year 5+
+      Influence org strategy: 5: IC
+      Set technical direction: 5: IC
+      Grow other leaders: 5: IC
+\`\`\`
+
+IMPORTANT: Only use basic Mermaid syntax. Charts should clearly illustrate career frameworks.
+
+CRITICAL - Comparison Tables:
+- Include 1-2 markdown tables comparing:
+  - IC (Individual Contributor) vs Manager tracks
+  - Role expectations across levels (Senior, Staff, Principal)
+  - Skills matrix (technical, communication, leadership)
+  - Impact and scope at each level
+- Tables should be clear and scannable (3-5 columns, 4-6 rows max)
+
+Example Level Comparison Table:
+| Level | Technical Depth | Scope of Impact | Leadership | Autonomy |
+|-------|----------------|-----------------|------------|----------|
+| Senior | Expert in 1-2 areas | Team | Mentors 1-2 | High |
+| Staff | Expert in multiple areas | Multiple teams | Leads initiatives | Very High |
+| Principal | Industry expert | Org-wide | Shapes culture | Autonomous |
+
+CRITICAL - Actionable Advice:
+- Provide specific, concrete actions readers can take
+- Include self-assessment questions
+- Suggest resources, books, communities
+- Make it practical and immediately applicable
+- Avoid vague platitudes; be specific
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should include: career development books, blogs, frameworks (e.g., "Staff Engineer" by Will Larson, "The Manager's Path")
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Staff Engineer: Leadership Beyond the Management Track](URL)
+  - [The Manager's Path by Camille Fournier](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete career tips article in Markdown format with:
+1. A compelling title (e.g., "From Senior to Staff: A Framework for IC Career Growth")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["career", "leadership", "staff-engineer", "growth"])
+5. The full article content in Markdown (must include career diagrams, comparison tables, and references section)
+
+Format your response as JSON:
+{
+  "title": "Career Tips: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["career", "leadership", "tag3", "tag4"],
+  "content": "Full career tips article..."
+}`,
+
   carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
 
 Topic: {{topic}}

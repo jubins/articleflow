@@ -33,6 +33,11 @@ const ARTICLE_TYPES = [
     description: 'Step-by-step guide to accomplish a specific task or learn a technology',
   },
   {
+    value: 'systems-design',
+    label: 'Interview Systems Design',
+    description: 'Complete systems design framework for interviews with HLDs, scaling, and trade-offs',
+  },
+  {
     value: 'comparison',
     label: 'Comparison / Review',
     description: 'Compare tools, frameworks, or approaches with detailed analysis tables',
@@ -46,6 +51,11 @@ const ARTICLE_TYPES = [
     value: 'case-study',
     label: 'Case Study',
     description: 'Real-world implementation story with architecture and results',
+  },
+  {
+    value: 'career-tips',
+    label: 'Career Tips',
+    description: 'Career advancement advice with diagrams, tables, and actionable insights',
   },
   {
     value: 'carousel',
@@ -243,6 +253,17 @@ export default function GeneratePage() {
                             <li>• Prerequisites and setup guide</li>
                           </>
                         )}
+                        {formData.articleType === 'systems-design' && (
+                          <>
+                            <li>• Complete interview framework (requirements → trade-offs)</li>
+                            <li>• High-level architecture diagrams (HLD)</li>
+                            <li>• API/endpoint definitions with examples</li>
+                            <li>• Scale estimation and traffic calculations</li>
+                            <li>• Data models and storage design</li>
+                            <li>• Scaling, reliability, and fault tolerance strategies</li>
+                            <li>• Security, compliance, and trade-off analysis</li>
+                          </>
+                        )}
                         {formData.articleType === 'comparison' && (
                           <>
                             <li>• Detailed comparison tables</li>
@@ -267,9 +288,19 @@ export default function GeneratePage() {
                             <li>• Lessons learned and takeaways</li>
                           </>
                         )}
+                        {formData.articleType === 'career-tips' && (
+                          <>
+                            <li>• Career advancement strategies and frameworks</li>
+                            <li>• Actionable advice for different levels (Senior, Staff, Principal)</li>
+                            <li>• Visual diagrams (Kanban, timelines, user journeys, quadrants)</li>
+                            <li>• Comparison tables for IC vs Manager tracks</li>
+                            <li>• Real-world scenarios and decision-making guidance</li>
+                            <li>• Skills, behaviors, and impact expectations</li>
+                          </>
+                        )}
                         {formData.articleType === 'carousel' && (
                           <>
-                            <li>• 4-5 engaging slides with visual diagrams</li>
+                            <li>• 4-10 engaging slides with visual diagrams</li>
                             <li>• Progressive learning from basic to advanced</li>
                             <li>• Mermaid diagrams or text-based slides</li>
                             <li>• Ends with enlightening insights or key takeaways</li>

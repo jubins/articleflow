@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -14,6 +14,37 @@ interface NavItem {
 export function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const sidebar = document.getElementById('mobile-sidebar')
+      const hamburger = document.getElementById('hamburger-button')
+      if (
+        isMobileMenuOpen &&
+        sidebar &&
+        !sidebar.contains(event.target as Node) &&
+        hamburger &&
+        !hamburger.contains(event.target as Node)
+      ) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMobileMenuOpen])
 
   const navItems: NavItem[] = [
     // Overview
@@ -50,12 +81,13 @@ export function Sidebar() {
     },
     // Features
     {
-      href: '/integrations',
-      label: 'API Keys',
+      href: '/ai-settings',
+      label: 'AI Settings',
       section: 'features',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
     },
@@ -83,16 +115,48 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 z-40 ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
+      {/* Mobile Menu Button - visible only on mobile */}
+      <button
+        id="hamburger-button"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed left-4 top-20 z-50 bg-white border border-gray-200 rounded-lg p-2 hover:bg-gray-50 transition-colors shadow-md"
+        aria-label="Toggle menu"
       >
-        {/* Collapse Button */}
+        <svg
+          className="w-6 h-6 text-gray-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {isMobileMenuOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 top-16"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop: always visible, Mobile: slide-in drawer */}
+      <aside
+        id="mobile-sidebar"
+        className={`fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 z-40
+          ${isCollapsed ? 'w-20' : 'w-64'}
+          lg:translate-x-0
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Collapse Button - Desktop only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1.5 hover:bg-gray-50 transition-colors shadow-sm"
+          className="hidden lg:block absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1.5 hover:bg-gray-50 transition-colors shadow-sm"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <svg
@@ -138,8 +202,8 @@ export function Sidebar() {
         </nav>
       </aside>
 
-      {/* Main content spacer */}
-      <div className={`transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`} />
+      {/* Main content spacer - only on desktop */}
+      <div className={`hidden lg:block transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`} />
     </>
   )
 }

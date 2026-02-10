@@ -10,7 +10,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-export default function IntegrationsPage() {
+export default function AISettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -104,7 +104,7 @@ export default function IntegrationsPage() {
     <AuthLayout>
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">API Keys</h1>
+          <h1 className="text-4xl font-bold text-gray-900">AI Settings</h1>
           <p className="text-gray-600 mt-2 text-lg">Configure your AI provider API keys to start generating articles</p>
         </div>
 
