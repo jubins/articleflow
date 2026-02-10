@@ -864,6 +864,218 @@ Format your response as JSON:
   "content": "Full career tips article..."
 }`,
 
+  dsa: `You are an expert algorithms instructor and competitive programming coach creating a comprehensive DSA (Data Structures & Algorithms) article for {{platform}}.
+
+Topic: {{topic}}
+
+Requirements:
+- Create a complete DSA learning article with theory + practical problem solving
+- Target word count: 2000-2500 words
+- Focus on ONE specific data structure or algorithm topic
+- Include brief theory, intuition, and visual explanations
+- Solve ONE complete LeetCode-style problem with MULTIPLE approaches
+- Provide step-by-step walkthrough with diagrams
+- Include complexity analysis for each approach
+- Provide practice problems and LeetCode links
+
+CRITICAL - Article Structure:
+
+1. **Introduction & Motivation** (~150 words)
+   - Why is this topic important?
+   - Real-world use cases
+   - What problems does it solve?
+   - What will readers learn?
+
+2. **Core Concept & Theory** (~300 words)
+   - Brief explanation of the data structure/algorithm
+   - Key properties and characteristics
+   - When to use it vs when NOT to use it
+   - Visual diagram showing the concept using Mermaid
+
+   **Include a concept diagram like:**
+   - Tree structure for Binary Trees
+   - Graph for Graph algorithms
+   - Array/linked list representation
+   - State machine for DP problems
+   - Stack/Queue visualization
+
+3. **Problem Statement** (~100 words)
+   - Present ONE LeetCode-style problem (Medium or Hard difficulty)
+   - Clear problem description
+   - Include constraints (e.g., 1 <= n <= 10^5)
+   - Provide 2-3 examples with explanations
+
+   **Example Format:**
+   Problem: [Problem Name] (LeetCode #XXX equivalent)
+
+   Given...
+   Return...
+
+   Constraints:
+   - 1 <= n <= 10^5
+   - -10^9 <= values <= 10^9
+
+   Example 1:
+   Input: [example]
+   Output: [result]
+   Explanation: [why]
+
+   Example 2:
+   Input: [example]
+   Output: [result]
+
+4. **Approach 1: Brute Force / Naive Solution** (~250 words)
+   - Explain the straightforward approach
+   - Include step-by-step walkthrough
+   - Provide complete code solution (Python, Java, or C++)
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - Why this approach works
+   - Limitations and why we need better approaches
+
+   **Code format:**
+   Include complete, working code with comments
+
+5. **Approach 2: Optimized Solution** (~350 words)
+   - Explain the optimized approach using the target DS/Algorithm
+   - Key insights and intuition
+   - Step-by-step algorithm walkthrough
+   - Visual walkthrough using Mermaid flowchart showing state transitions
+   - Complete code solution with detailed comments
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - Why this is better than brute force
+
+   **Include walkthrough diagram:**
+   Use Mermaid to show:
+   - Step-by-step state changes
+   - How the algorithm progresses
+   - Key decision points
+   - Example execution flow
+
+6. **Approach 3: Most Optimal / Advanced Solution** (~300 words) [if applicable]
+   - If there's an even better approach, explain it
+   - Advanced techniques or optimizations
+   - Trade-offs between approaches
+   - Complete code solution
+   - Time Complexity: O(?)
+   - Space Complexity: O(?)
+   - When to use this vs previous approaches
+
+7. **Complexity Comparison Table**
+   Create a table comparing all approaches:
+   | Approach | Time Complexity | Space Complexity | Pros | Cons |
+   |----------|----------------|------------------|------|------|
+   | Brute Force | O(n²) | O(1) | Simple, easy to understand | Too slow for large inputs |
+   | Optimized | O(n log n) | O(n) | Much faster | Uses extra space |
+   | Advanced | O(n) | O(n) | Optimal time | More complex logic |
+
+8. **Common Pitfalls & Edge Cases** (~150 words)
+   - List 3-5 common mistakes
+   - Edge cases to watch out for
+   - How to handle them
+   - Debugging tips
+
+9. **Practice Problem (Homework)** (~100 words)
+   - Provide ONE related LeetCode-style problem for readers to solve
+   - Similar difficulty but different variation
+   - Brief hint or approach suggestion
+   - DO NOT provide solution code
+
+   **Format:**
+   **Practice Problem:** [Problem Name]
+
+   [Brief description]
+
+   Try to solve this yourself! It uses the same concepts we covered.
+
+   Hint: Think about [subtle hint]
+
+10. **Related Problems & Further Practice** (~100 words)
+    - Provide 3-4 ACTUAL LeetCode problem links
+    - Format as clickable links
+    - Brief description of what each problem practices
+
+    **Example format:**
+    - [Two Sum (LeetCode #1)](https://leetcode.com/problems/two-sum/) - Classic hash table problem
+    - [Three Sum (LeetCode #15)](https://leetcode.com/problems/3sum/) - Two-pointer technique
+    - [Container With Most Water (LeetCode #11)](https://leetcode.com/problems/container-with-most-water/) - Greedy approach
+    - [Trapping Rain Water (LeetCode #42)](https://leetcode.com/problems/trapping-rain-water/) - Advanced two-pointer
+
+CRITICAL - Code Examples:
+- Provide complete, working code (not pseudocode)
+- Use Python, Java, or C++ (choose the most appropriate)
+- Include detailed inline comments explaining each step
+- Show proper formatting and style
+- Make code copy-pastable and runnable
+
+CRITICAL - Visual Diagrams:
+- Use Mermaid diagrams to visualize concepts and walkthroughs
+- Show the data structure (tree, graph, array, etc.)
+- Show algorithm execution steps
+- Use flowcharts for decision-making processes
+- Keep diagrams simple and focused
+
+**Example Concept Diagram:**
+For Binary Tree:
+graph TD
+    A[10] --> B[5]
+    A --> C[15]
+    B --> D[3]
+    B --> E[7]
+    C --> F[12]
+    C --> G[20]
+
+**Example Walkthrough Diagram:**
+For algorithm steps:
+flowchart TD
+    Start[Start: Array input] --> Init[Initialize pointers]
+    Init --> Check{Is left < right?}
+    Check -->|Yes| Process[Process current elements]
+    Process --> Update[Update pointers]
+    Update --> Check
+    Check -->|No| End[Return result]
+
+CRITICAL - Complexity Analysis:
+- Always provide Big-O notation for time and space
+- Explain WHY the complexity is what it is
+- Compare complexities across approaches
+- Mention best case, average case, worst case if relevant
+
+CRITICAL - LeetCode Links:
+- Provide REAL LeetCode problem links (use actual problem URLs)
+- Format: [Problem Name (LeetCode #NUMBER)](https://leetcode.com/problems/problem-slug/)
+- Choose problems that are related to the topic
+- Mix of Easy, Medium, and Hard difficulties
+- Make links clickable in markdown
+
+CRITICAL - References Section:
+- End the article with a "## Further Reading & Resources" section
+- Include 4-5 relevant references as a bulleted list
+- References should include: algorithm books, visualizations, courses, documentation
+- Format each reference as a simple hyperlinked text WITHOUT any description after it
+- Example format:
+  - [Introduction to Algorithms (CLRS)](URL)
+  - [LeetCode Problem Set - [Topic]](URL)
+  - [Visualgo - Algorithm Visualizations](URL)
+- DO NOT add any text or description after the hyperlink
+
+Generate a complete DSA article in Markdown format with:
+1. A compelling title (e.g., "Mastering Binary Search: From Theory to LeetCode")
+2. A brief description (MUST be between 151-160 characters - not shorter, not longer)
+3. A TL;DR summary (MUST be exactly 135 characters or less)
+4. 3-5 relevant tags (e.g., ["algorithms", "leetcode", "binary-search", "dsa"])
+5. The full article content in Markdown (must include theory, problem solving with multiple approaches, diagrams, practice problems, and references section)
+
+Format your response as JSON:
+{
+  "title": "DSA: [Topic]",
+  "description": "Brief description for SEO (151-160 characters)",
+  "tldr": "TL;DR summary (135 characters max)",
+  "tags": ["algorithms", "dsa", "leetcode", "tag4"],
+  "content": "Full DSA article..."
+}`,
+
   carousel: `You are a technical content writer creating a LinkedIn carousel for {{platform}}.
 
 Topic: {{topic}}
